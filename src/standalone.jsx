@@ -53,6 +53,9 @@ function ProductPreview({
   shimmerSize,
   digitSelection,
   digitText,
+  boardCustomization,
+  neonPhrase,
+  bubbleText,
   onDropItem,
   isDragOver,
   setIsDragOver
@@ -399,8 +402,39 @@ function ProductPreview({
 
         {backdrop && backdrop.backdropType === 'arch-board' && (
           <g filter="url(#softShadow)">
-            <path d="M 155 425 L 155 175 A 95 95 0 0 1 345 175 L 345 425 Z" fill={backdrop.surfaceColor || '#E5D5C3'} stroke="#C9B59C" strokeWidth="2" />
+            <path
+              d="M 155 425 L 155 175 A 95 95 0 0 1 345 175 L 345 425 Z"
+              fill={boardCustomization?.color || backdrop.surfaceColor || '#F5EFEB'}
+              stroke="#C9B59C"
+              strokeWidth="2"
+            />
             <path d="M 225 425 L 225 225 A 75 75 0 0 1 375 225 L 375 425 Z" fill="#EFECE6" stroke="#D5CEC2" strokeWidth="1.5" />
+            {boardCustomization?.text && (
+              <text
+                x="250"
+                y="272"
+                textAnchor="middle"
+                fontFamily="'Cormorant Garamond', Georgia, serif"
+                fontStyle="italic"
+                fontWeight="700"
+                fontSize={boardCustomization.text.length > 22 ? 14 : boardCustomization.text.length > 14 ? 17 : 21}
+                fill={
+                  boardCustomization.vinylColor === 'white'
+                    ? '#FFFFFF'
+                    : boardCustomization.vinylColor === 'black'
+                    ? '#1C1E1B'
+                    : boardCustomization.vinylColor === 'rose-gold'
+                    ? '#B76E79'
+                    : '#C5A059'
+                }
+                style={{
+                  letterSpacing: '0.04em',
+                  filter: boardCustomization.vinylColor === 'white' ? 'drop-shadow(0 1px 2px rgba(0,0,0,0.35))' : 'none'
+                }}
+              >
+                {boardCustomization.text}
+              </text>
+            )}
           </g>
         )}
 
@@ -669,12 +703,19 @@ function ProductPreview({
 
         {extras.some(e => e.extraType === 'neon') && (
           <g filter="url(#softShadow)">
-            <rect x="185" y="196" width="148" height="78" rx="12" fill="rgba(28, 30, 27, 0.84)" stroke="#C5A059" strokeWidth="1.5" />
-            <text x="259" y="232" textAnchor="middle" fill="#FFF9D2" fontFamily="Cormorant Garamond, serif" fontStyle="italic" fontWeight="600" fontSize="30">
-              Happy
-            </text>
-            <text x="259" y="261" textAnchor="middle" fill="#FFF9D2" fontFamily="Cormorant Garamond, serif" fontStyle="italic" fontWeight="600" fontSize="30">
-              Birthday
+            <rect x="175" y="196" width="168" height="78" rx="12" fill="rgba(28, 30, 27, 0.88)" stroke="#C5A059" strokeWidth="1.5" />
+            <text
+              x="259"
+              y="244"
+              textAnchor="middle"
+              fill="#FFF9D2"
+              fontFamily="'Cormorant Garamond', Georgia, serif"
+              fontStyle="italic"
+              fontWeight="600"
+              fontSize={(neonPhrase || 'Happy Birthday').length > 14 ? 20 : 25}
+              style={{ filter: 'drop-shadow(0 0 6px rgba(255, 249, 210, 0.75))' }}
+            >
+              {neonPhrase || 'Happy Birthday'}
             </text>
           </g>
         )}
@@ -702,6 +743,11 @@ function ProductPreview({
             <circle cx="82" cy="186" r="10" fill={getColour(0)} />
             <circle cx="100" cy="188" r="9" fill={getColour(1)} />
             <circle cx="92" cy="172" r="10" fill={getColour(2)} />
+            {bubbleText && (
+              <text x="92" y="182" textAnchor="middle" fill="#1C1E1B" fontFamily="'Cormorant Garamond', Georgia, serif" fontStyle="italic" fontWeight="700" fontSize="8">
+                {bubbleText.slice(0, 16)}
+              </text>
+            )}
           </g>
         )}
 
@@ -1308,6 +1354,15 @@ function ProductBuilder({
   const [digitSelection, setDigitSelection] = useState(digitOptions[0]);
   const [digitText, setDigitText] = useState('21');
 
+  const [boardCustomization, setBoardCustomization] = useState({
+    color: '#F5EFEB',
+    colorName: 'Warm Ivory',
+    text: "Sophie's 30th",
+    vinylColor: 'gold'
+  });
+  const [neonPhrase, setNeonPhrase] = useState('Happy Birthday');
+  const [bubbleText, setBubbleText] = useState('Happy 30th Sophie');
+
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [promoCode, setPromoCode] = useState('');
   const [appliedOffer, setAppliedOffer] = useState(null);
@@ -1318,7 +1373,10 @@ function ProductBuilder({
     email: '',
     phone: '',
     eventDate: '',
+    accessTime: '10:00',
+    venueName: '',
     postcode: '',
+    setting: 'indoor',
     notes: ''
   });
   const [submittedSuccess, setSubmittedSuccess] = useState(false);
@@ -1551,14 +1609,19 @@ function ProductBuilder({
       configuration: {
         palette: selectedColours.map(c => c.name),
         backdrop: selection.backdrop ? selection.backdrop.name : 'Skipped (Freestanding)',
+        boardCustomization: selection.backdrop?.id === 'wooden-board' ? boardCustomization : null,
         shimmerSize: selection.backdrop?.hasSizeTier ? shimmerSize : 'N/A',
         balloonLayout: selection.balloons ? selection.balloons.name : 'Skipped',
         digitsOrLetters: digitSelection?.type !== 'none' ? `${digitSelection.name} ("${digitText}")` : 'None',
         extras: selection.extras.map(ex => `${ex.shortName} (£${applyCornerBannerDiscount(ex.price, ex.cornerBanner)})`),
+        neonPhrase: selection.extras.some(e => e.id === 'neon-sign') ? neonPhrase : null,
+        bubbleText: selection.extras.some(e => e.id === 'bubble-balloon') ? bubbleText : null,
         promoCode: appliedOffer ? appliedOffer.code : null,
         subtotal: recipeCalc.originalTotal || finalTotal,
         bundleDiscount,
         estimatedTotal: finalTotal,
+        depositPaid: 0,
+        balanceDue: finalTotal,
         stockIds,
         balloonPullList: pullListStr
       }
@@ -1581,6 +1644,9 @@ function ProductBuilder({
               shimmerSize={shimmerSize}
               digitSelection={digitSelection}
               digitText={digitText}
+              boardCustomization={boardCustomization}
+              neonPhrase={neonPhrase}
+              bubbleText={bubbleText}
               onDropItem={handleSelectOrDropItem}
               isDragOver={isDragOver}
               setIsDragOver={setIsDragOver}
@@ -2000,7 +2066,112 @@ function ProductBuilder({
                     );
                   })}
                 </div>
-              )}
+
+                {currentStep.id === 'backdrop' && selection.backdrop?.id === 'wooden-board' && (
+                  <div className="oe-board-personalisation-deck">
+                    <div className="oe-deck-header">
+                      <span className="oe-deck-eyebrow">BESPOKE PERSONALISATION</span>
+                      <h4 className="oe-deck-title">Personalise Your Wooden Arch Board</h4>
+                      <p className="oe-deck-subtitle">Select your painted finish &amp; custom vinyl lettering (rendered live in the preview!):</p>
+                    </div>
+
+                    <div className="oe-deck-grid">
+                      <div>
+                        <label className="oe-field-label">1. Board Paint Finish</label>
+                        <div className="oe-paint-swatches">
+                          {[
+                            { name: 'Warm Ivory', hex: '#F5EFEB' },
+                            { name: 'Organic Sage', hex: '#8A9A7B' },
+                            { name: 'Soft Blush', hex: '#E8D3CE' },
+                            { name: 'Warm Taupe', hex: '#C8B098' },
+                            { name: 'Matte White', hex: '#FDFDFD' },
+                            { name: 'Obsidian Black', hex: '#242623' }
+                          ].map(p => (
+                            <button
+                              key={p.name}
+                              type="button"
+                              onClick={() => setBoardCustomization(prev => ({ ...prev, color: p.hex, colorName: p.name }))}
+                              className={`oe-paint-swatch-btn ${boardCustomization.colorName === p.name ? 'active' : ''}`}
+                              title={p.name}
+                            >
+                              <span className="oe-swatch-circle" style={{ backgroundColor: p.hex }} />
+                              <span className="oe-swatch-text">{p.name}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="oe-field-label">2. Vinyl Lettering Colour</label>
+                        <div className="oe-vinyl-options">
+                          {[
+                            { id: 'gold', name: '✦ Metallic Gold' },
+                            { id: 'white', name: '⚪ Matte White' },
+                            { id: 'black', name: '⚫ Gloss Black' },
+                            { id: 'rose-gold', name: '✨ Rose Gold' }
+                          ].map(v => (
+                            <button
+                              key={v.id}
+                              type="button"
+                              onClick={() => setBoardCustomization(prev => ({ ...prev, vinylColor: v.id }))}
+                              className={`oe-vinyl-btn ${boardCustomization.vinylColor === v.id ? 'active' : ''}`}
+                            >
+                              {v.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div style={{ gridColumn: '1 / -1' }}>
+                        <label className="oe-field-label">3. Custom Vinyl Lettering / Message</label>
+                        <input
+                          type="text"
+                          maxLength={40}
+                          placeholder="e.g. Welcome to Sophie's 30th / Oh Baby / Happy Birthday"
+                          value={boardCustomization.text}
+                          onChange={(e) => setBoardCustomization(prev => ({ ...prev, text: e.target.value }))}
+                          className="oe-form-input"
+                          style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '1.05rem', fontStyle: 'italic', fontWeight: 600 }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {currentStep.id === 'extras' && selection.extras.some(e => e.id === 'neon-sign') && (
+                  <div className="oe-extra-bespoke-card">
+                    <label className="oe-field-label">Neon Sign Phrase (Warm White Glow)</label>
+                    <div className="oe-neon-phrase-chips">
+                      {['Happy Birthday', "Let's Party", 'Oh Baby', 'Better Together', 'Twenty One'].map(phrase => (
+                        <button
+                          key={phrase}
+                          type="button"
+                          onClick={() => setNeonPhrase(phrase)}
+                          className={`oe-recipe-chip ${neonPhrase === phrase ? 'selected' : ''}`}
+                        >
+                          {neonPhrase === phrase ? '✓ ' : ''}{phrase}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {currentStep.id === 'extras' && selection.extras.some(e => e.id === 'bubble-balloon') && (
+                  <div className="oe-extra-bespoke-card">
+                    <label className="oe-field-label">Personalised Bubble Balloon Lettering</label>
+                    <input
+                      type="text"
+                      maxLength={30}
+                      placeholder="e.g. Happy 30th Sophie"
+                      value={bubbleText}
+                      onChange={(e) => setBubbleText(e.target.value)}
+                      className="oe-form-input"
+                      style={{ marginTop: '0.4rem' }}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
 
               {/* STEP 4: DIGITS, NUMBER STACKS & LETTER BALLOONS */}
               {currentStep.id === 'digits' && (
@@ -2270,17 +2441,56 @@ function ProductBuilder({
                       <input
                         type="text"
                         required
-                        placeholder="e.g. B90 1AA"
+                        placeholder="e.g. NG13, NG31, LE13"
                         value={clientForm.postcode}
-                        onChange={e => setClientForm({ ...clientForm, postcode: e.target.value })}
+                        onChange={e => setClientForm({ ...clientForm, postcode: e.target.value.toUpperCase() })}
                         className="oe-form-input"
                       />
                     </div>
                     <div>
+                      <label className="oe-field-label">Venue / Room Name</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Vale of Belvoir Country Hotel / Home"
+                        value={clientForm.venueName || ''}
+                        onChange={e => setClientForm({ ...clientForm, venueName: e.target.value })}
+                        className="oe-form-input"
+                      />
+                    </div>
+                    <div>
+                      <label className="oe-field-label">Access / Setup Time</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 10:30 AM arrival"
+                        value={clientForm.accessTime || ''}
+                        onChange={e => setClientForm({ ...clientForm, accessTime: e.target.value })}
+                        className="oe-form-input"
+                      />
+                    </div>
+                    <div>
+                      <label className="oe-field-label">Setting Environment</label>
+                      <div className="oe-setting-toggle-pills">
+                        <button
+                          type="button"
+                          onClick={() => setClientForm({ ...clientForm, setting: 'indoor' })}
+                          className={`oe-setting-pill-btn ${(clientForm.setting || 'indoor') === 'indoor' ? 'active' : ''}`}
+                        >
+                          🏢 Indoor Display
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setClientForm({ ...clientForm, setting: 'outdoor' })}
+                          className={`oe-setting-pill-btn ${clientForm.setting === 'outdoor' ? 'active' : ''}`}
+                        >
+                          🌳 Outdoor Setup
+                        </button>
+                      </div>
+                    </div>
+                    <div style={{ gridColumn: '1 / -1' }}>
                       <label className="oe-field-label">Personalisation / Theme Notes</label>
                       <input
                         type="text"
-                        placeholder="e.g. 'Happy 21st' on wooden board"
+                        placeholder="e.g. Preferred delivery window, theme colours, or access instructions"
                         value={clientForm.notes}
                         onChange={e => setClientForm({ ...clientForm, notes: e.target.value })}
                         className="oe-form-input"
@@ -5105,6 +5315,9 @@ function App() {
           <a href="#price-guide" className="oe-hero-nav-link">
             PRICE GUIDE
           </a>
+          <a href="#delivery-rates" className="oe-hero-nav-link">
+            DELIVERY &amp; RATES
+          </a>
           <a href="#faq" className="oe-hero-nav-link">
             FAQ
           </a>
@@ -5114,6 +5327,20 @@ function App() {
             className="oe-hero-offers-pill"
           >
             OFFERS
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (isAdminUnlocked) {
+                setShowMasterDashboard(true);
+              } else {
+                setShowPinModal(true);
+              }
+            }}
+            className="oe-hero-offers-pill"
+            style={{ background: '#1C1E1B', color: '#C5A059', border: '1.5px solid #C5A059', marginLeft: '0.45rem', fontWeight: 800 }}
+          >
+            ✦ STUDIO OS
           </button>
         </nav>
       </header>
@@ -5971,6 +6198,15 @@ function App() {
         </div>
       </section>
 
+      {/* SECTION 4B: DELIVERY RADIUS & RATES */}
+      <section id="delivery-rates" className="oe-delivery-rates-standalone" aria-label="Delivery Radius and Mileage Rates">
+        <DeliveryRadiusMap
+          deliveryConfig={deliveryConfig}
+          onUpdateDeliveryConfig={setDeliveryConfig}
+          isEditMode={isEditMode}
+        />
+      </section>
+
       {/* SECTION 5: EDITORIAL FAQ & LOCAL SERVICE AREA COVERAGE (AIEO + SEO) */}
       <section id="faq" className="oe-faq-section" aria-label="Frequently Asked Questions and Service Areas">
         <div className="oe-container">
@@ -5978,7 +6214,7 @@ function App() {
             <span className="oe-eyebrow">GOOD TO KNOW</span>
             <h2 className="oe-section-title">Frequently Asked Questions</h2>
             <p className="oe-section-subtitle">
-              Everything you need to know about our prop hire, bespoke installations, and coverage across the West Midlands &amp; Warwickshire.
+              Everything you need to know about our prop hire, bespoke installations, and delivery across Bottesford, the Vale of Belvoir &amp; East Midlands borders.
             </p>
           </div>
 
@@ -6006,14 +6242,6 @@ function App() {
                 />
               </article>
             ))}
-          </div>
-
-          <div className="oe-delivery-map-layout" style={{ margin: '2.5rem 0 1.5rem' }}>
-            <DeliveryRadiusMap
-              deliveryConfig={deliveryConfig}
-              onUpdateDeliveryConfig={setDeliveryConfig}
-              isEditMode={isEditMode}
-            />
           </div>
 
           <div className="oe-service-area-banner">

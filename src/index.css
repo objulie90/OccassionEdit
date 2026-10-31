@@ -4462,3 +4462,177 @@ input:focus-visible,
   font-size: 0.76rem;
   color: #5C5852;
 }
+
+/* ---------------------------------------------------------------------------
+ * BESPOKE PERSONALISATION DECK & EVENT LOGISTICS STYLES
+ * --------------------------------------------------------------------------- */
+.oe-board-personalisation-deck {
+  background: #FFFFFF;
+  border: 1.5px solid #C5A059;
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+  margin-top: 1.25rem;
+  box-shadow: 0 4px 16px rgba(197, 160, 89, 0.12);
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.oe-deck-header {
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #F0ECE1;
+  padding-bottom: 0.75rem;
+}
+
+.oe-deck-eyebrow {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #C5A059;
+}
+
+.oe-deck-title {
+  margin: 0.2rem 0 0.25rem;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.45rem;
+  color: #1C1E1B;
+  font-weight: 600;
+}
+
+.oe-deck-subtitle {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #5C5852;
+}
+
+.oe-deck-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.15rem;
+}
+
+@media (max-width: 640px) {
+  .oe-deck-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.oe-paint-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.4rem;
+}
+
+.oe-paint-swatch-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: #FAF6F0;
+  border: 1.5px solid #E2DDD5;
+  border-radius: 20px;
+  padding: 0.35rem 0.7rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.oe-paint-swatch-btn:hover {
+  border-color: #C5A059;
+  transform: translateY(-1px);
+}
+
+.oe-paint-swatch-btn.active {
+  border-color: #C5A059;
+  background: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(197, 160, 89, 0.25);
+}
+
+.oe-swatch-circle {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  display: inline-block;
+}
+
+.oe-swatch-text {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #1C1E1B;
+}
+
+.oe-vinyl-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.4rem;
+}
+
+.oe-vinyl-btn {
+  background: #FAF6F0;
+  border: 1.5px solid #E2DDD5;
+  border-radius: 8px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #1C1E1B;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.oe-vinyl-btn:hover {
+  border-color: #C5A059;
+}
+
+.oe-vinyl-btn.active {
+  border-color: #C5A059;
+  background: #FFFFFF;
+  color: #B88933;
+  box-shadow: 0 2px 6px rgba(197, 160, 89, 0.2);
+}
+
+.oe-extra-bespoke-card {
+  background: #FFFFFF;
+  border: 1px solid #E2DDD5;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin-top: 0.75rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.oe-neon-phrase-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.4rem;
+}
+
+.oe-setting-toggle-pills {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
+.oe-setting-pill-btn {
+  flex: 1;
+  padding: 0.6rem 0.85rem;
+  background: #FAF6F0;
+  border: 1.5px solid #E2DDD5;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #5C5852;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.oe-setting-pill-btn.active {
+  background: #1C1E1B;
+  color: #FAF6F0;
+  border-color: #1C1E1B;
+}
+
