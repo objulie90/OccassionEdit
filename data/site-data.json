@@ -1,0 +1,1084 @@
+{
+  "steps": [
+    {
+      "id": "colours",
+      "stepNumber": "Step 1 of 5",
+      "shortTab": "1. Colours",
+      "title": "Choose Your Colour Palette",
+      "subtitle": "Select one of our 5 signature palettes, or build your own mix of up to 5 colours.",
+      "allowSkip": false,
+      "items": []
+    },
+    {
+      "id": "backdrop",
+      "stepNumber": "Step 2 of 5",
+      "shortTab": "2. Backdrop",
+      "title": "Choose a Backdrop",
+      "subtitle": "Select a backdrop board, shimmer wall, or hoop — or skip for freestanding balloons.",
+      "allowSkip": true,
+      "skipLabel": "Skip Backdrop",
+      "items": [
+        {
+          "id": "wooden-board",
+          "name": "Personalised Wooden Arch Board",
+          "shortName": "Wooden Board",
+          "styleNote": "Any colour finish + custom vinyl text (From £155 with garland)",
+          "price": 50,
+          "packageBasePrice": 155,
+          "hireOnly": true,
+          "inStock": true,
+          "backdropType": "arch-board",
+          "surfaceColor": "#E5D5C3",
+          "image": "/public/assets/pl-board-sixty.jpg"
+        },
+        {
+          "id": "gold-shimmer",
+          "name": "Gold Sequin Shimmer Wall",
+          "shortName": "Gold Shimmer Wall",
+          "styleNote": "Small £150 / Large £180 with garland (Hire only)",
+          "price": 45,
+          "packageBasePrice": 150,
+          "packageLargePrice": 180,
+          "hasSizeTier": true,
+          "hireOnly": true,
+          "inStock": true,
+          "backdropType": "shimmer-wall",
+          "surfaceColor": "#D4AF37",
+          "image": "/public/assets/pl-shimmer-lilac.jpg"
+        },
+        {
+          "id": "silver-shimmer",
+          "name": "Silver Sequin Shimmer Wall",
+          "shortName": "Silver Shimmer Wall",
+          "styleNote": "Small £150 / Large £180 with garland (Hire only)",
+          "price": 45,
+          "packageBasePrice": 150,
+          "packageLargePrice": 180,
+          "hasSizeTier": true,
+          "hireOnly": true,
+          "inStock": true,
+          "backdropType": "shimmer-wall",
+          "surfaceColor": "#C4C9CE",
+          "image": "/public/assets/pl-shimmer-lilac.jpg"
+        },
+        {
+          "id": "black-shimmer",
+          "name": "Obsidian Black Shimmer Wall",
+          "shortName": "Black Shimmer Wall",
+          "styleNote": "Small £150 / Large £180 with garland (Hire only)",
+          "price": 45,
+          "packageBasePrice": 150,
+          "packageLargePrice": 180,
+          "hasSizeTier": true,
+          "hireOnly": true,
+          "inStock": true,
+          "backdropType": "shimmer-wall",
+          "surfaceColor": "#242623",
+          "image": "/public/assets/inspire-birthday.jpg"
+        },
+        {
+          "id": "pink-shimmer",
+          "name": "Blush Pink Shimmer Wall",
+          "shortName": "Pink Shimmer Wall",
+          "styleNote": "Small £150 / Large £180 with garland (Hire only)",
+          "price": 45,
+          "packageBasePrice": 150,
+          "packageLargePrice": 180,
+          "hasSizeTier": true,
+          "hireOnly": true,
+          "inStock": false,
+          "backdropType": "shimmer-wall",
+          "surfaceColor": "#E2B4BD",
+          "image": "/public/assets/pl-shimmer-lilac.jpg"
+        },
+        {
+          "id": "balloon-hoop",
+          "name": "Circular Gold Balloon Hoop",
+          "shortName": "Circular Hoop",
+          "styleNote": "Circular statement frame (From £140 with garland)",
+          "price": 35,
+          "packageBasePrice": 140,
+          "hireOnly": true,
+          "inStock": true,
+          "backdropType": "hoop",
+          "surfaceColor": "#C5A059",
+          "image": "/public/assets/inspire-anniversary.jpg"
+        },
+        {
+          "id": "easel-sign",
+          "name": "Easel Welcome Sign & Garland",
+          "shortName": "Easel Welcome Sign",
+          "styleNote": "Personalised welcome board in white or black on easel (£85)",
+          "price": 85,
+          "standalonePackage": true,
+          "hireOnly": true,
+          "inStock": true,
+          "backdropType": "easel",
+          "surfaceColor": "#FAF8F5",
+          "image": "/public/assets/pl-board-sixty.jpg"
+        }
+      ]
+    },
+    {
+      "id": "balloons",
+      "stepNumber": "Step 3 of 5",
+      "shortTab": "3. Balloons",
+      "title": "Choose Your Balloon Style",
+      "subtitle": "Select how your balloons are arranged, or skip if ordering numbers/gifts only.",
+      "allowSkip": true,
+      "skipLabel": "Skip Garland",
+      "items": [
+        {
+          "id": "garland-7ft",
+          "name": "7ft Organic Garland (Up One Side)",
+          "shortName": "7ft Side Garland",
+          "styleNote": "Asymmetric cascade up one side (£105 solo / included with walls)",
+          "price": 105,
+          "hireOnly": false,
+          "inStock": true,
+          "layoutType": "side-7ft",
+          "image": "/public/assets/pl-board-sixty.jpg"
+        },
+        {
+          "id": "clusters-top-bottom",
+          "name": "1 Top & 1 Bottom Corner Cluster",
+          "shortName": "Top & Bottom Clusters",
+          "styleNote": "Two organic clusters framing opposite corners",
+          "price": 85,
+          "hireOnly": false,
+          "inStock": true,
+          "layoutType": "clusters",
+          "image": "/public/assets/inspire-anniversary.jpg"
+        },
+        {
+          "id": "garland-full",
+          "name": "Full Surround Statement Arch",
+          "shortName": "Full Surround Garland",
+          "styleNote": "Full wrap-around balloon coverage (+£35 on walls or £145 solo)",
+          "price": 145,
+          "upgradeSurcharge": 35,
+          "hireOnly": false,
+          "inStock": true,
+          "layoutType": "full-surround",
+          "image": "/public/assets/hero-arch.jpg"
+        }
+      ]
+    },
+    {
+      "id": "digits",
+      "stepNumber": "Step 4 of 5",
+      "shortTab": "4. Numbers & Letters",
+      "title": "Add Numbers or Letter Balloons",
+      "subtitle": "Select foil digits, number stacks, or custom letters and enter your characters.",
+      "allowSkip": true,
+      "skipLabel": "Skip Numbers",
+      "items": []
+    },
+    {
+      "id": "extras",
+      "stepNumber": "Step 5 of 5",
+      "shortTab": "5. Extras",
+      "title": "Add Finishing Touches",
+      "subtitle": "Select any extras to complete your display, or skip to send your edit.",
+      "allowSkip": true,
+      "skipLabel": "Skip Extras",
+      "items": [
+        {
+          "id": "neon-sign",
+          "name": "LED Neon Sign (\"Happy Birthday\")",
+          "shortName": "Neon Sign",
+          "styleNote": "Warm white glowing LED neon sign (Hire)",
+          "price": 35,
+          "hireOnly": true,
+          "inStock": true,
+          "extraType": "neon",
+          "image": "/public/assets/inspire-birthday.jpg"
+        },
+        {
+          "id": "add-on-flowers",
+          "name": "Floral & Pampas Accents",
+          "shortName": "Floral Accents",
+          "styleNote": "Faux florals and foliage woven into your garland",
+          "price": 36,
+          "hireOnly": true,
+          "inStock": true,
+          "extraType": "flowers",
+          "image": "/public/assets/inspire-baby.jpg"
+        },
+        {
+          "id": "baby-boxes",
+          "name": "4× White \"BABY\" Shower Blocks",
+          "shortName": "BABY Shower Boxes",
+          "styleNote": "White lettered display blocks with balloons (Hire)",
+          "price": 40,
+          "hireOnly": true,
+          "inStock": true,
+          "extraType": "boxes",
+          "image": "/public/assets/inspire-baby.jpg"
+        },
+        {
+          "id": "bubble-balloon",
+          "name": "Personalised Clear Bubble Balloon",
+          "shortName": "Bubble Balloon",
+          "styleNote": "Clear orb filled with mini balloons + custom text",
+          "price": 35,
+          "hireOnly": false,
+          "inStock": true,
+          "extraType": "bubble",
+          "image": "/public/assets/pl-bubble-helium.jpg"
+        },
+        {
+          "id": "cut-outs",
+          "name": "Themed Character / Prop Cut-Outs",
+          "shortName": "Theme Cut-Outs",
+          "styleNote": "Custom freestanding prop cut-outs",
+          "price": 36,
+          "hireOnly": true,
+          "inStock": true,
+          "extraType": "cutouts",
+          "image": "/public/assets/pl-board-sixty.jpg"
+        },
+        {
+          "id": "centerpieces",
+          "name": "Table Centerpiece Balloon Posy",
+          "shortName": "Table Centerpiece",
+          "styleNote": "Matching table centerpiece arrangement (£35 each)",
+          "price": 35,
+          "hireOnly": false,
+          "inStock": true,
+          "extraType": "centerpiece",
+          "image": "/public/assets/pl-bubble-helium.jpg"
+        },
+        {
+          "id": "cake-stand",
+          "name": "Luxury Cylinder Cake Plinth",
+          "shortName": "Cake Plinth",
+          "styleNote": "White ribbed cylinder plinth for cake display (Hire)",
+          "price": 60,
+          "hireOnly": true,
+          "inStock": false,
+          "extraType": "plinth",
+          "image": "/public/assets/inspire-anniversary.jpg"
+        }
+      ]
+    }
+  ],
+  "balloonColours": [
+    {
+      "id": "sage",
+      "name": "Organic Sage",
+      "hex": "#7A8C68",
+      "finish": "Matte",
+      "inStock": true
+    },
+    {
+      "id": "pearl-white",
+      "name": "Pearl Ivory",
+      "hex": "#F5F2EB",
+      "finish": "Pearl",
+      "inStock": true
+    },
+    {
+      "id": "champagne-gold",
+      "name": "Chrome Gold",
+      "hex": "#C5A059",
+      "finish": "Chrome",
+      "inStock": true
+    },
+    {
+      "id": "blush-pink",
+      "name": "Soft Blush",
+      "hex": "#E6B8AF",
+      "finish": "Matte",
+      "inStock": true
+    },
+    {
+      "id": "nude-stone",
+      "name": "Warm Taupe",
+      "hex": "#B8A693",
+      "finish": "Matte",
+      "inStock": true
+    },
+    {
+      "id": "butter-yellow",
+      "name": "Lemon Butter",
+      "hex": "#F0DE6C",
+      "finish": "Matte",
+      "inStock": true
+    },
+    {
+      "id": "pastel-blue",
+      "name": "Sky Blue",
+      "hex": "#9EC1CF",
+      "finish": "Matte",
+      "inStock": true
+    },
+    {
+      "id": "lilac-mist",
+      "name": "Soft Lilac",
+      "hex": "#C3B1CE",
+      "finish": "Matte",
+      "inStock": true
+    },
+    {
+      "id": "chrome-silver",
+      "name": "Chrome Silver",
+      "hex": "#BCC0C7",
+      "finish": "Chrome",
+      "inStock": true
+    },
+    {
+      "id": "matte-black",
+      "name": "Obsidian Black",
+      "hex": "#222421",
+      "finish": "Matte",
+      "inStock": true
+    },
+    {
+      "id": "rose-gold",
+      "name": "Rose Gold",
+      "hex": "#C48B7B",
+      "finish": "Chrome",
+      "inStock": false
+    },
+    {
+      "id": "eucalyptus",
+      "name": "Deep Forest",
+      "hex": "#4A5840",
+      "finish": "Matte",
+      "inStock": false
+    }
+  ],
+  "curatedPalettes": [
+    {
+      "id": "palette-sage-gold",
+      "name": "01. Signature Sage & Champagne",
+      "description": "Our signature botanical look — matte sage, pearl ivory & warm chrome gold.",
+      "colourIds": [
+        "sage",
+        "pearl-white",
+        "champagne-gold",
+        "nude-stone",
+        "blush-pink"
+      ],
+      "inStock": true
+    },
+    {
+      "id": "palette-blush-romance",
+      "name": "02. Soft Blush & Pearl Romance",
+      "description": "Soft blush pinks, warm taupe and luminous pearl ivory.",
+      "colourIds": [
+        "blush-pink",
+        "pearl-white",
+        "champagne-gold",
+        "nude-stone",
+        "lilac-mist"
+      ],
+      "inStock": true
+    },
+    {
+      "id": "palette-teddy-neutrals",
+      "name": "03. Teddy & Warm Neutrals",
+      "description": "Calm tones of warm taupe, pearl ivory, champagne gold & sage.",
+      "colourIds": [
+        "nude-stone",
+        "pearl-white",
+        "champagne-gold",
+        "sage",
+        "butter-yellow"
+      ],
+      "inStock": true
+    },
+    {
+      "id": "palette-pastel-celebration",
+      "name": "04. Pastel Sky & Lemon Edit",
+      "description": "Fresh spring tones of sky blue, lemon butter, soft lilac & pearl.",
+      "colourIds": [
+        "pastel-blue",
+        "butter-yellow",
+        "lilac-mist",
+        "pearl-white",
+        "blush-pink"
+      ],
+      "inStock": true
+    },
+    {
+      "id": "palette-black-gold-luxe",
+      "name": "05. After-Dark Black & Gold Luxe",
+      "description": "Statement styling with obsidian black, chrome gold, silver & pearl.",
+      "colourIds": [
+        "matte-black",
+        "champagne-gold",
+        "chrome-silver",
+        "pearl-white",
+        "nude-stone"
+      ],
+      "inStock": true
+    }
+  ],
+  "digitOptions": [
+    {
+      "id": "digits-none",
+      "name": "No Number or Letter Balloons",
+      "description": "Skip numbers or letters for this display",
+      "type": "none",
+      "basePrice": 0,
+      "extraCharPrice": 0,
+      "image": null,
+      "inStock": true
+    },
+    {
+      "id": "helium-foil-numbers",
+      "name": "Helium Foil Numbers + 2 Clusters",
+      "description": "Giant 34\" foil numbers on weights with 2 clusters (£36 single / £52 double)",
+      "type": "digits",
+      "basePrice": 36,
+      "secondDigitPrice": 52,
+      "extraCharPrice": 16,
+      "maxChars": 4,
+      "defaultText": "30",
+      "image": "/public/assets/pl-bubble-helium.jpg",
+      "inStock": true
+    },
+    {
+      "id": "stack-basic",
+      "name": "Freestanding Number Stack — Basic",
+      "description": "Air-filled foil number mounted on an organic latex base",
+      "type": "stack",
+      "basePrice": 35,
+      "secondDigitPrice": 55,
+      "extraCharPrice": 20,
+      "maxChars": 2,
+      "defaultText": "3",
+      "image": "/public/assets/pl-stack-30.jpg",
+      "inStock": true
+    },
+    {
+      "id": "stack-themed",
+      "name": "Freestanding Number Stack — Themed",
+      "description": "Bespoke themed stack with foil details and custom styling",
+      "type": "stack",
+      "basePrice": 60,
+      "secondDigitPrice": 80,
+      "extraCharPrice": 20,
+      "maxChars": 2,
+      "defaultText": "13",
+      "image": "/public/assets/pl-stack-30.jpg",
+      "inStock": true
+    },
+    {
+      "id": "stack-luxury",
+      "name": "Freestanding Number Stack — Luxury",
+      "description": "Luxury multi-balloon sculpture stack with satin bows & orbs",
+      "type": "stack",
+      "basePrice": 70,
+      "secondDigitPrice": 90,
+      "extraCharPrice": 20,
+      "maxChars": 2,
+      "defaultText": "30",
+      "image": "/public/assets/pl-stack-30.jpg",
+      "inStock": true
+    },
+    {
+      "id": "custom-letter-balloons",
+      "name": "Custom Foil Letter Balloons (A–Z)",
+      "description": "Spell a name or word in 16\" foil letters (£12 per letter)",
+      "type": "letters",
+      "basePrice": 12,
+      "perLetter": true,
+      "maxChars": 8,
+      "defaultText": "BABY",
+      "image": "/public/assets/inspire-baby.jpg",
+      "inStock": true
+    }
+  ],
+  "inspirationSlides": [
+    {
+      "id": "insp-1",
+      "category": "Birthdays",
+      "title": "The 21st Gold Shimmer & Sage Edit",
+      "description": "Gold Sequin Shimmer Wall dressed with a 7ft Organic Sage, Pearl & Chrome Gold garland, warm LED \"Happy Birthday\" neon sign, and double-digit \"21\" foil numbers.",
+      "guidePrice": 237,
+      "image": "/public/assets/inspire-birthday.jpg",
+      "isExampleWatermark": true,
+      "cornerBanner": {
+        "enabled": true,
+        "text": "SAVE £20",
+        "style": "coral",
+        "position": "top-right",
+        "discountType": "fixed",
+        "discountValue": 20
+      },
+      "preset": {
+        "paletteId": "palette-sage-gold",
+        "backdropId": "gold-shimmer",
+        "shimmerSize": "small",
+        "balloonId": "garland-7ft",
+        "digitOptionId": "helium-foil-numbers",
+        "digitText": "21",
+        "extraIds": [
+          "neon-sign"
+        ]
+      }
+    },
+    {
+      "id": "insp-2",
+      "category": "Baby Showers",
+      "title": "Botanical Oak Arch & BABY Block Package",
+      "description": "Bespoke arched wooden backdrop board with Teddy & Sage organic garland, pampas floral accents, and our 4 white \"BABY\" hire blocks.",
+      "guidePrice": 231,
+      "image": "/public/assets/inspire-baby.jpg",
+      "isExampleWatermark": true,
+      "cornerBanner": {
+        "enabled": false,
+        "text": "",
+        "style": "sage",
+        "position": "top-right",
+        "discountType": "none",
+        "discountValue": 0
+      },
+      "preset": {
+        "paletteId": "palette-teddy-neutrals",
+        "backdropId": "wooden-board",
+        "shimmerSize": "small",
+        "balloonId": "garland-7ft",
+        "digitOptionId": "digits-none",
+        "digitText": "",
+        "extraIds": [
+          "baby-boxes",
+          "add-on-flowers"
+        ]
+      }
+    },
+    {
+      "id": "insp-3",
+      "category": "Anniversaries",
+      "title": "Blush & Champagne Circular Hoop Statement",
+      "description": "Gold circular statement hoop dressed in Soft Blush, Pearl Ivory & Champagne Gold balloons with cascading white florals.",
+      "guidePrice": 176,
+      "image": "/public/assets/inspire-anniversary.jpg",
+      "isExampleWatermark": true,
+      "cornerBanner": {
+        "enabled": false,
+        "text": "",
+        "style": "blush",
+        "position": "top-right",
+        "discountType": "none",
+        "discountValue": 0
+      },
+      "preset": {
+        "paletteId": "palette-blush-romance",
+        "backdropId": "balloon-hoop",
+        "shimmerSize": "small",
+        "balloonId": "garland-7ft",
+        "digitOptionId": "digits-none",
+        "digitText": "",
+        "extraIds": [
+          "add-on-flowers"
+        ]
+      }
+    },
+    {
+      "id": "insp-4",
+      "category": "Parties",
+      "title": "Lilac & Gold Butterfly Shimmer Wall",
+      "description": "Large Shimmer Wall dressed with Lilac, Plum, Pearl & Chrome Gold balloons and delicate butterfly accents.",
+      "guidePrice": 180,
+      "image": "/public/assets/pl-shimmer-lilac.jpg",
+      "isExampleWatermark": true,
+      "cornerBanner": {
+        "enabled": false,
+        "text": "",
+        "style": "gold",
+        "position": "top-right",
+        "discountType": "none",
+        "discountValue": 0
+      },
+      "preset": {
+        "paletteId": "palette-blush-romance",
+        "backdropId": "gold-shimmer",
+        "shimmerSize": "large",
+        "balloonId": "garland-7ft",
+        "digitOptionId": "digits-none",
+        "digitText": "",
+        "extraIds": []
+      }
+    }
+  ],
+  "catalog": [
+    {
+      "id": "csv-1",
+      "section": "Numbers, Helium & Gifts",
+      "name": "Balloon Number Stacks — Basic",
+      "category": "Birthdays",
+      "style": "Air-filled foil number on organic latex base",
+      "pricingText": "From £35 (1 digit) / £55 (2 digits)",
+      "basePrice": 35,
+      "hireOnly": false,
+      "inStock": true,
+      "image": "/public/assets/pl-stack-30.jpg",
+      "builderLink": {
+        "type": "digit",
+        "id": "stack-basic"
+      },
+      "builderPreset": {
+        "digitOptionId": "stack-basic",
+        "digitText": "3"
+      }
+    },
+    {
+      "id": "csv-2",
+      "section": "Numbers, Helium & Gifts",
+      "name": "Balloon Number Stack — Themed / Fancy",
+      "category": "Birthdays",
+      "style": "Custom character or themed foil accents & base",
+      "pricingText": "From £60 (1 digit) / £80 (2 digits)",
+      "basePrice": 60,
+      "hireOnly": false,
+      "inStock": true,
+      "image": "/public/assets/pl-stack-30.jpg",
+      "builderLink": {
+        "type": "digit",
+        "id": "stack-themed"
+      },
+      "builderPreset": {
+        "digitOptionId": "stack-themed",
+        "digitText": "13"
+      }
+    },
+    {
+      "id": "csv-3",
+      "section": "Numbers, Helium & Gifts",
+      "name": "Balloon Number Stack — Luxury",
+      "category": "Birthdays",
+      "style": "Full luxury sculpture stack with satin bows, orbs & florals",
+      "pricingText": "From £70 (1 digit) / £90 (2 digits)",
+      "basePrice": 70,
+      "hireOnly": false,
+      "inStock": true,
+      "image": "/public/assets/pl-stack-30.jpg",
+      "builderLink": {
+        "type": "digit",
+        "id": "stack-luxury"
+      },
+      "builderPreset": {
+        "digitOptionId": "stack-luxury",
+        "digitText": "30"
+      }
+    },
+    {
+      "id": "csv-4",
+      "section": "Numbers, Helium & Gifts",
+      "name": "Personalised Bubble Balloon",
+      "category": "Baby Showers",
+      "style": "Clear orb with your choice of mini balloons inside & vinyl text",
+      "pricingText": "£35",
+      "basePrice": 35,
+      "hireOnly": false,
+      "inStock": true,
+      "image": "/public/assets/pl-bubble-helium.jpg",
+      "builderLink": {
+        "type": "step",
+        "stepId": "extras",
+        "id": "bubble-balloon"
+      },
+      "builderPreset": {
+        "extraIds": [
+          "bubble-balloon"
+        ]
+      }
+    },
+    {
+      "id": "csv-5",
+      "section": "Numbers, Helium & Gifts",
+      "name": "Helium Number & 2 Clusters Set",
+      "category": "Birthdays",
+      "style": "Giant helium foil number(s) + 2 weighted latex clusters",
+      "pricingText": "From £36 (1 digit) / £52 (2 digits)",
+      "basePrice": 36,
+      "hireOnly": false,
+      "inStock": true,
+      "image": "/public/assets/pl-bubble-helium.jpg",
+      "builderLink": {
+        "type": "digit",
+        "id": "helium-foil-numbers"
+      },
+      "builderPreset": {
+        "digitOptionId": "helium-foil-numbers",
+        "digitText": "21"
+      }
+    },
+    {
+      "id": "csv-18",
+      "section": "Numbers, Helium & Gifts",
+      "name": "Luxury Helium Bouquet Clusters",
+      "category": "Parties",
+      "style": "Weighted helium bouquet clusters for room dressing",
+      "pricingText": "From £70",
+      "basePrice": 70,
+      "hireOnly": false,
+      "inStock": true,
+      "image": "/public/assets/pl-bubble-helium.jpg",
+      "builderPreset": {
+        "balloonId": "clusters-top-bottom"
+      }
+    },
+    {
+      "id": "csv-16",
+      "section": "Numbers, Helium & Gifts",
+      "name": "Table Centerpieces",
+      "category": "Anniversaries",
+      "style": "Bespoke table centerpiece balloon arrangements",
+      "pricingText": "£35",
+      "basePrice": 35,
+      "hireOnly": false,
+      "inStock": true,
+      "image": "/public/assets/pl-stack-30.jpg",
+      "builderLink": {
+        "type": "step",
+        "stepId": "extras",
+        "id": "centerpieces"
+      },
+      "builderPreset": {
+        "extraIds": [
+          "centerpieces"
+        ]
+      }
+    },
+    {
+      "id": "csv-6",
+      "section": "Backdrops, Walls & Garlands",
+      "name": "Freestanding Balloon Garland",
+      "category": "Parties",
+      "style": "7ft+ organic balloon garland installed at your venue",
+      "pricingText": "£105",
+      "basePrice": 105,
+      "hireOnly": false,
+      "inStock": true,
+      "image": "/public/assets/hero-arch.jpg",
+      "builderLink": {
+        "type": "step",
+        "stepId": "balloons",
+        "id": "garland-7ft"
+      },
+      "builderPreset": {
+        "backdropId": null,
+        "balloonId": "garland-7ft"
+      }
+    },
+    {
+      "id": "csv-7",
+      "section": "Backdrops, Walls & Garlands",
+      "name": "Personalised Wooden Board & Garland",
+      "category": "Anniversaries",
+      "style": "Arched board in any colour with custom vinyl & organic garland",
+      "pricingText": "From £155",
+      "basePrice": 155,
+      "hireOnly": true,
+      "inStock": true,
+      "image": "/public/assets/pl-board-sixty.jpg",
+      "builderLink": {
+        "type": "step",
+        "stepId": "backdrop",
+        "id": "wooden-board",
+        "usePackagePrice": true
+      },
+      "builderPreset": {
+        "backdropId": "wooden-board",
+        "balloonId": "garland-7ft"
+      }
+    },
+    {
+      "id": "csv-9",
+      "section": "Backdrops, Walls & Garlands",
+      "name": "Easel Welcome Sign & Garland",
+      "category": "Anniversaries",
+      "style": "Personalised welcome board (white or black) on easel with mini garland",
+      "pricingText": "£85",
+      "basePrice": 85,
+      "hireOnly": true,
+      "inStock": true,
+      "image": "/public/assets/pl-board-sixty.jpg",
+      "builderLink": {
+        "type": "step",
+        "stepId": "backdrop",
+        "id": "easel-sign"
+      },
+      "builderPreset": {
+        "backdropId": "easel-sign",
+        "balloonId": "clusters-top-bottom"
+      }
+    },
+    {
+      "id": "csv-10",
+      "section": "Backdrops, Walls & Garlands",
+      "name": "Sequin Shimmer Wall & Garland",
+      "category": "Parties",
+      "style": "Silver, Gold, Black or Pink sequin wall with organic garland",
+      "pricingText": "From £150 (Small) / £180 (Large)",
+      "basePrice": 150,
+      "hireOnly": true,
+      "inStock": true,
+      "image": "/public/assets/pl-shimmer-lilac.jpg",
+      "builderLink": {
+        "type": "step",
+        "stepId": "backdrop",
+        "id": "gold-shimmer",
+        "usePackagePrice": true
+      },
+      "builderPreset": {
+        "backdropId": "gold-shimmer",
+        "shimmerSize": "small",
+        "balloonId": "garland-7ft"
+      }
+    },
+    {
+      "id": "csv-11",
+      "section": "Backdrops, Walls & Garlands",
+      "name": "Full Statement Balloon Arch",
+      "category": "Parties",
+      "style": "Freestanding or entrance organic balloon arch",
+      "pricingText": "£145",
+      "basePrice": 145,
+      "hireOnly": false,
+      "inStock": true,
+      "image": "/public/assets/hero-arch.jpg",
+      "builderLink": {
+        "type": "step",
+        "stepId": "balloons",
+        "id": "garland-full"
+      },
+      "builderPreset": {
+        "backdropId": null,
+        "balloonId": "garland-full"
+      }
+    },
+    {
+      "id": "csv-12",
+      "section": "Backdrops, Walls & Garlands",
+      "name": "Circular Balloon Hoop & Garland",
+      "category": "Anniversaries",
+      "style": "Circular gold frame dressed with organic balloon garland",
+      "pricingText": "From £140",
+      "basePrice": 140,
+      "hireOnly": true,
+      "inStock": true,
+      "image": "/public/assets/inspire-anniversary.jpg",
+      "builderLink": {
+        "type": "step",
+        "stepId": "backdrop",
+        "id": "balloon-hoop",
+        "usePackagePrice": true
+      },
+      "builderPreset": {
+        "backdropId": "balloon-hoop",
+        "balloonId": "garland-7ft"
+      }
+    },
+    {
+      "id": "csv-14",
+      "section": "Backdrops, Walls & Garlands",
+      "name": "Shimmer Wall + Display Plinths Package",
+      "category": "Parties",
+      "style": "Sequin shimmer wall paired with balloon garland & cake plinth",
+      "pricingText": "From £185",
+      "basePrice": 185,
+      "hireOnly": true,
+      "inStock": true,
+      "image": "/public/assets/inspire-birthday.jpg",
+      "builderPreset": {
+        "backdropId": "gold-shimmer",
+        "shimmerSize": "small",
+        "balloonId": "garland-7ft",
+        "extraIds": [
+          "cake-stand"
+        ]
+      }
+    },
+    {
+      "id": "csv-8",
+      "section": "Hire Props & Finishing Extras",
+      "name": "Baby Shower \"BABY\" Boxes",
+      "category": "Baby Showers",
+      "style": "Set of 4 white lettered display cubes with internal balloons",
+      "pricingText": "£40",
+      "basePrice": 40,
+      "hireOnly": true,
+      "inStock": true,
+      "image": "/public/assets/inspire-baby.jpg",
+      "builderLink": {
+        "type": "step",
+        "stepId": "extras",
+        "id": "baby-boxes"
+      },
+      "builderPreset": {
+        "extraIds": [
+          "baby-boxes"
+        ]
+      }
+    },
+    {
+      "id": "csv-13",
+      "section": "Hire Props & Finishing Extras",
+      "name": "Balloon Display Plinth",
+      "category": "Birthdays",
+      "style": "Luxury cylinder display plinth with mini balloon cluster",
+      "pricingText": "£60",
+      "basePrice": 60,
+      "hireOnly": true,
+      "inStock": false,
+      "image": "/public/assets/inspire-anniversary.jpg",
+      "builderLink": {
+        "type": "step",
+        "stepId": "extras",
+        "id": "cake-stand"
+      },
+      "builderPreset": {
+        "extraIds": [
+          "cake-stand"
+        ]
+      }
+    },
+    {
+      "id": "csv-15",
+      "section": "Hire Props & Finishing Extras",
+      "name": "Themed Image Cut-Outs",
+      "category": "Birthdays",
+      "style": "Custom freestanding themed character or prop board cut-outs",
+      "pricingText": "£36",
+      "basePrice": 36,
+      "hireOnly": true,
+      "inStock": true,
+      "image": "/public/assets/pl-board-sixty.jpg",
+      "builderLink": {
+        "type": "step",
+        "stepId": "extras",
+        "id": "cut-outs"
+      },
+      "builderPreset": {
+        "extraIds": [
+          "cut-outs"
+        ]
+      }
+    },
+    {
+      "id": "csv-17",
+      "section": "Hire Props & Finishing Extras",
+      "name": "Cake Stand / Plinth Hire",
+      "category": "Baby Showers",
+      "style": "Themed or luxury cylinder cake stand hire",
+      "pricingText": "£60",
+      "basePrice": 60,
+      "hireOnly": true,
+      "inStock": false,
+      "image": "/public/assets/inspire-anniversary.jpg",
+      "builderLink": {
+        "type": "step",
+        "stepId": "extras",
+        "id": "cake-stand"
+      },
+      "builderPreset": {
+        "extraIds": [
+          "cake-stand"
+        ]
+      }
+    },
+    {
+      "id": "csv-19",
+      "section": "Hire Props & Finishing Extras",
+      "name": "LED Neon Signs",
+      "category": "Birthdays",
+      "style": "Warm LED neon script sign hire (\"Happy Birthday\", etc.)",
+      "pricingText": "£35",
+      "basePrice": 35,
+      "hireOnly": true,
+      "inStock": true,
+      "image": "/public/assets/inspire-birthday.jpg",
+      "builderLink": {
+        "type": "step",
+        "stepId": "extras",
+        "id": "neon-sign"
+      },
+      "builderPreset": {
+        "extraIds": [
+          "neon-sign"
+        ]
+      }
+    },
+    {
+      "id": "csv-20",
+      "section": "Hire Props & Finishing Extras",
+      "name": "Add-On Floral & Foliage Sprays",
+      "category": "Anniversaries",
+      "style": "Faux florals, roses & pampas woven into your balloon display",
+      "pricingText": "£36",
+      "basePrice": 36,
+      "hireOnly": true,
+      "inStock": true,
+      "image": "/public/assets/inspire-baby.jpg",
+      "builderLink": {
+        "type": "step",
+        "stepId": "extras",
+        "id": "add-on-flowers"
+      },
+      "builderPreset": {
+        "extraIds": [
+          "add-on-flowers"
+        ]
+      }
+    }
+  ],
+  "offers": [
+    {
+      "id": "offer-1",
+      "code": "OCCASION10",
+      "title": "10% Off Full Shimmer Wall Packages",
+      "discountPercent": 10,
+      "active": true
+    },
+    {
+      "id": "offer-2",
+      "code": "FREENEON",
+      "title": "Complimentary Neon Sign Upgrade on Orders £180+",
+      "discountFixed": 35,
+      "minSpend": 180,
+      "active": true
+    }
+  ],
+  "seo": {
+    "businessName": "THE Occasion Edit",
+    "tagline": "Bespoke Balloon Styling, Sequin Shimmer Walls & Luxury Event Decor",
+    "serviceAreas": "Bottesford, Vale of Belvoir, Grantham, Bingham, Melton Mowbray, Newark-on-Trent, Nottingham & surrounding East Midlands borders",
+    "postcodePrefixes": "NG13, NG31, NG32, NG1, NG2, NG3, NG12, LE13, LN6",
+    "deliveryNote": "Based in Bottesford, Leicestershire, we deliver, install, and collect all hire frames, shimmer walls, wooden boards, and neon signs across the Vale of Belvoir and East Midlands. Air-filled number stacks and helium packages are yours to keep.",
+    "instagramUrl": "https://www.instagram.com/"
+  },
+  "faqs": [
+    {
+      "id": "faq-1",
+      "question": "Which items are hired and which items do we keep?",
+      "answer": "All structural props — including Sequin Shimmer Walls, Arched Wooden Backdrop Boards, Circular Gold Hoops, Wooden Easels, LED Neon Signs, BABY Blocks, and Cake Plinths — are hired for your event and collected by our team afterwards. Freestanding Balloon Number Stacks, Helium Foil Numbers, Personalised Bubble Balloons, and latex balloons are yours to keep."
+    },
+    {
+      "id": "faq-2",
+      "question": "What is the difference between the Small (£150) and Large (£180) Shimmer Wall packages?",
+      "answer": "Our Small Sequin Shimmer Wall package (£150 including a 7ft organic balloon garland) is ideal for home celebrations and intimate dining spaces. Our Large Sequin Shimmer Wall package (£180 including a 7ft organic balloon garland) creates a wide, floor-to-ceiling photo backdrop suited to venues, function rooms, and milestone parties."
+    },
+    {
+      "id": "faq-3",
+      "question": "How far in advance should we book our event date?",
+      "answer": "We recommend submitting your custom Edit 2 to 6 weeks before your celebration to guarantee your preferred shimmer wall colour, backdrop board, and installation slot — though we always do our best to accommodate last-minute availability."
+    },
+    {
+      "id": "faq-4",
+      "question": "Can you match a custom colour scheme or theme?",
+      "answer": "Yes! You can select one of our 5 Signature Palettes in Step 1 of the Builder, or switch to \"Build Your Own Palette\" to blend up to 5 matte, pearl, and metallic chrome balloon shades."
+    }
+  ],
+  "sheetConfig": {
+    "webAppUrl": "",
+    "sheetUrl": "",
+    "adminSecret": ""
+  },
+  "updatedAt": "2026-10-28T21:31:46.676192+00:00"
+}

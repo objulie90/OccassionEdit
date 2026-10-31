@@ -1,0 +1,10 @@
+# Operating System & Caches
+.DS_Store
+*.pyc
+__pycache__/
+node_modules/
+.npm/
+
+# Local Session Secret
+.encryption_key
+data/.encryption_key

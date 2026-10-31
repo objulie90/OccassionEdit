@@ -1,0 +1,76 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Studio Admin helper: verified email in the official studio allowlist
+    function isStudioAdmin() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email in [
+          'laura@theoccasionedit.co.uk',
+          'admin@theoccasionedit.co.uk'
+        ];
+    }
+
+    // Site configuration documents (`published` and `draft`)
+    match /site/{docId} {
+      allow read: if true;
+      allow write: if isStudioAdmin();
+    }
+
+    // Split media documents so `/site/published` stays well below Firestore's 1 MiB limit
+    match /site_media/{slideId} {
+      allow read: if true;
+      allow write: if isStudioAdmin();
+    }
+
+    // Public quote enquiries with strict schema validation + Admin-only management (UK GDPR Right-to-Erasure)
+    match /quotes/{quoteId} {
+      allow create: if request.resource.data.keys().hasOnly([
+          'id',
+          'createdAt',
+          'status',
+          'seenByAdmin',
+          'client',
+          'configuration',
+          'previewSnapshotDataUrl'
+        ])
+        && request.resource.data.status == 'New Enquiry'
+        && request.resource.data.client is map
+        && request.resource.data.client.keys().hasOnly([
+          'name',
+          'email',
+          'phone',
+          'eventDate',
+          'postcode',
+          'notes'
+        ])
+        && request.resource.data.client.name is string
+        && request.resource.data.client.name.size() >= 1
+        && request.resource.data.client.name.size() <= 120
+        && request.resource.data.client.phone is string
+        && request.resource.data.client.phone.size() >= 5
+        && request.resource.data.client.phone.size() <= 40
+        && request.resource.data.configuration is map
+        && request.resource.data.configuration.estimatedTotal is number
+        && request.resource.data.configuration.estimatedTotal >= 0
+        && request.resource.data.configuration.estimatedTotal <= 10000
+        && (
+          !('previewSnapshotDataUrl' in request.resource.data)
+          || request.resource.data.previewSnapshotDataUrl == null
+          || (
+            request.resource.data.previewSnapshotDataUrl is string
+            && request.resource.data.previewSnapshotDataUrl.size() <= 45000
+          )
+        );
+
+      allow read, update, delete: if isStudioAdmin();
+    }
+
+    // Default deny on all other paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
