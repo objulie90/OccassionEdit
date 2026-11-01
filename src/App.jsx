@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { computeAvailability, hireItemsFromSteps } from './lib/availability';
 import {
   INITIAL_BALLOON_COLOURS,
   INITIAL_CURATED_PALETTES,
@@ -93,7 +94,6 @@ export function App() {
   const [externalPreset, setExternalPreset] = useState(null);
 
   const [priceSectionFilter, setPriceSectionFilter] = useState('All');
-  const [maxBudget, setMaxBudget] = useState(220);
   const [showOffersModal, setShowOffersModal] = useState(false);
   const [showLegalModal, setShowLegalModal] = useState(false);
   const [activeLegalDocId, setActiveLegalDocId] = useState('terms-and-conditions');
@@ -106,11 +106,7 @@ export function App() {
   // Hydrate live site data from backend (/api/site-data) or localStorage fallback on mount
   useEffect(() => {
     let isMounted = true;
-    fetch('/api/site-data', { credentials: 'same-origin' })
-      .then(res => (res.ok ? res.json() : null))
-      .then(data => {
-        if (!isMounted || !data || !data.ok) return;
-        const sd = data.siteData || {};
+    const applySiteData = (sd) => {
         if (Array.isArray(sd.steps) && sd.steps.length > 0) setSteps(fillMissingStepFields(sd.steps));
         if (Array.isArray(sd.balloonColours) && sd.balloonColours.length > 0) setBalloonColours(sd.balloonColours);
         if (Array.isArray(sd.curatedPalettes) && sd.curatedPalettes.length > 0) setCuratedPalettes(sd.curatedPalettes);
@@ -121,6 +117,21 @@ export function App() {
         if (sd.seo) setSeoSettings(prev => ({ ...prev, ...sd.seo }));
         if (Array.isArray(sd.faqs) && sd.faqs.length > 0) setFaqs(sd.faqs);
         if (sd.sheetConfig) setSheetConfig(prev => ({ ...prev, ...sd.sheetConfig }));
+    };
+
+    // The preview has no server, so it carries a copy of the live site's public data
+    if (IS_PREVIEW_BUILD) {
+      import('./data/preview-site-data.json')
+        .then(mod => { if (isMounted) applySiteData(mod.default); })
+        .finally(() => { if (isMounted) setBaselineRequested(true); });
+      return () => { isMounted = false; };
+    }
+
+    fetch('/api/site-data', { credentials: 'same-origin' })
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (!isMounted || !data || !data.ok) return;
+        applySiteData(data.siteData || {});
         if (data.isAdminAuthenticated) {
           setIsAdminUnlocked(true);
           setCsrfToken(data.csrfToken);
@@ -322,6 +333,18 @@ export function App() {
     });
   }, []);
 
+  // Which hire props are free on a date. The preview has no server, so it
+  // works the same rules out from the orders it holds.
+  const getAvailability = async (date) => {
+    if (IS_PREVIEW_BUILD) {
+      return computeAvailability(date, quotes, hireItemsFromSteps(steps), {}, Date.now());
+    }
+    const res = await fetch(`/api/availability?date=${encodeURIComponent(date)}`);
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.error || 'availability unavailable');
+    return data.availability;
+  };
+
   const openStudio = () => {
     if (IS_PREVIEW_BUILD) {
       setIsAdminUnlocked(true);
@@ -332,6 +355,58 @@ export function App() {
     else setShowPinModal(true);
   };
 
+  const handleSaveHireCounts = async (counts) => {
+    const nextSteps = steps.map(st => ({
+      ...st,
+      items: (st.items || []).map(it => (it.id in counts ? { ...it, ownedCount: counts[it.id] } : it))
+    }));
+    setSteps(nextSteps);
+    if (IS_PREVIEW_BUILD) return true;
+    return handleSaveAndPublish(false, { ...buildSiteDataPayload(), steps: nextSteps });
+  };
+
+  // A product edited in the Studio: the price-list card and its builder option change together
+  const handleSaveProduct = async (cardId, patch) => {
+    const card = catalog.find(c => c.id === cardId);
+    if (!card) return false;
+    const { builderNote, ...cardPatch } = patch;
+    const nextCatalog = catalog.map(c => (c.id === cardId ? { ...c, ...cardPatch } : c));
+    const link = card.builderLink;
+    const linkPatch = {};
+    if (link) {
+      if (typeof cardPatch.basePrice === 'number') {
+        if (link.type === 'digit') linkPatch.basePrice = cardPatch.basePrice;
+        else {
+          linkPatch.price = cardPatch.basePrice;
+          if (link.usePackagePrice) linkPatch.packageBasePrice = cardPatch.basePrice;
+        }
+      }
+      ['inStock', 'image', 'cornerBanner'].forEach(k => { if (k in cardPatch) linkPatch[k] = cardPatch[k]; });
+      if (builderNote !== undefined) linkPatch[link.type === 'digit' ? 'description' : 'styleNote'] = builderNote;
+    }
+    const nextSteps = link?.type === 'step'
+      ? steps.map(st => (st.id !== link.stepId ? st : { ...st, items: st.items.map(it => (it.id === link.id ? { ...it, ...linkPatch } : it)) }))
+      : steps;
+    const nextDigits = link?.type === 'digit'
+      ? digitOptions.map(d => (d.id === link.id ? { ...d, ...linkPatch } : d))
+      : digitOptions;
+    setCatalog(nextCatalog);
+    setSteps(nextSteps);
+    setDigitOptions(nextDigits);
+    if (IS_PREVIEW_BUILD) return true;
+    return handleSaveAndPublish(false, {
+      ...buildSiteDataPayload(),
+      steps: nextSteps,
+      digitOptions: nextDigits,
+      catalog: deriveUnifiedCatalog(nextCatalog, nextSteps, nextDigits)
+    });
+  };
+
+  const handleUploadPhotoForStudio = (file) =>
+    new Promise((resolve, reject) => {
+      handleUploadPhotoForTarget(file, resolve).catch(reject);
+    });
+
   const handleSaveCuratedPalettes = async (nextPalettes) => {
     setCuratedPalettes(nextPalettes);
     if (IS_PREVIEW_BUILD) return true;
@@ -340,12 +415,26 @@ export function App() {
 
   // Business and bank details live on the studio server, not in the public site data
   useEffect(() => {
-    if (!isAdminUnlocked) return;
+    if (!isAdminUnlocked || IS_PREVIEW_BUILD) return;
     fetch('/api/admin/settings', { credentials: 'same-origin' })
       .then(res => (res.ok ? res.json() : null))
       .then(data => { if (data?.ok && data.settings) setStudioSettings(data.settings); })
       .catch(() => {});
   }, [isAdminUnlocked]);
+
+  // Links to Laura's Drive folders, set up by the sheet script's "Set up my Google Drive"
+  const handleFetchDriveLinks = async () => {
+    if (IS_PREVIEW_BUILD) return { connected: false, links: null };
+    const res = await fetch('/api/admin/drive-links', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken || '' },
+      body: '{}'
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) throw new Error(data.error || 'Drive links unavailable');
+    return data;
+  };
 
   const handleSaveStudioSettings = async (nextSettings) => {
     if (IS_PREVIEW_BUILD) {
@@ -773,6 +862,9 @@ export function App() {
       body: JSON.stringify(quotePayload)
     });
     const data = await res.json().catch(() => ({}));
+    if (data.code === 'unavailable') {
+      throw Object.assign(new Error('unavailable'), { code: 'unavailable', customerMessage: data.error });
+    }
     if (!res.ok || !data.ok) {
       throw new Error(data.error || 'The enquiry could not be saved.');
     }
@@ -810,12 +902,11 @@ export function App() {
   const priceSections = ['All', 'Backdrops, Walls & Garlands', 'Numbers, Helium & Gifts', 'Hire Props & Finishing Extras'];
   const filteredCatalog = unifiedCatalog.filter(item => {
     const matchesSection = priceSectionFilter === 'All' || item.section === priceSectionFilter;
-    const matchesBudget = item.basePrice <= maxBudget;
-    return matchesSection && matchesBudget;
+    return matchesSection;
   });
 
   return (
-    <div className="oe-site-wrapper">
+    <div className={`oe-site-wrapper ${IS_PREVIEW_BUILD ? 'is-preview' : ''}`}>
       {IS_PREVIEW_BUILD && (
         <div className="oe-preview-banner" role="note">
           Preview of the new website · orders are not sent · the Studio shows a demo order
@@ -903,10 +994,11 @@ export function App() {
             <span className="oe-hero-sparkle oe-sp-2" aria-hidden="true">✦</span>
             <span className="oe-hero-sparkle oe-sp-3" aria-hidden="true">✦</span>
 
-            <span className="oe-hero-the">THE</span>
-            <h1 className="oe-hero-title">
-              <span>Occasion</span>
-              <span className="oe-hero-edit-word">Edit</span>
+            {/* Lettered to match the logo: script "the", spaced serif OCCASION, small spaced EDIT */}
+            <h1 className="oe-wordmark" aria-label="The Occasion Edit">
+              <span className="oe-wordmark-the" aria-hidden="true">the</span>
+              <span className="oe-wordmark-occasion" aria-hidden="true">Occasion</span>
+              <span className="oe-wordmark-edit" aria-hidden="true">Edit</span>
             </h1>
             <a href="#build-your-edit" className="oe-hero-primary-btn">
               BUILD YOURS NOW
@@ -915,9 +1007,6 @@ export function App() {
         </div>
 
         <nav className="oe-hero-floating-nav" aria-label="Primary Navigation">
-          <a href="#build-your-edit" className="oe-hero-nav-link">
-            BUILD YOUR OWN
-          </a>
           <a href="#be-inspired" className="oe-hero-nav-link">
             BE INSPIRED
           </a>
@@ -927,23 +1016,12 @@ export function App() {
           <a href="#delivery-rates" className="oe-hero-nav-link">
             DELIVERY &amp; RATES
           </a>
-          <a href="#faq" className="oe-hero-nav-link">
-            FAQ
-          </a>
           <button
             type="button"
             onClick={() => setShowOffersModal(true)}
             className="oe-hero-offers-pill"
           >
             OFFERS
-          </button>
-          <button
-            type="button"
-            onClick={openStudio}
-            className="oe-hero-offers-pill"
-            style={{ background: '#1C1E1B', color: '#C5A059', border: '1.5px solid #C5A059', marginLeft: '0.45rem', fontWeight: 800 }}
-          >
-            ✦ STUDIO OS
           </button>
         </nav>
       </header>
@@ -952,11 +1030,8 @@ export function App() {
       <section id="be-inspired" className="oe-inspire-section">
         <div className="oe-container">
           <div className="oe-section-header-center">
-            <span className="oe-eyebrow">CURATED LOOKBOOK</span>
-            <h2 className="oe-section-title">Get Inspired</h2>
-            <p className="oe-section-subtitle">
-              Browse our signature event setups by occasion · click any template to load its exact colours and items straight into the builder.
-            </p>
+            <h2 className="oe-section-title">Get inspired</h2>
+            <p className="oe-section-subtitle">Take a look at our pre-packaged bundles for some great offers, or a little inspiration to build your own.</p>
 
             <div className="oe-category-filter-bar" role="tablist">
               {inspireCategories.map(cat => (
@@ -1009,9 +1084,6 @@ export function App() {
 
                   <div className="oe-carousel-content">
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
-                      <span className="oe-carousel-counter">
-                        LOOK 0{(carouselIndex % filteredSlides.length) + 1} OF 0{filteredSlides.length}
-                      </span>
                       {isEditMode ? (
                         <select
                           value={activeSlide.category || 'Birthdays'}
@@ -1602,6 +1674,7 @@ export function App() {
         externalPreset={externalPreset}
         onClearExternalPreset={() => setExternalPreset(null)}
         onSubmitQuote={handleSubmitCustomerQuote}
+        getAvailability={getAvailability}
         isEditMode={isEditMode}
         onUpdateBuilderItem={updateBuilderItem}
         onToggleBuilderItemStock={toggleBuilderItemStock}
@@ -1618,34 +1691,10 @@ export function App() {
         <div className="oe-container">
           <div className="oe-pricelist-header-grid">
             <div>
-              <span className="oe-eyebrow">OUR COLLECTION</span>
-              <h2 className="oe-section-title">Price List &amp; Budget Explorer</h2>
-              <p className="oe-section-subtitle">
-                Every display is tailored to your venue and colour palette. Filter by category or use the budget slider to explore our options.
-              </p>
+              <h2 className="oe-section-title">Prices</h2>
+              <p className="oe-section-subtitle">Every display is made for your venue and your colours.</p>
             </div>
 
-            <div className="oe-budget-explorer-card">
-              <div className="oe-budget-card-top">
-                <label htmlFor="price-budget-slider">Filter by Budget:</label>
-                <strong className="oe-budget-amount-badge">Up to £{maxBudget}</strong>
-              </div>
-              <input
-                id="price-budget-slider"
-                type="range"
-                min="35"
-                max="220"
-                step="5"
-                value={maxBudget}
-                onChange={e => setMaxBudget(Number(e.target.value))}
-                className="oe-accessible-range"
-              />
-              <div className="oe-budget-scale-labels">
-                <span>£35 (Stacks &amp; Orbs)</span>
-                <span>£105 (Garlands)</span>
-                <span>£180+ (Shimmer Walls)</span>
-              </div>
-            </div>
           </div>
 
           <div className="oe-category-filter-bar">
@@ -1683,14 +1732,6 @@ export function App() {
                     </div>
                   )}
                   <div className="oe-pricelist-card-body">
-                    <div className="oe-pricelist-card-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span className="oe-pricelist-cat-tag">{item.category}</span>
-                      {item.tier && (
-                        <span className={`oe-tier-pill ${item.tier.toLowerCase()}`}>
-                          {item.tier.toUpperCase()}
-                        </span>
-                      )}
-                    </div>
                     <EditableText
                       isEditMode={isEditMode}
                       value={item.name}
@@ -1722,11 +1763,7 @@ export function App() {
                             </span>
                           )}
                         </>
-                      ) : (
-                        <span className="oe-pricelist-detail-chip">
-                          Package: £{item.basePrice}
-                        </span>
-                      )}
+                      ) : null}
                     </div>
                   </div>
                   <div className="oe-pricelist-card-bottom">
@@ -1818,62 +1855,6 @@ export function App() {
         />
       </section>
 
-      {/* SECTION 5: EDITORIAL FAQ & LOCAL SERVICE AREA COVERAGE (AIEO + SEO) */}
-      <section id="faq" className="oe-faq-section" aria-label="Frequently Asked Questions and Service Areas">
-        <div className="oe-container">
-          <div className="oe-section-header-center">
-            <span className="oe-eyebrow">GOOD TO KNOW</span>
-            <h2 className="oe-section-title">Frequently Asked Questions</h2>
-            <p className="oe-section-subtitle">
-              Everything you need to know about our prop hire, bespoke installations, and delivery across Bottesford, the Vale of Belvoir &amp; East Midlands borders.
-            </p>
-          </div>
-
-          <div className="oe-faq-grid">
-            {faqs.map((faq, idx) => (
-              <article key={faq.id || idx} className="oe-faq-item">
-                <EditableText
-                  isEditMode={isEditMode}
-                  value={faq.question}
-                  onChange={(val) =>
-                    setFaqs(prev => prev.map((f, i) => (i === idx ? { ...f, question: val } : f)))
-                  }
-                  tag="h3"
-                  className="oe-faq-question"
-                />
-                <EditableText
-                  isEditMode={isEditMode}
-                  value={faq.answer}
-                  onChange={(val) =>
-                    setFaqs(prev => prev.map((f, i) => (i === idx ? { ...f, answer: val } : f)))
-                  }
-                  tag="p"
-                  multiline={true}
-                  className="oe-faq-answer"
-                />
-              </article>
-            ))}
-          </div>
-
-          <div className="oe-service-area-banner">
-            <div>
-              <strong style={{ display: 'block', fontSize: '0.82rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6E805E' }}>
-                Areas We Cover ({seoSettings.postcodePrefixes})
-              </strong>
-              <EditableText
-                isEditMode={isEditMode}
-                value={seoSettings.serviceAreas}
-                onChange={(val) => setSeoSettings({ ...seoSettings, serviceAreas: val })}
-                tag="p"
-                className="oe-faq-answer"
-              />
-            </div>
-            <a href="#build-your-edit" className="oe-btn-sage-solid">
-              Start Your Custom Edit →
-            </a>
-          </div>
-        </div>
-      </section>
 
       {/* FOOTER */}
       <footer className="oe-footer">
@@ -1915,9 +1896,9 @@ export function App() {
                   setShowPinModal(true);
                 }
               }}
-              className="oe-footer-btn oe-footer-admin-btn"
+              className="oe-footer-staff-link"
             >
-              {isAdminUnlocked ? `✦ Studio Mode Active (${quotes.length})` : 'Studio Admin'}
+              {isAdminUnlocked ? 'Studio' : 'Staff login'}
             </button>
           </div>
         </div>
@@ -2198,9 +2179,13 @@ export function App() {
         balloonColours={balloonColours}
         curatedPalettes={curatedPalettes}
         onSaveCuratedPalettes={handleSaveCuratedPalettes}
+        onSaveHireCounts={handleSaveHireCounts}
+        onSaveProduct={handleSaveProduct}
+        onUploadPhoto={handleUploadPhotoForStudio}
         deliveryConfig={deliveryConfig}
         studioSettings={studioSettings}
         onSaveStudioSettings={handleSaveStudioSettings}
+        onFetchDriveLinks={handleFetchDriveLinks}
         flashToast={setSaveToast}
       />
 

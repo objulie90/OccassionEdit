@@ -1,0 +1,209 @@
+{
+  "now": "2026-12-01T12:00:00Z",
+  "hireItems": [
+    {
+      "id": "balloon-hoop",
+      "name": "Circular Gold Balloon Hoop",
+      "ownedCount": 3
+    },
+    {
+      "id": "gold-shimmer",
+      "name": "Gold Sequin Shimmer Wall",
+      "ownedCount": 1
+    },
+    {
+      "id": "neon-sign",
+      "name": "LED Neon Sign",
+      "ownedCount": 2
+    }
+  ],
+  "settings": {
+    "maxSetupsPerDay": 3,
+    "holdHours": 48,
+    "holdUntilReply": false,
+    "sameDayTurnaround": false
+  },
+  "orders": [
+    {
+      "id": "A",
+      "status": "Confirmed",
+      "createdAt": "2026-11-01T10:00:00Z",
+      "client": {
+        "eventDate": "2026-12-12"
+      },
+      "configuration": {
+        "backdropId": "balloon-hoop",
+        "extraIds": [
+          "neon-sign"
+        ]
+      }
+    },
+    {
+      "id": "B",
+      "status": "Deposit Paid",
+      "createdAt": "2026-11-02T10:00:00Z",
+      "client": {
+        "eventDate": "2026-12-12"
+      },
+      "configuration": {
+        "backdropId": "balloon-hoop",
+        "extraIds": []
+      }
+    },
+    {
+      "id": "C",
+      "status": "Completed",
+      "createdAt": "2026-11-03T10:00:00Z",
+      "client": {
+        "eventDate": "12/12/2026"
+      },
+      "configuration": {
+        "backdrop": "Circular Gold Balloon Hoop"
+      }
+    },
+    {
+      "id": "D",
+      "status": "Cancelled",
+      "createdAt": "2026-11-04T10:00:00Z",
+      "client": {
+        "eventDate": "2026-12-19"
+      },
+      "configuration": {
+        "backdropId": "gold-shimmer"
+      }
+    },
+    {
+      "id": "E",
+      "status": "New Enquiry",
+      "createdAt": "2026-12-01T02:00:00Z",
+      "client": {
+        "eventDate": "2026-12-26"
+      },
+      "configuration": {
+        "backdropId": "gold-shimmer"
+      }
+    },
+    {
+      "id": "F",
+      "status": "New Enquiry",
+      "createdAt": "2026-11-27T12:00:00Z",
+      "client": {
+        "eventDate": "2027-01-02"
+      },
+      "configuration": {
+        "backdropId": "gold-shimmer"
+      }
+    }
+  ],
+  "cases": [
+    {
+      "name": "three hoops out on the Saturday leaves none that day",
+      "date": "2026-12-12",
+      "expect": {
+        "balloon-hoop": 0,
+        "neon-sign": 1,
+        "gold-shimmer": 1
+      },
+      "dayFull": true
+    },
+    {
+      "name": "hoops are still out on the Sunday until collected",
+      "date": "2026-12-13",
+      "expect": {
+        "balloon-hoop": 0
+      },
+      "dayFull": false
+    },
+    {
+      "name": "a Friday booking would still be out on the Saturday",
+      "date": "2026-12-11",
+      "expect": {
+        "balloon-hoop": 0
+      },
+      "dayFull": false
+    },
+    {
+      "name": "all three hoops are free again on the Monday",
+      "date": "2026-12-14",
+      "expect": {
+        "balloon-hoop": 3,
+        "neon-sign": 2
+      },
+      "dayFull": false
+    },
+    {
+      "name": "a cancelled booking frees its prop",
+      "date": "2026-12-19",
+      "expect": {
+        "gold-shimmer": 1
+      },
+      "dayFull": false
+    },
+    {
+      "name": "a new enquiry holds its prop for 48 hours",
+      "date": "2026-12-26",
+      "expect": {
+        "gold-shimmer": 0
+      },
+      "dayFull": false
+    },
+    {
+      "name": "an enquiry older than 48 hours stops holding",
+      "date": "2027-01-02",
+      "expect": {
+        "gold-shimmer": 1
+      },
+      "dayFull": false
+    },
+    {
+      "name": "rechecking an order leaves that order out",
+      "date": "2026-12-12",
+      "ignore": "A",
+      "expect": {
+        "balloon-hoop": 1,
+        "neon-sign": 2
+      },
+      "dayFull": false
+    },
+    {
+      "name": "Laura's rules: one setup makes the date full",
+      "date": "2026-12-12",
+      "settings": {
+        "maxSetupsPerDay": 1,
+        "holdUntilReply": true,
+        "sameDayTurnaround": true
+      },
+      "expect": {
+        "balloon-hoop": 0
+      },
+      "dayFull": true
+    },
+    {
+      "name": "Laura's rules: a prop collected on Sunday can go out on Sunday",
+      "date": "2026-12-13",
+      "settings": {
+        "maxSetupsPerDay": 1,
+        "holdUntilReply": true,
+        "sameDayTurnaround": true
+      },
+      "expect": {
+        "balloon-hoop": 3,
+        "neon-sign": 2
+      },
+      "dayFull": false
+    },
+    {
+      "name": "Laura's rules: an unanswered enquiry holds its date until she replies",
+      "date": "2027-01-02",
+      "settings": {
+        "maxSetupsPerDay": 1,
+        "holdUntilReply": true,
+        "sameDayTurnaround": true
+      },
+      "expect": {
+        "gold-shimmer": 0
+      },
+      "dayFull": true
+    }
+  ]
+}

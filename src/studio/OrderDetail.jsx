@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { calculateDistanceToBottesford, getDeliveryZoneForMileage } from '../data/catalogData.js';
+import { getDeliveryZoneForMileage } from '../data/catalogData.js';
+import { milesFromBase } from '../lib/places';
+import { BOOKING_TERMS, depositFor } from '../lib/terms';
 import { BalloonGraphic } from '../components/ui';
 import { DossierVisualArtwork, WorkshopBalloonPullList, buildDossierOrderLines } from './OrderDossierParts';
 import { DateTicket } from './DateTicket';
@@ -51,9 +53,9 @@ export function OrderDetail({
         && sameDay(parseEventDate(o.client?.eventDate), date))
     : [];
 
-  const miles = calculateDistanceToBottesford(c.postcode);
+  const miles = milesFromBase(c.postcode || c.area);
   const zone = miles != null ? getDeliveryZoneForMileage(Math.round(miles * 10) / 10, deliveryConfig.zones) : null;
-  const mapsQuery = [c.venueName, c.postcode].filter(Boolean).join(', ');
+  const mapsQuery = [c.venueName, c.postcode || c.area].filter(Boolean).join(', ');
   const wa = whatsappNumber(c.phone);
 
   const setStatus = (next) => {
@@ -69,6 +71,7 @@ export function OrderDetail({
     if (flashToast) flashToast(`Deposit of ${money(value)} saved`);
   };
 
+  const balanceDue = date ? new Date(date.getFullYear(), date.getMonth(), date.getDate() - BOOKING_TERMS.balanceDaysBefore) : null;
   const collectDate = date ? new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1) : null;
 
   return (
@@ -166,11 +169,14 @@ export function OrderDetail({
         <section className="st-panel" aria-labelledby="st-where">
           <h4 id="st-where" className="st-panel-title">The day</h4>
           <dl className="st-facts">
-            <div><dt>Venue</dt><dd>{c.venueName || 'Not given'}{c.setting ? `, ${c.setting}` : ''}</dd></div>
-            <div><dt>Postcode</dt><dd>{c.postcode || 'Not given'}</dd></div>
+            {c.occasion && <div><dt>Celebrating</dt><dd>{c.occasion}</dd></div>}
+            {c.style && <div><dt>Style</dt><dd>{c.style}</dd></div>}
+            <div><dt>Venue</dt><dd>{c.hasVenue === 'no' && !c.venueName ? 'Not booked yet' : (c.venueName || 'Not given')}{c.setting && c.hasVenue !== 'no' ? `, ${c.setting}` : ''}</dd></div>
+            {c.hasVenue === 'no' && c.area && <div><dt>Hoping to be near</dt><dd>{c.area}</dd></div>}
+            <div><dt>Postcode</dt><dd>{c.postcode || 'Not given yet'}</dd></div>
             <div><dt>Access from</dt><dd>{c.accessTime || 'Not given'}</dd></div>
             {miles != null && (
-              <div><dt>Distance</dt><dd>About {Math.round(miles)} miles{zone?.zone ? `, ${zone.zone.name}` : ', outside the usual zones'}</dd></div>
+              <div><dt>Distance</dt><dd>About {Math.round(miles)} miles{zone?.zone ? `, ${zone.zone.name.toLowerCase()}${zone.perMile ? ' (mileage charge)' : ' (free)'}` : ', outside your 20 miles'}</dd></div>
             )}
             {hireLines.length > 0 && collectDate && (
               <div><dt>Collect props</dt><dd>{formatLongDate(collectDate)}</dd></div>
@@ -202,9 +208,12 @@ export function OrderDetail({
           <h4 id="st-money" className="st-panel-title">Money</h4>
           <dl className="st-facts">
             <div><dt>Guide price</dt><dd className="st-strong">{money(total)}</dd></div>
+            {Number(c.budget) > 0 && <div><dt>Their budget</dt><dd>{money(c.budget)}</dd></div>}
             {Number(cfg.bundleDiscount) > 0 && <div><dt>Discount included</dt><dd>{money(cfg.bundleDiscount)}{cfg.promoCode ? ` (code ${cfg.promoCode})` : ''}</dd></div>}
+            <div><dt>Deposit to ask for ({BOOKING_TERMS.depositPercent}%)</dt><dd>{money(depositFor(total))}</dd></div>
             <div><dt>Deposit received</dt><dd>{money(deposit)}</dd></div>
             <div><dt>Still to pay</dt><dd className="st-strong">{money(Math.max(0, total - deposit))}</dd></div>
+            {balanceDue && <div><dt>Balance due by</dt><dd>{formatLongDate(balanceDue)}</dd></div>}
           </dl>
           <form className="st-deposit" onSubmit={saveDeposit}>
             <label htmlFor="st-deposit-input">Deposit received (£)</label>

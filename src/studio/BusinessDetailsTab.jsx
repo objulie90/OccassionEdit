@@ -2,6 +2,16 @@ import React, { useState, useEffect } from 'react';
 
 const FIELDS = [
   {
+    group: 'Your diary',
+    items: [
+      { key: 'maxSetupsPerDay', label: 'Most jobs you can do in one day', type: 'number', inputMode: 'numeric', hint: 'When a date reaches this, customers are asked to pick another day.' },
+      { key: 'minNoticeDays', label: "Shortest notice you'll take (days)", type: 'number', inputMode: 'numeric' },
+      { key: 'holdUntilReply', label: 'New enquiries hold their date', choices: [[true, 'Until I reply'], [false, 'For a set time']] },
+      { key: 'holdHours', label: 'Set time to hold an enquiry (hours)', type: 'number', inputMode: 'numeric', showIf: f => f.holdUntilReply === false },
+      { key: 'sameDayTurnaround', label: 'Can a prop go out again the day you collect it?', choices: [[true, 'Yes'], [false, 'No']] }
+    ]
+  },
+  {
     group: 'On your quotes and invoices',
     items: [
       { key: 'businessTradingName', label: 'Business name' },
@@ -51,7 +61,24 @@ export function BusinessDetailsTab({ studioSettings, onSave }) {
       {FIELDS.map(section => (
         <fieldset key={section.group} className="st-fieldset">
           <legend>{section.group}</legend>
-          {section.items.map(f => (
+          {section.items.filter(f => !f.showIf || f.showIf(form)).map(f => f.choices ? (
+            <div key={f.key} className="st-field" role="group" aria-label={f.label}>
+              <span className="st-field-label">{f.label}</span>
+              <div className="st-filter">
+                {f.choices.map(([value, text]) => (
+                  <button
+                    key={text}
+                    type="button"
+                    className="st-chip"
+                    aria-pressed={(form[f.key] ?? true) === value}
+                    onClick={() => { setForm({ ...form, [f.key]: value }); setState('idle'); }}
+                  >
+                    {text}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
             <div key={f.key} className="st-field">
               <label htmlFor={`st-${f.key}`}>{f.label}</label>
               <input

@@ -4,7 +4,8 @@
  * THE OCCASION EDIT — Studio Master Sheet & Two-Way Website Sync (GoogleAppsScript.gs)
  * ====================================================================================
  * Privacy & Permissions Design:
- *  - Uses @OnlyCurrentDoc so Google ONLY requests permission for this single spreadsheet.
+ *  - Uses @OnlyCurrentDoc so the script can only open this one spreadsheet. Creating
+ *    Laura's business folders also asks Google for permission to use her Drive.
  *  - Zero Gmail (MailApp) permissions required — Laura checks her spreadsheet or website
  *    backend whenever she chooses, with zero intrusive email pings.
  *  - doGet(e) NEVER reads Tab 1 ("Enquiries & Orders"). It only returns public catalog
@@ -13,11 +14,12 @@
  *    delete_booking_gdpr, pull_admin_bookings) require a constant-time verified
  *    ADMIN_SYNC_SECRET stored in PropertiesService.getScriptProperties().
  *
- * Quick Setup Instructions (60 Seconds):
+ * Quick Setup Instructions:
  *  1. Open a new Google Sheet and name it: "THE Occasion Edit — Studio Master Sheet"
- *  2. Click Extensions > Apps Script, paste this entire file, and click Save (💾).
- *  3. Select `setupSheetTabs` in the top toolbar dropdown and click Run (▶).
- *     (Copy the ADMIN_SYNC_SECRET shown in the Execution Log).
+ *  2. Click Extensions > Apps Script, paste this entire file, and click Save.
+ *  3. Select `setUpMyDrive` in the top toolbar dropdown and click Run. It builds the
+ *     sheet's tabs, the Money In & Out record and the business folders in Drive.
+ *     (Copy the ADMIN_SYNC_SECRET shown in the Execution Log.)
  *  4. Click Deploy > New deployment > Select type: Web app
  *     - Execute as: Me
  *     - Who has access: Anyone
@@ -28,6 +30,116 @@ var TAB_ENQUIRIES = 'Enquiries & Orders';
 var TAB_PRICES    = 'Prices, Stock & Ribbons';
 var TAB_PALETTES  = 'Balloon Colours & Palettes';
 var TAB_SETTINGS  = 'Offers, Lookbook & Settings';
+var TAB_MONEY     = 'Money In & Out';
+
+// Groups that match the expense boxes on HMRC's self-employment pages, so the
+// totals copy straight into a tax return or Making Tax Digital software
+var MONEY_CATEGORIES = [
+  'Sales',
+  'Balloons, helium and stock',
+  'Props and equipment',
+  'Travel and mileage',
+  'Phone and internet',
+  'Advertising',
+  'Bank and payment charges',
+  'Other business costs'
+];
+
+/**
+ * Adds "The Occasion Edit" menu to the sheet so setup is one click.
+ */
+function onOpen() {
+  SpreadsheetApp.getUi()
+    .createMenu('The Occasion Edit')
+    .addItem('Set up my Google Drive', 'setUpMyDrive')
+    .addToUi();
+}
+
+/**
+ * One click: builds every tab, the Money In & Out record and the business
+ * folders, moves this sheet into them, and remembers the links so the Studio
+ * can open each one.
+ */
+function setUpMyDrive() {
+  setupSheetTabs();
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var taxYear = getUkTaxYearString_();
+  var folders = ensureStudioDriveFolders_();
+  var root = getOrCreateDrivePath_(['THE Occasion Edit']);
+  var taxRecords = getOrCreateDrivePath_(['THE Occasion Edit', 'Tax records', taxYear]);
+  var receipts = getOrCreateDrivePath_(['THE Occasion Edit', 'Tax records', taxYear, 'Receipts']);
+  var eventPhotos = getOrCreateDrivePath_(['THE Occasion Edit', 'Photos', 'Finished events']);
+  var money = ensureMoneySheet_(ss);
+
+  try {
+    DriveApp.getFileById(ss.getId()).moveTo(root);
+  } catch (_e) {
+    // Already inside, or Drive refused the move: the links below still work
+  }
+
+  var links = {
+    businessFolder: root.getUrl(),
+    masterSheet: ss.getUrl(),
+    moneyInOut: ss.getUrl() + '#gid=' + money.getSheetId(),
+    quotes: folders.quoteFolder.getUrl(),
+    invoices: folders.invoiceFolder.getUrl(),
+    taxRecords: taxRecords.getUrl(),
+    receipts: receipts.getUrl(),
+    productPhotos: folders.stockFolder.getUrl(),
+    lookPhotos: folders.curatedFolder.getUrl(),
+    eventPhotos: eventPhotos.getUrl(),
+    taxYear: taxYear
+  };
+  PropertiesService.getScriptProperties().setProperty('DRIVE_LINKS', JSON.stringify(links));
+
+  var message = 'Your Google Drive is ready. Everything is in the "THE Occasion Edit" folder.\n\n' +
+    'Last step: Deploy > New deployment > Web app (Execute as: Me, Who has access: Anyone), ' +
+    'then paste the web app address and the secret from the log into the Studio.';
+  try {
+    SpreadsheetApp.getUi().alert(message);
+  } catch (_e) {
+    Logger.log(message);
+  }
+  return links;
+}
+
+/**
+ * The record of every payment in and every business cost out.
+ */
+function ensureMoneySheet_(ss) {
+  var sheet = getOrCreateSheet_(ss, TAB_MONEY, '#4A5840');
+  if (sheet.getLastRow() === 0) {
+    var headers = ['Date', 'In or out', 'Category', 'Order ref', 'Customer or supplier', 'What for', 'Amount (£)', 'Paid by', 'Receipt link'];
+    styleHeaderRow_(sheet, headers, '#4A5840', '#FAF6F0');
+    sheet.setFrozenRows(1);
+    sheet.getRange('A2:A2000').setNumberFormat('dd/mm/yyyy');
+    sheet.getRange('G2:G2000').setNumberFormat('£#,##0.00');
+    sheet.getRange('B2:B2000').setDataValidation(
+      SpreadsheetApp.newDataValidation().requireValueInList(['In', 'Out'], true).build()
+    );
+    sheet.getRange('C2:C2000').setDataValidation(
+      SpreadsheetApp.newDataValidation().requireValueInList(MONEY_CATEGORIES, true).build()
+    );
+    sheet.setColumnWidths(1, 9, 140);
+  }
+  return sheet;
+}
+
+/**
+ * Writes a payment into Money In & Out, once per order and purpose.
+ */
+function recordPayment_(ss, orderId, customer, whatFor, amount) {
+  if (!(amount > 0)) return;
+  var sheet = ensureMoneySheet_(ss);
+  var last = sheet.getLastRow();
+  if (last >= 2) {
+    var existing = sheet.getRange(2, 4, last - 1, 3).getValues();
+    for (var i = 0; i < existing.length; i++) {
+      if (String(existing[i][0]) === orderId && String(existing[i][2]) === whatFor) return;
+    }
+  }
+  sheet.appendRow([new Date(), 'In', 'Sales', orderId, sanitizeCell(customer), whatFor, amount, 'Bank transfer', '']);
+}
 
 /**
  * OWASP Formula-Injection Sanitizer for user-supplied strings.
@@ -382,6 +494,14 @@ function doPost(e) {
         for (var idx = 0; idx < rowIds.length; idx++) {
           if (String(rowIds[idx][0]) === bId) {
             s1Upd.getRange(idx + 2, 3).setValue(newStatus);
+            var rowVals = s1Upd.getRange(idx + 2, 1, 1, 21).getValues()[0];
+            var customerName = String(rowVals[3] || '');
+            var orderTotal = Number(rowVals[19]) || 0;
+            var depositNow = body.depositPaid !== undefined ? Number(body.depositPaid) || 0 : Number(rowVals[20]) || 0;
+            recordPayment_(ss, bId, customerName, 'Deposit', depositNow);
+            if (newStatus === 'Completed') {
+              recordPayment_(ss, bId, customerName, 'Balance', Math.max(0, orderTotal - depositNow));
+            }
             if (body.depositPaid !== undefined) {
               s1Upd.getRange(idx + 2, 21).setValue(Number(body.depositPaid) || 0); // Col U: Deposit Paid
             }
@@ -398,6 +518,11 @@ function doPost(e) {
     if (action === 'archive_pdf_document') {
       var res = handleArchivePdfDocument_(ss, body);
       return jsonResponse_(res);
+    }
+
+    if (action === 'drive_links') {
+      var stored = PropertiesService.getScriptProperties().getProperty('DRIVE_LINKS');
+      return jsonResponse_({ ok: true, links: stored ? JSON.parse(stored) : null });
     }
 
     if (action === 'sync_admin_save') {
@@ -570,6 +695,9 @@ function writeAdminCatalogToSheet_(ss, siteData) {
 // the order sheet gets dedicated columns for them.
 function describeEventAndPersonalisation_(client, cfg) {
   var parts = [];
+  if (client.occasion) parts.push('Celebrating: ' + client.occasion);
+  if (client.style) parts.push('Style: ' + client.style);
+  if (client.hasVenue === 'no') parts.push('No venue yet' + (client.area ? ', hoping for ' + client.area : ''));
   if (client.venueName) parts.push('Venue: ' + client.venueName + (client.setting ? ' (' + client.setting + ')' : ''));
   if (client.accessTime) parts.push('Access from: ' + client.accessTime);
   var board = cfg.boardCustomization;

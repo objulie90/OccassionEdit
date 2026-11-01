@@ -10,3 +10,4 @@ node_modules/
 data/.encryption_key
 dist/
 dist-preview/
+src/data/preview-site-data.json

@@ -333,7 +333,7 @@ export function ProductPreview({
         <rect x="0" y="425" width="500" height="75" fill="#DDD5C7" />
         <line x1="0" y1="425" x2="500" y2="425" stroke="#C5BCAE" strokeWidth="1.5" />
 
-        {isPaletteOnlyPreview && (
+        {isPaletteOnlyPreview && selectedColours.length > 0 && (
           <g filter="url(#softShadow)">
             {[
               { cx: 195, cy: 190, rx: 46, ry: 54, idx: 0 },
@@ -723,6 +723,18 @@ export function ProductPreview({
           </g>
         )}
       </svg>
+
+      {/* Until they choose colours, the empty stage explains how ordering works */}
+      {isPaletteOnlyPreview && selectedColours.length === 0 && (
+        <div className="rpc-how-it-works">
+          <h3>How it works</h3>
+          <ol>
+            <li><span><strong>Build your edit</strong> and pay nothing now at all.</span></li>
+            <li><span><strong>Add what you'd like</strong> and we'll give you a guide price.</span></li>
+            <li><span><strong>Send it to us</strong>, and one of the team will be in touch with a quote and to confirm we can make your event.</span></li>
+          </ol>
+        </div>
+      )}
     </div>
   );
 }

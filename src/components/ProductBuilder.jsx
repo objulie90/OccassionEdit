@@ -6,6 +6,9 @@ import {
 import { ProductPreview } from './ProductPreview';
 import { BalloonGraphic, EditableText, EditablePrice, VisualColourPicker, CornerRibbon, RibbonPickerPopover } from './ui';
 import { captureSvgSnapshotDataUrl } from '../lib/media';
+import { EventStep, formatEventDate } from './EventStep';
+import { picksFor, stylePicksFor, offerLine } from '../lib/upsell';
+import { BOOKING_TERMS } from '../lib/terms';
 
 /**
  * ProductBuilder Component — Simple, clean two-panel builder using "Our" wording
@@ -20,6 +23,7 @@ export function ProductBuilder({
   externalPreset,
   onClearExternalPreset,
   onSubmitQuote,
+  getAvailability,
   isEditMode,
   onUpdateBuilderItem,
   onToggleBuilderItemStock,
@@ -32,7 +36,8 @@ export function ProductBuilder({
 }) {
   const [activeStepIndex, setActiveStepIndex] = useState(0);
   const [paletteMode, setPaletteMode] = useState('curated');
-  const [activePaletteId, setActivePaletteId] = useState(curatedPalettes[0].id);
+  // The builder starts empty: every choice is the customer's
+  const [activePaletteId, setActivePaletteId] = useState(null);
   const [shimmerSize, setShimmerSize] = useState('small');
   const [isDragOver, setIsDragOver] = useState(false);
   const [openRibbonItemId, setOpenRibbonItemId] = useState(null);
@@ -41,15 +46,11 @@ export function ProductBuilder({
   const canvasWrapRef = useRef(null);
   const formStartTimeRef = useRef(Date.now());
 
-  const [selectedColours, setSelectedColours] = useState(() =>
-    curatedPalettes[0].colourIds
-      .map(id => balloonColours.find(c => c.id === id))
-      .filter(Boolean)
-  );
+  const [selectedColours, setSelectedColours] = useState([]);
 
   const [selection, setSelection] = useState({
-    backdrop: steps[1].items[0],
-    balloons: steps[2].items[0],
+    backdrop: null,
+    balloons: null,
     extras: []
   });
 
@@ -80,9 +81,38 @@ export function ProductBuilder({
     venueName: '',
     postcode: '',
     setting: 'indoor',
-    notes: ''
+    notes: '',
+    occasion: '',
+    occasionOther: '',
+    hasVenue: '',
+    area: '',
+    hasBudget: '',
+    budget: 0,
+    style: '',
+    placeConfirmed: false
   });
   const [submittedSuccess, setSubmittedSuccess] = useState(false);
+
+  // Step 0: the customer's date and postcode decide which hire props can be offered
+  const [eventConfirmed, setEventConfirmed] = useState(false);
+  const [availability, setAvailability] = useState(null);
+  const [availabilityNote, setAvailabilityNote] = useState('');
+  const isBookedOut = (item) =>
+    !!(item && item.hireOnly && availability?.valid && (availability.items?.[item.id]?.free ?? 1) < 1);
+  const eventDateLabel = formatEventDate(clientForm.eventDate);
+
+  // A prop picked before the date was known comes off the edit if it's booked that day
+  useEffect(() => {
+    if (!availability) return;
+    const booked = [selection.backdrop, ...selection.extras].filter(isBookedOut);
+    if (booked.length === 0) return;
+    setSelection(prev => ({
+      ...prev,
+      backdrop: isBookedOut(prev.backdrop) ? null : prev.backdrop,
+      extras: prev.extras.filter(ex => !isBookedOut(ex))
+    }));
+    setAvailabilityNote(`${booked.map(b => b.name).join(' and ')} ${booked.length > 1 ? 'are' : 'is'} already booked for ${eventDateLabel}, so we've taken ${booked.length > 1 ? 'them' : 'it'} off your edit.`);
+  }, [availability]);
 
   // Keep selected items synchronized when prices/stock/banners are edited live in Studio Mode
   useEffect(() => {
@@ -180,6 +210,37 @@ export function ProductBuilder({
 
   const finalTotal = calculateFinalTotal();
 
+  // Upselling: framed against their budget and what they've already chosen
+  const budget = clientForm.hasBudget === 'yes' ? Number(clientForm.budget) || 0 : 0;
+  const picks = picksFor(clientForm.occasion);
+  const stylePicks = stylePicksFor(clientForm.style);
+  const isPick = (id) => !!(picks && picks.ids.includes(id));
+  const isStylePick = (id) => !isPick(id) && !!(stylePicks && stylePicks.includes(id));
+  const totalWith = (patch) =>
+    calculateLookRecipePrice({ ...currentRecipe, ...patch }, steps, digitOptions, balloonColours, curatedPalettes).finalTotal;
+  const offerFor = (stepId, item, isSelected) => {
+    const patch = stepId === 'backdrop' ? { backdropId: item.id }
+      : stepId === 'balloons' ? { balloonId: item.id }
+      : stepId === 'extras' ? { extraIds: [...currentRecipe.extraIds, item.id] }
+      : { digitOptionId: item.id };
+    const hasCurrentChoice = stepId === 'backdrop' ? !!selection.backdrop
+      : stepId === 'balloons' ? !!selection.balloons
+      : stepId === 'digits' ? !!digitSelection && digitSelection.type !== 'none'
+      : false;
+    return offerLine({
+      name: item.shortName || item.name,
+      isSelected,
+      isAddOn: stepId === 'extras',
+      hasCurrentChoice,
+      newTotal: totalWith(patch),
+      currentTotal: subtotal,
+      budget
+    });
+  };
+  const completeTheLook = currentStep && currentStep.id === 'extras' && (picks || stylePicks)
+    ? currentStep.items.filter(it => (isPick(it.id) || isStylePick(it.id)) && it.inStock && !isBookedOut(it) && !selection.extras.some(e => e.id === it.id)).slice(0, 2)
+    : [];
+
   const handleSelectCuratedPalette = (palette) => {
     if (!palette.inStock && !isEditMode) return;
     setActivePaletteId(palette.id);
@@ -205,7 +266,7 @@ export function ProductBuilder({
   };
 
   const handleSelectOrDropItem = (stepId, item) => {
-    if (!item.inStock && !isEditMode) return;
+    if (!isEditMode && (!item.inStock || isBookedOut(item))) return;
 
     if (stepId === 'backdrop') {
       setSelection(prev => ({
@@ -279,6 +340,14 @@ export function ProductBuilder({
   const handleQuoteSubmit = async (e) => {
     e.preventDefault();
     if (isSubmittingQuote) return;
+    if (selectedColours.length === 0) {
+      setQuoteSubmitError('Please choose your colours first.');
+      return;
+    }
+    if (!selection.backdrop && !selection.balloons && selection.extras.length === 0 && (!digitSelection || digitSelection.type === 'none')) {
+      setQuoteSubmitError('Please choose at least one thing for your display.');
+      return;
+    }
     if (digitSelection && digitSelection.type !== 'none' && !digitText.trim()) {
       setQuoteSubmitError('Please type the numbers or letters you would like on your balloons.');
       return;
@@ -316,7 +385,10 @@ export function ProductBuilder({
       _company_website: honeypotWebsite,
       _formFillMs: fillMs,
       previewSnapshotDataUrl: snapshotDataUrl,
-      client: clientForm,
+      client: {
+        ...clientForm,
+        occasion: clientForm.occasion === 'Something else' ? (clientForm.occasionOther || 'Something else') : clientForm.occasion
+      },
       configuration: {
         palette: selectedColours.map(c => c.name),
         backdrop: selection.backdrop ? selection.backdrop.name : 'Skipped (Freestanding)',
@@ -349,16 +421,71 @@ export function ProductBuilder({
       setSubmittedSuccess(true);
     } catch (err) {
       setQuoteSubmitError(err?.customerMessage || "Sorry, your edit didn't send. Your design is still here, so please try again in a minute, or message us on Facebook.");
+      // Something was booked while they were choosing: refresh the date so it greys out
+      if (err?.code === 'unavailable' && getAvailability) {
+        getAvailability(clientForm.eventDate).then(setAvailability).catch(() => {});
+      }
     } finally {
       setIsSubmittingQuote(false);
     }
   };
 
   return (
-    <section id="build-your-edit" className="oe-builder-section" aria-label="Build Your Party Display Configurator">
+    <section id="build-your-edit" className="oe-builder-section" aria-label="Build your edit">
+      <header className="oe-builder-head">
+        <h2 className="oe-builder-title">Build your edit</h2>
+        <nav aria-label="Stages">
+          <ol className="oe-stages">
+            <li>
+              <button
+                type="button"
+                onClick={() => { setEventConfirmed(false); setAvailabilityNote(''); }}
+                aria-current={!eventConfirmed ? 'step' : undefined}
+                className={`oe-stage ${!eventConfirmed ? 'is-current' : 'is-done'}`}
+              >
+                <span className="oe-stage-mark">{eventConfirmed ? '✓' : 1}</span>
+                <span className="oe-stage-label">
+                  {eventConfirmed ? new Date(clientForm.eventDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : 'Your day'}
+                </span>
+              </button>
+            </li>
+            {steps.map((step, idx) => {
+              const isCurrent = eventConfirmed && !showQuoteModal && idx === activeStepIndex;
+              const isDone = eventConfirmed && (idx < activeStepIndex || showQuoteModal);
+              return (
+                <li key={step.id}>
+                  <button
+                    type="button"
+                    disabled={!eventConfirmed}
+                    onClick={() => { setShowQuoteModal(false); setActiveStepIndex(idx); }}
+                    aria-current={isCurrent ? 'step' : undefined}
+                    className={`oe-stage ${isCurrent ? 'is-current' : ''} ${isDone ? 'is-done' : ''}`}
+                  >
+                    <span className="oe-stage-mark">{isDone ? '✓' : idx + 2}</span>
+                    <span className="oe-stage-label">{String(step.shortTab || step.title).replace(/^\d+\.\s*/, '').replace(' & Letters', '')}</span>
+                  </button>
+                </li>
+              );
+            })}
+            <li>
+              <button
+                type="button"
+                disabled={!eventConfirmed}
+                onClick={() => { formStartTimeRef.current = Date.now(); setShowQuoteModal(true); }}
+                aria-current={eventConfirmed && showQuoteModal ? 'step' : undefined}
+                className={`oe-stage ${eventConfirmed && showQuoteModal ? 'is-current' : ''}`}
+              >
+                <span className="oe-stage-mark">{steps.length + 2}</span>
+                <span className="oe-stage-label">Send</span>
+              </button>
+            </li>
+          </ol>
+        </nav>
+      </header>
+
       <div className="oe-builder-two-panel">
         {/* LEFT PANEL: Clean Square Canvas + Simple Total */}
-        <div className="oe-left-canvas-panel">
+        <div className="oe-left-canvas-panel oe-build-card">
           <div className="oe-canvas-frame" ref={canvasWrapRef}>
             <ProductPreview
               selection={selection}
@@ -390,7 +517,7 @@ export function ProductBuilder({
               </div>
 
               <div className="oe-simple-total">
-                <span>Estimated Total:</span>
+                <span>Guide price</span>
                 {recipeCalc.hasDiscount && (
                   <span className="oe-price-old">£{recipeCalc.originalTotal}</span>
                 )}
@@ -437,48 +564,27 @@ export function ProductBuilder({
 
         {/* RIGHT PANEL: Guided 5-Step Configurator Controls */}
         <div className="oe-right-controls-panel">
-          <div className="oe-right-top-bar">
-            <h2 className="oe-builder-title">BUILD YOUR EDIT</h2>
-            <span className="oe-step-badge">{currentStep.stepNumber}</span>
-          </div>
 
-          <nav className="oe-step-progress-nav" aria-label="Configurator Steps">
-            {steps.map((step, idx) => {
-              const isCompleted = idx < activeStepIndex;
-              const isCurrent = !showQuoteModal && idx === activeStepIndex;
-              return (
-                <button
-                  key={step.id}
-                  type="button"
-                  onClick={() => {
-                    setShowQuoteModal(false);
-                    setActiveStepIndex(idx);
-                  }}
-                  aria-current={isCurrent ? 'step' : undefined}
-                  className={`oe-step-pill-btn ${isCurrent ? 'current' : ''} ${isCompleted ? 'completed' : ''}`}
-                >
-                  {isCompleted ? '✓ ' : ''}{step.shortTab}
-                </button>
-              );
-            })}
-            <button
-              type="button"
-              onClick={() => {
-                formStartTimeRef.current = Date.now();
-                setShowQuoteModal(true);
+          {availabilityNote && eventConfirmed && (
+            <p className="oe-availability-note" role="status">{availabilityNote}</p>
+          )}
+
+          {!eventConfirmed ? (
+            <EventStep
+              form={clientForm}
+              onChange={patch => setClientForm(prev => ({ ...prev, ...patch }))}
+              getAvailability={getAvailability}
+              onConfirmed={result => {
+                setAvailability(result);
+                setEventConfirmed(true);
               }}
-              className={`oe-step-pill-btn ${showQuoteModal ? 'current' : ''}`}
-            >
-              6. Send Edit (£{finalTotal})
-            </button>
-          </nav>
-
-          {!showQuoteModal ? (
+            />
+          ) : !showQuoteModal ? (
             <div className="oe-step-card-surface">
               <div className="oe-step-card-header">
                 <div>
                   <h3 className="oe-active-step-heading">{currentStep.title}</h3>
-                  <p className="oe-active-step-desc">{currentStep.subtitle}</p>
+                  {currentStep.subtitle && <p className="oe-active-step-desc">{currentStep.subtitle}</p>}
                 </div>
                 {currentStep.allowSkip && (
                   <button
@@ -503,7 +609,7 @@ export function ProductBuilder({
                       onClick={() => setPaletteMode('curated')}
                       className={`oe-mode-tab-btn ${paletteMode === 'curated' ? 'active' : ''}`}
                     >
-                      Our 5 Signature Palettes
+                      Our palettes
                     </button>
                     <button
                       type="button"
@@ -512,7 +618,7 @@ export function ProductBuilder({
                       onClick={() => setPaletteMode('custom')}
                       className={`oe-mode-tab-btn ${paletteMode === 'custom' ? 'active' : ''}`}
                     >
-                      Build Your Own (Up to 5 Colours)
+                      Pick up to 5 colours
                     </button>
                   </div>
 
@@ -535,7 +641,6 @@ export function ProductBuilder({
                             <div className="oe-curated-info">
                               <div className="oe-curated-title-row">
                                 <span className="oe-curated-name">{pal.name}</span>
-                                {isSelected && <span className="oe-selected-pill">Selected ✓</span>}
                               </div>
                               <p className="oe-curated-desc">{pal.description}</p>
                             </div>
@@ -574,7 +679,6 @@ export function ProductBuilder({
                               <span className="oe-balloon-card-finish">
                                 {!colour.inStock ? 'Out of Stock' : colour.finish}
                               </span>
-                              {isSelected && <span className="oe-balloon-check-badge">✓</span>}
                               {isEditMode && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.35rem', width: '100%' }}>
                                   <button
@@ -644,8 +748,31 @@ export function ProductBuilder({
               {/* STEPS 2, 3, 5: BACKDROPS, GARLANDS & EXTRAS */}
               {(currentStep.id === 'backdrop' || currentStep.id === 'balloons' || currentStep.id === 'extras') && (
               <div className="oe-step-options-wrap">
+                {completeTheLook.length > 0 && (
+                  <div className="oe-complete-look">
+                    <p className="oe-complete-look-title">Complete the look for your {clientForm.occasion === 'Something else' ? 'celebration' : clientForm.occasion.toLowerCase()}</p>
+                    <div className="oe-complete-look-row">
+                      {completeTheLook.map(it => (
+                        <button
+                          key={it.id}
+                          type="button"
+                          className="oe-complete-look-item"
+                          onClick={() => handleSelectOrDropItem('extras', it)}
+                        >
+                          {it.image && <img src={it.image} alt="" />}
+                          <span>
+                            <strong>{it.shortName || it.name}</strong>
+                            <span>{offerFor('extras', it, false)?.text}</span>
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div className="oe-accessible-options-grid">
                   {currentStep.items.map(item => {
+                    const bookedOut = !isEditMode && isBookedOut(item);
+                    const available = item.inStock && !bookedOut;
                     const isSelected =
                       (currentStep.id === 'backdrop' && selection.backdrop?.id === item.id) ||
                       (currentStep.id === 'balloons' && selection.balloons?.id === item.id) ||
@@ -660,12 +787,12 @@ export function ProductBuilder({
                       <div
                         key={item.id}
                         role="button"
-                        tabIndex={item.inStock || isEditMode ? 0 : -1}
+                        tabIndex={available || isEditMode ? 0 : -1}
                         aria-pressed={isSelected}
-                        aria-disabled={!item.inStock && !isEditMode}
-                        draggable={item.inStock}
+                        aria-disabled={!available && !isEditMode}
+                        draggable={available}
                         onDragStart={(e) => {
-                          if (!item.inStock) return;
+                          if (!available) return;
                           e.dataTransfer.setData(
                             'text/plain',
                             JSON.stringify({ stepId: currentStep.id, item })
@@ -678,7 +805,7 @@ export function ProductBuilder({
                             handleSelectOrDropItem(currentStep.id, item);
                           }
                         }}
-                        className={`oe-option-card ${isSelected ? 'selected' : ''} ${!item.inStock ? 'out-of-stock' : ''} ${item.cornerBanner?.enabled ? 'oe-has-corner-ribbon' : ''}`}
+                        className={`oe-option-card ${isSelected ? 'selected' : ''} ${!available ? 'out-of-stock' : ''} ${item.cornerBanner?.enabled ? 'oe-has-corner-ribbon' : ''}`}
                       >
                         <CornerRibbon banner={item.cornerBanner} />
 
@@ -696,7 +823,9 @@ export function ProductBuilder({
                                 className="oe-option-card-title"
                               />
                               <span className="oe-option-card-price">
-                                {!item.inStock && !isEditMode ? (
+                                {bookedOut ? (
+                                  'BOOKED'
+                                ) : !item.inStock && !isEditMode ? (
                                   'OUT OF STOCK'
                                 ) : isEditMode ? (
                                   <EditablePrice
@@ -733,12 +862,16 @@ export function ProductBuilder({
                           <span className="oe-option-badge">
                             {item.hireOnly ? 'Hire Prop' : 'Yours to Keep'}
                           </span>
+                          {isPick(item.id) && available && <span className="oe-pick-tag">Perfect for {picks.label}</span>}
+                          {isStylePick(item.id) && available && <span className="oe-pick-tag">A {clientForm.style} touch</span>}
                           <span className="oe-option-action-text">
-                            {!item.inStock
+                            {bookedOut
+                              ? `Booked for ${eventDateLabel}`
+                              : !item.inStock
                               ? 'Unavailable'
                               : isSelected
-                              ? '✓ Selected'
-                              : 'Select or Drag +'}
+                              ? ''
+                              : (offerFor(currentStep.id, item, isSelected)?.text || 'Select +')}
                           </span>
                         </div>
 
@@ -793,9 +926,8 @@ export function ProductBuilder({
                 {currentStep.id === 'backdrop' && selection.backdrop?.id === 'wooden-board' && (
                   <div className="oe-board-personalisation-deck">
                     <div className="oe-deck-header">
-                      <span className="oe-deck-eyebrow">BESPOKE PERSONALISATION</span>
-                      <h4 className="oe-deck-title">Personalise Your Wooden Arch Board</h4>
-                      <p className="oe-deck-subtitle">Select your painted finish &amp; custom vinyl lettering (rendered live in the preview!):</p>
+                      <h4 className="oe-deck-title">Your board</h4>
+                      <p className="oe-deck-subtitle">Choose the paint colour and your wording.</p>
                     </div>
 
                     <div className="oe-deck-grid">
@@ -967,8 +1099,10 @@ export function ProductBuilder({
                             </div>
                           </div>
                           <div className="oe-option-card-footer">
+                            {isPick(opt.id) && <span className="oe-pick-tag">Perfect for {picks.label}</span>}
+                            {isStylePick(opt.id) && <span className="oe-pick-tag">A {clientForm.style} touch</span>}
                             <span className="oe-option-action-text">
-                              {isSelected ? '✓ Selected' : 'Select Option'}
+                              {isSelected || opt.type === 'none' ? '' : (offerFor('digits', opt, isSelected)?.text || 'Select +')}
                             </span>
                           </div>
 
@@ -1060,7 +1194,7 @@ export function ProductBuilder({
                   >
                     {activeStepIndex === steps.length - 1
                       ? `Review & Send Edit (£${finalTotal}) →`
-                      : `Next: ${steps[activeStepIndex + 1].shortTab} →`}
+                      : `Next: ${String(steps[activeStepIndex + 1].shortTab).replace(/^\d+\.\s*/, '').replace(' & Letters', '')}`}
                   </button>
                 </div>
               </div>
@@ -1158,21 +1292,26 @@ export function ProductBuilder({
                       />
                     </div>
                     <div>
-                      <label className="oe-field-label">Event Date *</label>
-                      <input
-                        type="date"
-                        required
-                        value={clientForm.eventDate}
-                        onChange={e => setClientForm({ ...clientForm, eventDate: e.target.value })}
-                        className="oe-form-input"
-                      />
+                      <span className="oe-field-label">Event date</span>
+                      <p className="oe-event-date-readonly">
+                        {eventDateLabel}{' '}
+                        <button
+                          type="button"
+                          className="oe-text-link"
+                          onClick={() => { setShowQuoteModal(false); setEventConfirmed(false); }}
+                        >
+                          Change
+                        </button>
+                      </p>
                     </div>
                     <div>
-                      <label className="oe-field-label">Venue Postcode *</label>
+                      <label className="oe-field-label">
+                        {clientForm.hasVenue === 'no' ? 'Venue postcode, if you have one now' : 'Venue postcode *'}
+                      </label>
                       <input
                         type="text"
-                        required
-                        placeholder="e.g. NG13, NG31, LE13"
+                        required={clientForm.hasVenue !== 'no'}
+                        placeholder="e.g. NG13 0AA"
                         value={clientForm.postcode}
                         onChange={e => setClientForm({ ...clientForm, postcode: e.target.value.toUpperCase() })}
                         className="oe-form-input"
@@ -1229,6 +1368,9 @@ export function ProductBuilder({
                     </div>
                   </div>
 
+                  <p className="oe-terms-note">
+                    Nothing to pay today. When we confirm your date, a {BOOKING_TERMS.depositPercent}% deposit secures it, and the rest is due a week before your celebration.
+                  </p>
                   {quoteSubmitError && (
                     <p className="oe-quote-submit-error" role="alert">
                       {quoteSubmitError}

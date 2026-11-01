@@ -4,14 +4,14 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "dev": "python3 scripts/export_preview_data.py && vite",
+    "build": "python3 scripts/export_preview_data.py && vite build",
     "preview": "vite preview",
     "studio-server": "PORT=8787 python3 server.py",
-    "build:preview": "VITE_PREVIEW=1 vite build --outDir dist-preview"
+    "build:preview": "python3 scripts/export_preview_data.py && VITE_PREVIEW=1 vite build --outDir dist-preview",
+    "test": "node tests/availability.test.mjs && python3 tests/test_availability.py"
   },
   "dependencies": {
-    "leaflet": "1.9.4",
     "react": "18.3.1",
     "react-dom": "18.3.1"
   },

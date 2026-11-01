@@ -22,35 +22,35 @@ export const INITIAL_CURATED_PALETTES = [
   {
     id: 'palette-sage-gold',
     name: 'Sage & Gold',
-    description: 'Our signature botanical look — matte sage, pearl ivory & warm chrome gold.',
+    description: "Fresh and botanical, with a touch of gold glamour.",
     colourIds: ['sage', 'pearl-white', 'champagne-gold', 'nude-stone', 'blush-pink'],
     inStock: true
   },
   {
     id: 'palette-blush-romance',
     name: 'Blush & Pearl',
-    description: 'Soft blush pinks, warm taupe and luminous pearl ivory.',
+    description: "Soft and romantic, made for showers, christenings and weddings.",
     colourIds: ['blush-pink', 'pearl-white', 'champagne-gold', 'nude-stone', 'lilac-mist'],
     inStock: true
   },
   {
     id: 'palette-teddy-neutrals',
     name: 'Warm Neutrals',
-    description: 'Calm tones of warm taupe, pearl ivory, champagne gold & sage.',
+    description: "Calm, cosy tones that suit any room and any age.",
     colourIds: ['nude-stone', 'pearl-white', 'champagne-gold', 'sage', 'butter-yellow'],
     inStock: true
   },
   {
     id: 'palette-pastel-celebration',
     name: 'Pastel Sky',
-    description: 'Fresh spring tones of sky blue, lemon butter, soft lilac & pearl.',
+    description: "Light and playful, a breath of spring for little ones' parties.",
     colourIds: ['pastel-blue', 'butter-yellow', 'lilac-mist', 'pearl-white', 'blush-pink'],
     inStock: true
   },
   {
     id: 'palette-black-gold-luxe',
     name: 'Black & Gold',
-    description: 'Statement styling with obsidian black, chrome gold, silver & pearl.',
+    description: "Bold and glamorous for milestone birthdays and evening parties.",
     colourIds: ['matte-black', 'champagne-gold', 'chrome-silver', 'pearl-white', 'nude-stone'],
     inStock: true
   }
@@ -70,7 +70,7 @@ export const INITIAL_DIGIT_LETTER_OPTIONS = [
   {
     id: 'helium-foil-numbers',
     name: 'Helium Foil Numbers + 2 Clusters',
-    description: 'Giant 34" foil numbers on weights with 2 clusters (£36 single / £52 double)',
+    description: "Giant floating numbers with two clusters: the instant wow as guests arrive.",
     type: 'digits',
     basePrice: 36,
     secondDigitPrice: 52,
@@ -85,11 +85,9 @@ export const INITIAL_DIGIT_LETTER_OPTIONS = [
   {
     id: 'stack-basic',
     name: 'Freestanding Number Stack — Basic',
-    description: 'Air-filled foil number mounted on an organic latex base',
+    description: "A sculpted number standing on balloons, perfect beside the cake.",
     type: 'stack',
     basePrice: 35,
-    secondDigitPrice: 55,
-    extraCharPrice: 20,
     maxChars: 2,
     defaultText: '3',
     image: 'public/assets/pl-stack-30.jpg',
@@ -98,11 +96,9 @@ export const INITIAL_DIGIT_LETTER_OPTIONS = [
   {
     id: 'stack-themed',
     name: 'Freestanding Number Stack — Themed',
-    description: 'Bespoke themed stack with foil details and custom styling',
+    description: "Dressed in their favourite characters or theme.",
     type: 'stack',
     basePrice: 60,
-    secondDigitPrice: 80,
-    extraCharPrice: 20,
     maxChars: 2,
     defaultText: '13',
     image: 'public/assets/pl-stack-30.jpg',
@@ -111,11 +107,9 @@ export const INITIAL_DIGIT_LETTER_OPTIONS = [
   {
     id: 'stack-luxury',
     name: 'Freestanding Number Stack — Luxury',
-    description: 'Luxury multi-balloon sculpture stack with satin bows & orbs',
+    description: "Satin bows, pearls and florals for a milestone in style.",
     type: 'stack',
     basePrice: 70,
-    secondDigitPrice: 90,
-    extraCharPrice: 20,
     maxChars: 2,
     defaultText: '30',
     image: 'public/assets/pl-stack-30.jpg',
@@ -124,7 +118,7 @@ export const INITIAL_DIGIT_LETTER_OPTIONS = [
   {
     id: 'custom-letter-balloons',
     name: 'Custom Foil Letter Balloons (A–Z)',
-    description: 'Spell a name or word in 16" foil letters (£12 per letter)',
+    description: "Spell their name or a special word in giant foil letters.",
     type: 'letters',
     basePrice: 12,
     perLetter: true,
@@ -140,8 +134,8 @@ export const CONFIGURATOR_STEPS = [
     id: 'colours',
     stepNumber: 'Step 1 of 5',
     shortTab: '1. Colours',
-    title: 'Choose Your Colour Palette',
-    subtitle: 'Select one of our 5 signature palettes, or build your own mix of up to 5 colours.',
+    title: "Choose your colours",
+    subtitle: "",
     allowSkip: false,
     items: []
   },
@@ -149,8 +143,8 @@ export const CONFIGURATOR_STEPS = [
     id: 'backdrop',
     stepNumber: 'Step 2 of 5',
     shortTab: '2. Backdrop',
-    title: 'Choose a Backdrop',
-    subtitle: 'Select a backdrop board, shimmer wall, or hoop — or skip for freestanding balloons.',
+    title: "Choose a backdrop",
+    subtitle: "Or skip it for freestanding balloons.",
     allowSkip: true,
     skipLabel: 'Skip Backdrop',
     items: [
@@ -158,7 +152,7 @@ export const CONFIGURATOR_STEPS = [
         id: 'wooden-board',
         name: 'Personalised Wooden Arch Board',
         shortName: 'Wooden Board',
-        styleNote: 'Any colour finish + custom vinyl text (From £155 with garland)',
+        styleNote: "Painted in any colour with your own wording, wrapped in balloons. The photo spot everyone queues for.",
         price: 50,
         packageBasePrice: 155,
         hireOnly: true,
@@ -171,7 +165,7 @@ export const CONFIGURATOR_STEPS = [
         id: 'gold-shimmer',
         name: 'Gold Sequin Shimmer Wall',
         shortName: 'Gold Shimmer Wall',
-        styleNote: 'Small £150 / Large £180 with garland (Hire only)',
+        styleNote: "Catches the light in every photo. Small or large, dressed with a garland in your colours.",
         price: 45,
         packageBasePrice: 150,
         packageLargePrice: 180,
@@ -186,7 +180,7 @@ export const CONFIGURATOR_STEPS = [
         id: 'silver-shimmer',
         name: 'Silver Sequin Shimmer Wall',
         shortName: 'Silver Shimmer Wall',
-        styleNote: 'Small £150 / Large £180 with garland (Hire only)',
+        styleNote: "Mirror-bright sparkle that suits any colour scheme. Small or large, dressed with a garland.",
         price: 45,
         packageBasePrice: 150,
         packageLargePrice: 180,
@@ -201,7 +195,7 @@ export const CONFIGURATOR_STEPS = [
         id: 'black-shimmer',
         name: 'Obsidian Black Shimmer Wall',
         shortName: 'Black Shimmer Wall',
-        styleNote: 'Small £150 / Large £180 with garland (Hire only)',
+        styleNote: "Bold and glamorous, stunning with gold and pearl. Small or large, dressed with a garland.",
         price: 45,
         packageBasePrice: 150,
         packageLargePrice: 180,
@@ -216,7 +210,7 @@ export const CONFIGURATOR_STEPS = [
         id: 'pink-shimmer',
         name: 'Blush Pink Shimmer Wall',
         shortName: 'Pink Shimmer Wall',
-        styleNote: 'Small £150 / Large £180 with garland (Hire only)',
+        styleNote: "Soft blush sparkle for a dreamy, romantic look. Small or large, dressed with a garland.",
         price: 45,
         packageBasePrice: 150,
         packageLargePrice: 180,
@@ -231,7 +225,7 @@ export const CONFIGURATOR_STEPS = [
         id: 'balloon-hoop',
         name: 'Circular Gold Balloon Hoop',
         shortName: 'Circular Hoop',
-        styleNote: 'Circular statement frame (From £140 with garland)',
+        styleNote: "A golden circle that frames every picture, dressed with a garland in your colours.",
         price: 35,
         packageBasePrice: 140,
         hireOnly: true,
@@ -244,7 +238,7 @@ export const CONFIGURATOR_STEPS = [
         id: 'easel-sign',
         name: 'Easel Welcome Sign & Garland',
         shortName: 'Easel Welcome Sign',
-        styleNote: 'Personalised welcome board in white or black on easel (£85)',
+        styleNote: "Welcome your guests in beautiful lettering, on a white or black board.",
         price: 85,
         standalonePackage: true,
         hireOnly: true,
@@ -259,8 +253,8 @@ export const CONFIGURATOR_STEPS = [
     id: 'balloons',
     stepNumber: 'Step 3 of 5',
     shortTab: '3. Balloons',
-    title: 'Choose Your Balloon Style',
-    subtitle: 'Select how your balloons are arranged, or skip if ordering numbers/gifts only.',
+    title: "Choose your balloons",
+    subtitle: "",
     allowSkip: true,
     skipLabel: 'Skip Garland',
     items: [
@@ -269,7 +263,7 @@ export const CONFIGURATOR_STEPS = [
         sku: 'GARL-SIDE-7FT',
         name: '7ft Organic Garland (Up One Side)',
         shortName: '7ft Side Garland',
-        styleNote: 'Asymmetric cascade up one side (£105 solo / included with walls)',
+        styleNote: "A flowing cascade up one side: the classic look that suits any space.",
         price: 105,
         hireOnly: false,
         inStock: true,
@@ -282,7 +276,7 @@ export const CONFIGURATOR_STEPS = [
         sku: 'GARL-CLUST-OPP',
         name: '1 Top & 1 Bottom Corner Cluster',
         shortName: 'Top & Bottom Clusters',
-        styleNote: 'Two organic clusters framing opposite corners',
+        styleNote: "Two clusters framing a doorway or display. Big impact, small footprint.",
         price: 85,
         hireOnly: false,
         inStock: true,
@@ -295,7 +289,7 @@ export const CONFIGURATOR_STEPS = [
         sku: 'GARL-ARCH-FULL',
         name: 'Full Surround Statement Arch',
         shortName: 'Full Surround Garland',
-        styleNote: 'Full wrap-around balloon coverage (+£35 on walls or £145 solo)',
+        styleNote: "Balloons all the way round for a full statement arch.",
         price: 145,
         upgradeSurcharge: 35,
         hireOnly: false,
@@ -310,8 +304,8 @@ export const CONFIGURATOR_STEPS = [
     id: 'digits',
     stepNumber: 'Step 4 of 5',
     shortTab: '4. Numbers & Letters',
-    title: 'Add Numbers or Letter Balloons',
-    subtitle: 'Select foil digits, number stacks, or custom letters and enter your characters.',
+    title: "Add numbers or letters",
+    subtitle: "",
     allowSkip: true,
     skipLabel: 'Skip Numbers',
     items: []
@@ -320,8 +314,8 @@ export const CONFIGURATOR_STEPS = [
     id: 'extras',
     stepNumber: 'Step 5 of 5',
     shortTab: '5. Extras',
-    title: 'Add Finishing Touches',
-    subtitle: 'Select any extras to complete your display, or skip to send your edit.',
+    title: "Finishing touches",
+    subtitle: "",
     allowSkip: true,
     skipLabel: 'Skip Extras',
     items: [
@@ -329,7 +323,7 @@ export const CONFIGURATOR_STEPS = [
         id: 'neon-sign',
         name: 'LED Neon Sign ("Happy Birthday")',
         shortName: 'Neon Sign',
-        styleNote: 'Warm white glowing LED neon sign (Hire)',
+        styleNote: "A warm glowing sign that makes every photo shine.",
         price: 35,
         hireOnly: true,
         inStock: true,
@@ -338,9 +332,10 @@ export const CONFIGURATOR_STEPS = [
       },
       {
         id: 'add-on-flowers',
+        madeToOrder: true,
         name: 'Floral & Pampas Accents',
         shortName: 'Floral Accents',
-        styleNote: 'Faux florals and foliage woven into your garland',
+        styleNote: "Roses, foliage and pampas woven in for a luxury finish.",
         price: 36,
         hireOnly: true,
         inStock: true,
@@ -351,7 +346,7 @@ export const CONFIGURATOR_STEPS = [
         id: 'baby-boxes',
         name: '4× White "BABY" Shower Blocks',
         shortName: 'BABY Shower Boxes',
-        styleNote: 'White lettered display blocks with balloons (Hire)',
+        styleNote: "White BABY blocks filled with balloons: the baby shower photo.",
         price: 40,
         hireOnly: true,
         inStock: true,
@@ -362,7 +357,7 @@ export const CONFIGURATOR_STEPS = [
         id: 'bubble-balloon',
         name: 'Personalised Clear Bubble Balloon',
         shortName: 'Bubble Balloon',
-        styleNote: 'Clear orb filled with mini balloons + custom text',
+        styleNote: "A clear balloon filled with mini balloons and their name or message. A keepsake gift.",
         price: 35,
         hireOnly: false,
         inStock: true,
@@ -371,9 +366,10 @@ export const CONFIGURATOR_STEPS = [
       },
       {
         id: 'cut-outs',
+        madeToOrder: true,
         name: 'Themed Character / Prop Cut-Outs',
         shortName: 'Theme Cut-Outs',
-        styleNote: 'Custom freestanding prop cut-outs',
+        styleNote: "Their favourite character or theme at full size, ready for photos.",
         price: 36,
         hireOnly: true,
         inStock: true,
@@ -384,7 +380,7 @@ export const CONFIGURATOR_STEPS = [
         id: 'centerpieces',
         name: 'Table Centerpiece Balloon Posy',
         shortName: 'Table Centerpiece',
-        styleNote: 'Matching table centerpiece arrangement (£35 each)',
+        styleNote: "Matching table posies so every table feels part of the party.",
         price: 35,
         hireOnly: false,
         inStock: true,
@@ -395,7 +391,7 @@ export const CONFIGURATOR_STEPS = [
         id: 'cake-stand',
         name: 'Luxury Cylinder Cake Plinth',
         shortName: 'Cake Plinth',
-        styleNote: 'White ribbed cylinder plinth for cake display (Hire)',
+        styleNote: "Show off the cake on a plinth that matches your display.",
         price: 60,
         hireOnly: true,
         inStock: false,
@@ -411,7 +407,7 @@ export const INITIAL_INSPIRATION_SLIDES = [
     id: 'insp-1',
     category: 'Birthdays',
     title: 'The 21st Gold Shimmer & Sage Edit',
-    description: 'Gold Sequin Shimmer Wall dressed with a 7ft Organic Sage, Pearl & Chrome Gold garland, warm LED "Happy Birthday" neon sign, and double-digit "21" foil numbers.',
+    description: "Your party guests will be dazzled by your very own gold shimmer selfie wall, complete with a show-stopping garland of balloons in up to five colours of your choosing. Finished off with two classic foil numbers and an Instagram-ready neon sign.",
     guidePrice: 237,
     image: 'public/assets/inspire-birthday.jpg',
     isExampleWatermark: true,
@@ -437,7 +433,7 @@ export const INITIAL_INSPIRATION_SLIDES = [
     id: 'insp-2',
     category: 'Baby Showers',
     title: 'Botanical Oak Arch & BABY Block Package',
-    description: 'Bespoke arched wooden backdrop board with Teddy & Sage organic garland, pampas floral accents, and our 4 white "BABY" hire blocks.',
+    description: "Welcome your little one in soft, natural style: a bespoke arched board wrapped in warm neutral and sage balloons, with pampas sprays and our white BABY blocks ready for every photo.",
     guidePrice: 231,
     image: 'public/assets/inspire-baby.jpg',
     isExampleWatermark: true,
@@ -463,7 +459,7 @@ export const INITIAL_INSPIRATION_SLIDES = [
     id: 'insp-3',
     category: 'Anniversaries',
     title: 'Blush & Champagne Circular Hoop Statement',
-    description: 'Gold circular statement hoop dressed in Soft Blush, Pearl Ivory & Champagne Gold balloons with cascading white florals.',
+    description: "A golden hoop that frames every picture of the day, softly dressed in blush, pearl and gold balloons with cascading florals. Romantic, elegant and made for celebrating together.",
     guidePrice: 176,
     image: 'public/assets/inspire-anniversary.jpg',
     isExampleWatermark: true,
@@ -489,7 +485,7 @@ export const INITIAL_INSPIRATION_SLIDES = [
     id: 'insp-4',
     category: 'Parties',
     title: 'Lilac & Gold Butterfly Shimmer Wall',
-    description: 'Large Shimmer Wall dressed with Lilac, Plum, Pearl & Chrome Gold balloons and delicate butterfly accents.',
+    description: "Make an entrance with our large shimmer wall, wrapped in a flowing garland of lilac, plum, pearl and gold, with delicate butterflies settling on the balloons.",
     guidePrice: 180,
     image: 'public/assets/pl-shimmer-lilac.jpg',
     isExampleWatermark: true,
@@ -566,10 +562,10 @@ export const INITIAL_OFFERS = [
 export const INITIAL_DELIVERY_CONFIG = {
   centerName: 'Bottesford, Leicestershire',
   centerCoords: [52.9436, -0.8006],
+  // Laura: free nearby, then a mileage charge; travels up to 20 miles
   zones: [
-    { id: 'zone-1', name: 'Zone 1 (Local)', miles: 10, surcharge: 0, color: '#7A8C68', note: 'Free delivery & collection on orders £150+' },
-    { id: 'zone-2', name: 'Zone 2 (Standard)', miles: 20, surcharge: 20, color: '#C5A059', note: 'Standard delivery, installation & collection' },
-    { id: 'zone-3', name: 'Zone 3 (Extended)', miles: 30, surcharge: 35, color: '#991B1B', note: 'Extended travel, installation & collection' }
+    { id: 'zone-1', name: 'Nearby', miles: 10, surcharge: 0, color: '#7A8C68', note: 'Free delivery, setup and collection.' },
+    { id: 'zone-2', name: 'Further afield', miles: 20, surcharge: null, perMile: true, color: '#C5A059', note: 'A small mileage charge, confirmed in your quote.' }
   ]
 };
 
@@ -652,26 +648,22 @@ export function calculateDistanceToBottesford(rawPostcode) {
  */
 export function getDeliveryZoneForMileage(miles, zones = INITIAL_DELIVERY_CONFIG.zones) {
   if (miles === null || miles === undefined) {
-    return { zone: null, surcharge: 0, note: 'Enter postcode for delivery rate' };
+    return { zone: null, surcharge: 0, note: 'Enter a postcode to check delivery' };
   }
-  const z1 = zones.find(z => z.id === 'zone-1') || zones[0];
-  const z2 = zones.find(z => z.id === 'zone-2') || zones[1];
-  const z3 = zones.find(z => z.id === 'zone-3') || zones[2];
+  const zone = [...zones].sort((x, y) => x.miles - y.miles).find(z => miles <= z.miles);
+  if (!zone) {
+    return { zone: null, surcharge: null, outside: true, label: `About ${Math.round(miles)} miles away` };
+  }
+  return { zone, surcharge: zone.perMile ? null : (zone.surcharge || 0), perMile: !!zone.perMile, label: `${zone.name} (about ${Math.round(miles)} miles)` };
+}
 
-  if (miles <= (z1?.miles || 10)) {
-    return { zone: z1, surcharge: z1?.surcharge || 0, label: `${z1?.name} (${miles} mi)` };
-  }
-  if (miles <= (z2?.miles || 20)) {
-    return { zone: z2, surcharge: z2?.surcharge || 20, label: `${z2?.name} (${miles} mi)` };
-  }
-  if (miles <= (z3?.miles || 30)) {
-    return { zone: z3, surcharge: z3?.surcharge || 35, label: `${z3?.name} (${miles} mi)` };
-  }
-  return {
-    zone: null,
-    surcharge: (z3?.surcharge || 35) + Math.round((miles - (z3?.miles || 30)) * 2),
-    label: `Extended Travel (${miles} mi)`
-  };
+// How delivery is described to customers, in one place
+export function describeDelivery(zoneInfo) {
+  if (!zoneInfo || zoneInfo.outside) return 'A little outside our usual area. Send your edit and we\'ll see what we can do.';
+  if (!zoneInfo.zone) return '';
+  if (zoneInfo.perMile) return 'A small mileage charge for delivery, confirmed in your quote.';
+  if (!zoneInfo.surcharge) return 'Free delivery, setup and collection.';
+  return `Delivery and collection: £${zoneInfo.surcharge}.`;
 }
 
 /**
@@ -884,7 +876,8 @@ export function calculateLookRecipePrice(recipe, steps = CONFIGURATOR_STEPS, dig
     } else if (charCount === 2 && digitSelection.secondDigitPrice) {
       rawDigit = digitSelection.secondDigitPrice;
     } else if (charCount > 1) {
-      rawDigit = digitSelection.basePrice + (charCount - 1) * (digitSelection.extraCharPrice || 16);
+      // Only charge per extra number where a price for it has been set
+      rawDigit = digitSelection.basePrice + (charCount - 1) * (digitSelection.extraCharPrice || 0);
     }
     lines.push({
       label: `${digitSelection.name} ("${cleaned.toUpperCase()}")`,

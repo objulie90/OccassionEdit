@@ -66,6 +66,11 @@ DEFAULT_STUDIO_SETTINGS = {
     "sortCode": "",
     "accountNumber": "",
     "paymentRefFormat": "{orderId}-{clientSurname}",
+    "maxSetupsPerDay": 1,
+    "holdUntilReply": True,
+    "holdHours": 48,
+    "sameDayTurnaround": True,
+    "minNoticeDays": 2,
     "sheetConfig": {"webAppUrl": "", "adminSecret": ""}
 }
 
@@ -436,6 +441,100 @@ def get_uk_tax_year_str(dt=None):
     return f"{start_year}/{end_year:02d}"
 
 
+def clamp_int(value, low, high, fallback):
+    try:
+        return max(low, min(high, int(value)))
+    except (TypeError, ValueError):
+        return fallback
+
+
+# ---------------------------------------------------------------------------
+# Availability: Python copy of src/lib/availability.js. Both are checked
+# against tests/availability-cases.json, so keep them in step.
+# ---------------------------------------------------------------------------
+def day_number(value):
+    if not value:
+        return None
+    text = str(value).strip()
+    try:
+        if re.match(r"^\d{4}-\d{2}-\d{2}", text):
+            dt = datetime.strptime(text[:10], "%Y-%m-%d")
+        elif re.match(r"^\d{1,2}/\d{1,2}/\d{4}$", text):
+            dt = datetime.strptime(text, "%d/%m/%Y")
+        else:
+            return None
+    except ValueError:
+        return None
+    return dt.toordinal()
+
+
+def booking_counts(order, now_s, hold_hours, hold_until_reply=False):
+    status = str(order.get("status") or "").lower()
+    if "cancel" in status:
+        return False
+    if "deposit" in status or "confirm" in status or "complete" in status:
+        return True
+    if hold_until_reply:
+        return True
+    try:
+        created = datetime.fromisoformat(str(order.get("createdAt") or "").replace("Z", "+00:00")).timestamp()
+    except ValueError:
+        return True
+    return now_s - created < hold_hours * 3600
+
+
+def hire_prop_ids(order, hire_items):
+    cfg = order.get("configuration") or {}
+    known = {it["id"] for it in hire_items}
+    ids = []
+    if cfg.get("backdropId"):
+        ids.append(cfg["backdropId"])
+    elif cfg.get("backdrop"):
+        ids += [it["id"] for it in hire_items if it.get("name") == cfg["backdrop"]][:1]
+    ids += list(cfg.get("extraIds") or [])
+    return [i for i in ids if i in known]
+
+
+def compute_availability(date, orders, hire_items, settings=None, now_s=None, ignore_order_id=None):
+    settings = settings or {}
+    max_setups = clamp_int(settings.get("maxSetupsPerDay", 1), 1, 20, 1)
+    hold_hours = clamp_int(settings.get("holdHours", 48), 0, 336, 48)
+    hold_until_reply = bool(settings.get("holdUntilReply", True))
+    clash_window = 0 if settings.get("sameDayTurnaround", True) else 1
+    now_s = time.time() if now_s is None else now_s
+    items = {}
+    for it in hire_items:
+        owned = max(0, clamp_int(it.get("ownedCount") if it.get("ownedCount") is not None else 1, 0, 99, 1))
+        items[it["id"]] = {"owned": owned, "inUse": 0, "free": owned}
+    target = day_number(date)
+    if target is None:
+        return {"date": date, "valid": False, "setupsThatDay": 0, "maxSetupsPerDay": max_setups, "dayFull": False, "items": items}
+    setups = 0
+    for order in orders:
+        if ignore_order_id and order.get("id") == ignore_order_id:
+            continue
+        if not booking_counts(order, now_s, hold_hours, hold_until_reply):
+            continue
+        day = day_number((order.get("client") or {}).get("eventDate"))
+        if day is None:
+            continue
+        if day == target:
+            setups += 1
+        if abs(day - target) <= clash_window:
+            for pid in hire_prop_ids(order, hire_items):
+                items[pid]["inUse"] += 1
+                items[pid]["free"] = max(0, items[pid]["owned"] - items[pid]["inUse"])
+    return {"date": date, "valid": True, "setupsThatDay": setups, "maxSetupsPerDay": max_setups, "dayFull": setups >= max_setups, "items": items}
+
+
+def hire_items_from_site_data(site_data):
+    steps = site_data.get("steps") or []
+    return [
+        {"id": it.get("id"), "name": it.get("name"), "ownedCount": it.get("ownedCount")}
+        for step in steps for it in (step.get("items") or []) if it.get("hireOnly") and not it.get("madeToOrder")
+    ]
+
+
 def generate_tax_year_order_id(existing_quotes):
     tax_year = get_uk_tax_year_str()
     prefix = f"Order_{tax_year}_"
@@ -775,6 +874,22 @@ class OccasionEditHandler(BaseHTTPRequestHandler):
             self.wfile.write(xml)
             return
 
+        # Public availability for one date: counts only, never customer details
+        if route == "/api/availability":
+            query = urllib.parse.parse_qs(parsed.query)
+            date = (query.get("date") or [""])[0][:10]
+            if day_number(date) is None:
+                self.send_json(HTTPStatus.BAD_REQUEST, {"ok": False, "error": "Choose a valid date."})
+                return
+            result = compute_availability(
+                date,
+                load_quotes(),
+                hire_items_from_site_data(get_default_site_data()),
+                load_studio_settings()
+            )
+            self.send_json(HTTPStatus.OK, {"ok": True, "availability": result})
+            return
+
         # 2. Public Site Data API (includes calm unread notification counter if admin session active)
         if route == "/api/site-data":
             site_data = get_default_site_data()
@@ -998,8 +1113,27 @@ class OccasionEditHandler(BaseHTTPRequestHandler):
                     return
 
                 quotes = load_quotes()
-                order_id = generate_tax_year_order_id(quotes)
                 cfg = body.get("configuration") or {}
+
+                settings = load_studio_settings()
+                min_notice = clamp_int(settings.get("minNoticeDays", 2), 0, 60, 2)
+                if day_number(event_date) is not None and day_number(event_date) < datetime.now().date().toordinal() + min_notice:
+                    self.send_json(HTTPStatus.BAD_REQUEST, {"ok": False, "code": "unavailable", "error": f"We need at least {min_notice} days' notice. Please choose a later date."})
+                    return
+
+                # Someone else may have booked the last prop while this customer was choosing
+                hire_items = hire_items_from_site_data(get_default_site_data())
+                if day_number(event_date) is not None:
+                    avail = compute_availability(event_date, quotes, hire_items, settings)
+                    gone = [i for i in hire_prop_ids({"configuration": cfg}, hire_items) if avail["items"][i]["free"] < 1]
+                    if avail["dayFull"] or gone:
+                        names = [it["name"] for it in hire_items if it["id"] in gone]
+                        message = ("We're fully booked on that date. Please choose another date." if avail["dayFull"]
+                                   else "Sorry, " + " and ".join(names) + " has just been booked for that date. Please choose another option or date.")
+                        self.send_json(HTTPStatus.CONFLICT, {"ok": False, "code": "unavailable", "error": message, "unavailable": gone, "dayFull": avail["dayFull"]})
+                        return
+
+                order_id = generate_tax_year_order_id(quotes)
                 quote_record = {
                     "id": order_id,
                     "createdAt": datetime.now(timezone.utc).isoformat(),
@@ -1014,7 +1148,12 @@ class OccasionEditHandler(BaseHTTPRequestHandler):
                         "notes": notes,
                         "accessTime": sanitize_formula_cell(client.get("accessTime", client.get("venueAccessTime", "")))[:30],
                         "venueName": sanitize_formula_cell(client.get("venueName", ""))[:120],
-                        "setting": "outdoor" if client.get("setting") == "outdoor" else "indoor"
+                        "setting": "outdoor" if client.get("setting") == "outdoor" else "indoor",
+                        "occasion": sanitize_formula_cell(client.get("occasion", ""))[:60],
+                        "hasVenue": "no" if client.get("hasVenue") == "no" else "yes",
+                        "area": sanitize_formula_cell(client.get("area", ""))[:80],
+                        "budget": clamp_int(client.get("budget") if client.get("hasBudget") == "yes" else 0, 0, 10000, 0),
+                        "style": client.get("style") if client.get("style") in ("Classic", "Fancy", "Luxury") else ""
                     },
                     "configuration": {
                         "palette": [sanitize_formula_cell(c)[:60] for c in (cfg.get("palette") or [])[:8]],
@@ -1096,6 +1235,11 @@ class OccasionEditHandler(BaseHTTPRequestHandler):
                     "sortCode": cleaned_sort_code,
                     "accountNumber": cleaned_account_num,
                     "paymentRefFormat": sanitize_formula_cell(body.get("paymentRefFormat", existing.get("paymentRefFormat", "{orderId}-{clientSurname}")))[:80],
+                    "maxSetupsPerDay": clamp_int(body.get("maxSetupsPerDay", existing.get("maxSetupsPerDay", 1)), 1, 20, 1),
+                    "holdUntilReply": bool(body.get("holdUntilReply", existing.get("holdUntilReply", True))),
+                    "holdHours": clamp_int(body.get("holdHours", existing.get("holdHours", 48)), 0, 336, 48),
+                    "sameDayTurnaround": bool(body.get("sameDayTurnaround", existing.get("sameDayTurnaround", True))),
+                    "minNoticeDays": clamp_int(body.get("minNoticeDays", existing.get("minNoticeDays", 2)), 0, 60, 2),
                     "sheetConfig": {
                         "webAppUrl": sanitize_formula_cell(sheet_in.get("webAppUrl", ""))[:500],
                         "adminSecret": sanitize_formula_cell(sheet_in.get("adminSecret", ""))[:200]
@@ -1143,6 +1287,19 @@ class OccasionEditHandler(BaseHTTPRequestHandler):
                 return
 
             # 6. Pull Latest Catalog & Stock from Google Sheet (doGet)
+            # Links to Laura's Drive folders and records, as set up by the sheet script
+            if route == "/api/admin/drive-links":
+                sheet_cfg = load_studio_settings().get("sheetConfig") or {}
+                if not sheet_cfg.get("webAppUrl") or not sheet_cfg.get("adminSecret"):
+                    self.send_json(HTTPStatus.OK, {"ok": True, "connected": False, "links": None})
+                    return
+                res = call_google_sheets_webhook(sheet_cfg["webAppUrl"], {"action": "drive_links", "adminSecret": sheet_cfg["adminSecret"]})
+                if not res.get("ok"):
+                    self.send_json(HTTPStatus.BAD_GATEWAY, {"ok": False, "connected": True, "error": res.get("error") or "The Google Sheet didn't answer."})
+                    return
+                self.send_json(HTTPStatus.OK, {"ok": True, "connected": True, "links": res.get("links")})
+                return
+
             if route == "/api/sync-from-sheet":
                 body = self.read_json_body(max_bytes=4096)
                 site_data = get_default_site_data()

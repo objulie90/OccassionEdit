@@ -4,6 +4,7 @@ import { OrdersTab } from './OrdersTab';
 import { CalendarTab } from './CalendarTab';
 import { ProductsTab, ColoursTab } from './CatalogueTabs';
 import { BusinessDetailsTab } from './BusinessDetailsTab';
+import { PaperworkTab } from './PaperworkTab';
 import { statusInfo } from './studioFormat';
 import './studio.css';
 
@@ -12,6 +13,7 @@ const TABS = [
   { id: 'calendar', label: 'Calendar' },
   { id: 'products', label: 'Products' },
   { id: 'colours', label: 'Colours' },
+  { id: 'paperwork', label: 'Paperwork' },
   { id: 'business', label: 'Business details' }
 ];
 
@@ -27,9 +29,13 @@ export function MasterOrdersDashboard({
   balloonColours = [],
   curatedPalettes = [],
   onSaveCuratedPalettes,
+  onSaveHireCounts,
+  onSaveProduct,
+  onUploadPhoto,
   deliveryConfig = INITIAL_DELIVERY_CONFIG,
   studioSettings = {},
   onSaveStudioSettings,
+  onFetchDriveLinks,
   flashToast
 }) {
   const [activeTab, setActiveTab] = useState('orders');
@@ -94,12 +100,20 @@ export function MasterOrdersDashboard({
           />
         )}
         {activeTab === 'calendar' && <CalendarTab quotes={quotes} onSelectOrder={openOrder} />}
-        {activeTab === 'products' && <ProductsTab catalog={catalog} />}
+        {activeTab === 'products' && <ProductsTab catalog={catalog} steps={steps} digitOptions={digitOptions} onSaveHireCounts={onSaveHireCounts} onSaveProduct={onSaveProduct} onUploadPhoto={onUploadPhoto} />}
         {activeTab === 'colours' && (
           <ColoursTab
             balloonColours={balloonColours}
             curatedPalettes={curatedPalettes}
             onSaveCuratedPalettes={onSaveCuratedPalettes}
+          />
+        )}
+        {activeTab === 'paperwork' && (
+          <PaperworkTab
+            quotes={quotes}
+            studioSettings={studioSettings}
+            onSaveStudioSettings={onSaveStudioSettings}
+            onFetchDriveLinks={onFetchDriveLinks}
           />
         )}
         {activeTab === 'business' && (

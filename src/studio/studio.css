@@ -412,6 +412,13 @@
   .st-palette-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
+/* --- Hire prop counts --------------------------------------------------- */
+.st-product.st-hire-row { grid-template-columns: 1fr 5.5rem; grid-template-areas: "main price"; }
+.st-count-input { grid-area: price; text-align: center; }
+@media (min-width: 720px) {
+  .st-product.st-hire-row { grid-template-columns: 1fr 6rem; grid-template-areas: "main price"; }
+}
+
 /* --- Business details ---------------------------------------------------- */
 .st-business { padding: 1rem max(1rem, env(safe-area-inset-left, 0px)) 2rem; display: flex; flex-direction: column; gap: 1.25rem; max-width: 36rem; }
 .st-warning { padding: 0.75rem 0.9rem; border-radius: 10px; background: var(--st-gold-wash); color: #6B4E12; font-size: 0.9rem; }
@@ -457,3 +464,32 @@
 @media (prefers-reduced-motion: reduce) {
   .st-root * { transition: none !important; animation: none !important; }
 }
+
+.st-field-label { font-size: 0.85rem; font-weight: 600; }
+
+/* --- Product editor ----------------------------------------------------- */
+.st-product-row { border-bottom: 1px solid var(--st-line); }
+.st-product-row:last-child { border-bottom: 0; }
+.st-product-row > .st-product { width: 100%; border: 0; border-bottom: 0; background: none; text-align: left; cursor: pointer; }
+.st-product-row > .st-product:hover { background: var(--st-paper); }
+.st-product-row > .st-product[aria-expanded="true"] { background: var(--st-olive-wash); }
+.st-product-row.is-out .st-product-name { color: var(--st-ink-soft); }
+.st-tag-offer { margin-left: 0.4rem; background: var(--st-gold-wash); color: var(--st-gold); }
+.st-product-editor { display: grid; grid-template-columns: 1fr; gap: 1rem; padding: 1rem; background: var(--st-paper); }
+.st-editor-photo { display: flex; flex-direction: column; align-items: flex-start; gap: 0.6rem; }
+.st-editor-photo img { width: 100%; max-width: 16rem; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 12px; }
+.st-editor-fields { display: flex; flex-direction: column; gap: 0.9rem; min-width: 0; }
+.st-root textarea { width: 100%; padding: 0.55rem 0.85rem; border: 1px solid var(--st-line); border-radius: 10px; background: var(--st-card); font: inherit; font-size: 1rem; resize: vertical; }
+@media (min-width: 720px) {
+  .st-product-editor { grid-template-columns: 16rem 1fr; }
+}
+
+/* --- Paperwork ---------------------------------------------------------- */
+.st-drive-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: 0.6rem; }
+.st-drive-link { display: flex; flex-direction: column; gap: 0.2rem; height: 100%; padding: 0.9rem 1rem; border: 1px solid var(--st-line); border-radius: 14px; background: var(--st-card); color: var(--st-ink); text-decoration: none; }
+.st-drive-link:hover { border-color: var(--st-olive); }
+.st-drive-link strong { font-size: 1rem; }
+.st-drive-link span { color: var(--st-ink-soft); font-size: 0.85rem; }
+.st-setup-steps { list-style: decimal !important; padding-left: 1.3rem !important; display: flex; flex-direction: column; gap: 0.8rem; max-width: 44rem; }
+.st-setup-steps a { color: var(--st-olive); font-weight: 600; }
+.st-fieldset p { max-width: 44rem; }
