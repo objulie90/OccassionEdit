@@ -30,8 +30,9 @@ export function BalloonStock({ balloonColours = [], curatedPalettes = [], steps 
   const onHand = (id, size) => Number(counts[id]?.[size]) || 0;
   const left = (id, size) => onHand(id, size) - (booked[id]?.[size] || 0);
   const lowAt = Math.max(0, Number(low) || 0);
-  const running = balloonColours.filter(c => BALLOON_SIZES.some(sz => left(c.id, sz.key) < lowAt));
-  const short = balloonColours.filter(c => BALLOON_SIZES.some(sz => left(c.id, sz.key) < 0));
+  const counted = studioSettings.stockCountedAt ? new Date(studioSettings.stockCountedAt) : null;
+  const running = !counted ? [] : balloonColours.filter(c => BALLOON_SIZES.some(sz => left(c.id, sz.key) < lowAt));
+  const short = !counted ? [] : balloonColours.filter(c => BALLOON_SIZES.some(sz => left(c.id, sz.key) < 0));
 
   const setCount = (id, size, value) => {
     setCounts(prev => ({ ...prev, [id]: { ...(prev[id] || {}), [size]: value } }));
@@ -69,7 +70,17 @@ export function BalloonStock({ balloonColours = [], curatedPalettes = [], steps 
     if (ok !== false) { setAdding(false); setDraft({ name: '', finish: 'Matte', hex: '#D8C3A5' }); }
   };
 
-  const counted = studioSettings.stockCountedAt ? new Date(studioSettings.stockCountedAt) : null;
+  const dirty = JSON.stringify(counts) !== JSON.stringify(studioSettings.balloonStock || {})
+    || JSON.stringify(foils) !== JSON.stringify(studioSettings.foilStock || {})
+    || String(low) !== String(studioSettings.lowStockAt ?? DEFAULT_LOW_STOCK);
+
+  // Plain words under each count: nothing until she has counted, never a minus number
+  const status = (have, want, lowLimit) => {
+    if (!counted) return { text: want ? `${want} booked` : '', tone: 'is-quiet' };
+    const l = have - want;
+    if (want) return l < 0 ? { text: `${want} booked, ${-l} short`, tone: 'is-short' } : { text: `${want} booked, ${l} spare`, tone: l < lowLimit ? 'is-low' : '' };
+    return { text: l === 0 ? 'None left' : `${l} left`, tone: l < lowLimit ? 'is-low' : '' };
+  };
 
   return (
     <>
@@ -78,10 +89,17 @@ export function BalloonStock({ balloonColours = [], curatedPalettes = [], steps 
           <h3 id="st-balloons-title" className="st-section-title">Balloons</h3>
           {onSaveColours && <button type="button" className="st-btn" onClick={() => setAdding(!adding)}>Add a colour</button>}
         </div>
-        <p className="st-cat-note">
-          Type what's in the cupboard. Booked jobs are taken off automatically, so Left is what you really have.
-          {counted && ` Last counted ${counted.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}.`}
-        </p>
+        <div className="st-stock-intro">
+          <p className="st-cat-note">
+            Type how many you have of each. Booked jobs are taken off for you.
+            {counted ? ` Last counted ${counted.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}.` : ' Not counted yet.'}
+          </p>
+          <div className="st-field st-low-field">
+            <label htmlFor="st-low-stock">Warn me below</label>
+            <input id="st-low-stock" type="number" inputMode="numeric" min="0" value={low} onChange={e => { setLow(e.target.value); setState('idle'); }} />
+            <span className="st-hint">balloons of a size</span>
+          </div>
+        </div>
 
         {short.length > 0 && <p className="st-warning">Not enough for booked jobs: {short.map(c => c.name).join(', ')}. Order more before those dates.</p>}
         {short.length === 0 && running.length > 0 && <p className="st-warning">Running low: {running.map(c => c.name).join(', ')}.</p>}
@@ -111,19 +129,17 @@ export function BalloonStock({ balloonColours = [], curatedPalettes = [], steps 
                 <BalloonGraphic hex={c.hex} finish={c.finish} size={30} />
                 <span>
                   <span className="st-product-name">{c.name}</span>
-                  <span className="st-code">{c.finish}{c.code ? ` · BALL_${c.code}` : ''}</span>
+                  <span className="st-code">{c.finish}</span>
                 </span>
               </div>
               <div className="st-stock-sizes">
                 {BALLOON_SIZES.map(sz => {
-                  const l = left(c.id, sz.key);
+                  const st = status(onHand(c.id, sz.key), booked[c.id]?.[sz.key] || 0, lowAt);
                   return (
                     <div key={sz.key} className="st-stock-size">
                       <label htmlFor={`st-stock-${c.id}-${sz.key}`}>{sz.words}</label>
-                      <input id={`st-stock-${c.id}-${sz.key}`} type="number" inputMode="numeric" min="0" value={counts[c.id]?.[sz.key] ?? ''} placeholder="0" onChange={e => setCount(c.id, sz.key, e.target.value)} />
-                      <span className={`st-stock-left ${l < 0 ? 'is-short' : l < lowAt ? 'is-low' : ''}`}>
-                        {booked[c.id]?.[sz.key] ? `${booked[c.id][sz.key]} booked, ` : ''}{l} left
-                      </span>
+                      <input id={`st-stock-${c.id}-${sz.key}`} type="number" inputMode="numeric" min="0" value={counts[c.id]?.[sz.key] ?? ''} onChange={e => setCount(c.id, sz.key, e.target.value)} />
+                      <span className={`st-stock-left ${st.tone}`}>{st.text}</span>
                     </div>
                   );
                 })}
@@ -139,31 +155,29 @@ export function BalloonStock({ balloonColours = [], curatedPalettes = [], steps 
         </ul>
         <p role="status" className="st-save-state">{colourState}</p>
 
-        <h4 className="st-tree-group-title">Helium foil numbers</h4>
+        <h4 className="st-stock-subtitle">Helium foil numbers</h4>
+        <p className="st-cat-note">How many of each digit you have.</p>
         <ul className="st-foil-grid">
           {DIGITS.map(d => {
-            const l = (Number(foils[d]) || 0) - (bookedFoils[d] || 0);
+            const st = status(Number(foils[d]) || 0, bookedFoils[d] || 0, 1);
             return (
               <li key={d} className="st-foil">
-                <label htmlFor={`st-foil-${d}`}><span className="st-foil-digit">{d}</span><span className="st-code">EXTRAS_Num_{d}</span></label>
-                <input id={`st-foil-${d}`} type="number" inputMode="numeric" min="0" value={foils[d] ?? ''} placeholder="0" onChange={e => { setFoils({ ...foils, [d]: e.target.value }); setState('idle'); }} />
-                <span className={`st-stock-left ${l < 0 ? 'is-short' : l < 1 ? 'is-low' : ''}`}>{bookedFoils[d] ? `${bookedFoils[d]} booked, ` : ''}{l} left</span>
+                <label htmlFor={`st-foil-${d}`}><span className="st-foil-digit">{d}</span><span className="st-visually-hidden"> foil numbers</span></label>
+                <input id={`st-foil-${d}`} type="number" inputMode="numeric" min="0" value={foils[d] ?? ''} onChange={e => { setFoils({ ...foils, [d]: e.target.value }); setState('idle'); }} />
+                <span className={`st-stock-left ${st.tone}`}>{st.text}</span>
               </li>
             );
           })}
         </ul>
 
-        <div className="st-business-actions">
-          <div className="st-field st-low-field">
-            <label htmlFor="st-low-stock">Warn me below</label>
-            <input id="st-low-stock" type="number" inputMode="numeric" min="0" value={low} onChange={e => { setLow(e.target.value); setState('idle'); }} />
+        {(dirty || state === 'saved' || state === 'error') && (
+          <div className="st-save-bar" role="region" aria-label="Save counts">
+            <span role="status">
+              {state === 'saved' && !dirty ? 'Counts saved.' : state === 'error' ? 'Not saved. Check your connection and try again.' : 'Your new counts aren’t saved yet.'}
+            </span>
+            {dirty && <button type="button" className="st-btn st-btn-primary" onClick={saveCounts} disabled={state === 'saving' || !onSaveStudioSettings}>{state === 'saving' ? 'Saving' : 'Save counts'}</button>}
           </div>
-          <button type="button" className="st-btn st-btn-primary" onClick={saveCounts} disabled={state === 'saving' || !onSaveStudioSettings}>{state === 'saving' ? 'Saving' : 'Save counts'}</button>
-          <span role="status" className="st-save-state">
-            {state === 'saved' && 'Saved.'}
-            {state === 'error' && 'Not saved. Check your connection and try again.'}
-          </span>
-        </div>
+        )}
       </section>
 
       <PaletteEditor palettes={curatedPalettes} colours={balloonColours} onSave={onSaveCuratedPalettes} />

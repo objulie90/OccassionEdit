@@ -80,13 +80,15 @@ export function buildDocument(kind, order, { lines, notes = '', settings = {}, i
   * { box-sizing: border-box; }
   body { margin: 0; font-family: 'Montserrat', Helvetica, Arial, sans-serif; font-size: 10.5pt; color: #1E211C; background: #FFFFFF; }
   .page { width: 210mm; min-height: 297mm; padding: 18mm 16mm; margin: 0 auto; background: #FFFFFF; }
-  header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12mm; padding-bottom: 8mm; border-bottom: 1.5pt solid #4A5840; }
-  header img { width: 32mm; height: auto; }
+  .head { width: 100%; border-collapse: collapse; margin: 0; border-bottom: 1.5pt solid #4A5840; }
+  .head td { border: 0; padding: 0 0 8mm; vertical-align: top; }
+  .head img { width: 32mm; height: auto; }
   .from { text-align: right; font-size: 9pt; color: #4A4843; line-height: 1.5; }
   .from strong { display: block; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 15pt; color: #1E211C; }
   h1 { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 26pt; font-weight: 600; margin: 9mm 0 1mm; color: #4A5840; }
   .number { font-size: 11pt; font-weight: 700; margin: 0 0 7mm; }
-  .meta { display: flex; justify-content: space-between; gap: 10mm; font-size: 9.5pt; line-height: 1.55; margin-bottom: 8mm; }
+  .meta { width: 100%; border-collapse: collapse; font-size: 9.5pt; line-height: 1.55; margin-bottom: 8mm; }
+  .meta td { border: 0; padding: 0 8mm 0 0; vertical-align: top; width: 33%; }
   .meta h2 { font-size: 8.5pt; font-weight: 700; color: #6B675F; margin: 0 0 1mm; }
   table { width: 100%; border-collapse: collapse; margin-bottom: 6mm; }
   th { text-align: left; font-size: 8.5pt; color: #6B675F; font-weight: 700; padding: 2mm 0; border-bottom: 0.75pt solid #D9D2C5; }
@@ -104,33 +106,33 @@ export function buildDocument(kind, order, { lines, notes = '', settings = {}, i
   footer { margin-top: 12mm; padding-top: 4mm; border-top: 0.5pt solid #D9D2C5; font-size: 8pt; color: #6B675F; text-align: center; }
 </style></head>
 <body><div class="page">
-  <header>
-    <img src="${logo}" alt="${esc(business)}">
-    <div class="from">
+  <table class="head"><tr>
+    <td><img src="${logo}" alt="${esc(business)}"></td>
+    <td class="from">
       <strong>${esc(business)}</strong>
       ${[settings.studioAddress, settings.studioPhone, settings.studioEmail].filter(Boolean).map(esc).join('<br>')}
-    </div>
-  </header>
+    </td>
+  </tr></table>
 
   <h1>${isInvoice ? 'Invoice' : 'Quote'}</h1>
   <p class="number">${esc(number)}</p>
 
-  <div class="meta">
-    <div>
+  <table class="meta"><tr>
+    <td>
       <h2>${isInvoice ? 'Billed to' : 'Prepared for'}</h2>
       ${esc(c.name || 'Customer')}<br>
       ${[c.email, c.phone].filter(Boolean).map(esc).join('<br>')}
-    </div>
-    <div>
+    </td>
+    <td>
       <h2>Your celebration</h2>
       ${esc(c.occasion || 'Celebration')}${event ? `, ${esc(formatLongDate(event))}` : ''}<br>
       ${esc([c.venueName, c.postcode || c.area].filter(Boolean).join(', '))}
-    </div>
-    <div>
+    </td>
+    <td>
       <h2>${isInvoice ? 'Invoice date' : 'Quote date'}</h2>
       ${esc(formatLongDate(issuedOn))}
-    </div>
-  </div>
+    </td>
+  </tr></table>
 
   <table>
     <thead><tr><th>What we'll create for you</th><th class="amt">Price</th></tr></thead>

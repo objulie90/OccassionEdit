@@ -120,9 +120,9 @@ export function PaletteEditor({ palettes, colours, onSave }) {
             )}
             <div className="st-field">
               <label htmlFor={`st-pal-desc-${pal.id}`}>One line about it</label>
-              <input
+              <textarea
                 id={`st-pal-desc-${pal.id}`}
-                type="text"
+                rows={2}
                 maxLength={DESCRIPTION_LIMIT}
                 value={pal.description || ''}
                 onChange={e => update(pIndex, { description: e.target.value })}

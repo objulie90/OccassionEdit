@@ -8,6 +8,7 @@ import { DateTicket } from './DateTicket';
 import { ZoneMap } from '../components/DeliveryMaps';
 import { SendMessage } from './SendMessage';
 import { DocumentsPanel } from './DocumentsPanel';
+import { EmailPanel } from './EmailPanel';
 import { balanceDueDate } from './messages';
 import {
   ORDER_STATUSES,
@@ -38,6 +39,8 @@ export function OrderDetail({
   onIssueDocument,
   onDocumentAction,
   documentSource,
+  google,
+  onOpenTab,
   curatedPalettes = [],
   onDeleteQuote,
   studioSettings = {},
@@ -156,7 +159,13 @@ export function OrderDetail({
         <div className="st-contact">
           {c.phone && <a className="st-btn" href={`tel:${c.phone.replace(/\s+/g, '')}`}>Call</a>}
           {wa && <a className="st-btn" href={`https://wa.me/${wa}`} target="_blank" rel="noopener noreferrer">WhatsApp</a>}
-          {c.email && <a className="st-btn" href={`mailto:${c.email}`}>Email</a>}
+          {c.email && (
+            <button type="button" className="st-btn" onClick={() => {
+              const box = document.getElementById(`st-mail-body-${order.id}`) || document.getElementById(`st-emails-${order.id}`);
+              box?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              if (box?.tagName === 'TEXTAREA') box.focus({ preventScroll: true });
+            }}>Email</button>
+          )}
         </div>
       </header>
 
@@ -190,6 +199,7 @@ export function OrderDetail({
                 total={total}
                 paid={paid}
                 settings={studioSettings}
+                google={google}
                 onSent={composer === 'quote' ? quoteSent : invoiceSent}
                 onCancel={() => setComposer(null)}
               />
@@ -384,6 +394,8 @@ export function OrderDetail({
             documentSource={documentSource}
           />
         )}
+
+        <EmailPanel order={order} google={google} onOpenTab={onOpenTab} />
 
         <section className="st-panel" aria-labelledby="st-notes">
           <h4 id="st-notes" className="st-panel-title">Your notes</h4>

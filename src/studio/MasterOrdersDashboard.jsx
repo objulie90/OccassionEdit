@@ -58,12 +58,17 @@ export function MasterOrdersDashboard({
   studioSettings = {},
   onSaveStudioSettings,
   onFetchDriveLinks,
+  google,
+  openTab,
   flashToast
 }) {
   const [activeTab, setActiveTab] = useState('today');
   const [startAdding, setStartAdding] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [moreOpen, setMoreOpen] = useState(false);
+
+  // Coming back from Google's sign-in lands on Paperwork
+  useEffect(() => { if (openTab) setActiveTab(openTab); }, [openTab]);
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -145,6 +150,7 @@ export function MasterOrdersDashboard({
             sale={sale}
             onOpenOrder={openOrder}
             onGo={setActiveTab}
+            google={google}
             onAddBooking={onAddBooking ? () => { setSelectedOrderId(null); setStartAdding(true); setActiveTab('orders'); } : null}
           />
         )}
@@ -167,6 +173,8 @@ export function MasterOrdersDashboard({
             digitOptions={digitOptions}
             balloonColours={balloonColours}
             deliveryConfig={deliveryConfig}
+            google={google}
+            onOpenTab={setActiveTab}
             flashToast={flashToast}
           />
         )}
@@ -220,6 +228,7 @@ export function MasterOrdersDashboard({
             studioSettings={studioSettings}
             onSaveStudioSettings={onSaveStudioSettings}
             onFetchDriveLinks={onFetchDriveLinks}
+            google={google}
           />
         )}
         {activeTab === 'business' && (

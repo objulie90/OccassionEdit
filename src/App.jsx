@@ -26,6 +26,7 @@ import { EditableText, EditablePrice, CornerRibbon, RibbonPickerPopover } from '
 import { compressAndStripExifJpeg, sanitizeCsvCell } from './lib/media';
 import { MasterOrdersDashboard } from './studio/MasterOrdersDashboard';
 import { StaffSwitch } from './studio/StaffSwitch';
+import { useGoogle } from './studio/useGoogle';
 
 /**
  * Main App Component — Carbon-Copy WYSIWYG Studio Edition
@@ -510,6 +511,27 @@ export function App() {
   }, [isAdminUnlocked]);
 
   // Links to Laura's Drive folders, set up by the sheet script's "Set up my Google Drive"
+  // Laura's Google account: Drive for paperwork, Gmail for customer emails
+  const google = useGoogle({ enabled: isAdminUnlocked, preview: IS_PREVIEW_BUILD, csrfToken, setQuotes });
+  const [studioOpenTab, setStudioOpenTab] = useState(null);
+
+  // Google sends Laura back to /?drive=… after she signs in
+  useEffect(() => {
+    if (IS_PREVIEW_BUILD || !isAdminUnlocked) return;
+    const result = new URLSearchParams(window.location.search).get('drive');
+    if (!result) return;
+    window.history.replaceState(null, '', window.location.pathname + window.location.hash);
+    setShowMasterDashboard(true);
+    setStudioOpenTab('paperwork');
+    google.refresh();
+    setSaveToast({
+      connected: 'Your Google account is connected. Your folders and master sheet are ready.',
+      cancelled: "Google wasn't connected. Press Connect my Google account when you're ready.",
+      'signed-out': 'Unlock the Studio, then press Connect my Google account again.',
+      error: "Google didn't finish connecting. Press Connect my Google account to try again."
+    }[result] || '');
+  }, [isAdminUnlocked]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleFetchDriveLinks = async () => {
     if (IS_PREVIEW_BUILD) return { connected: false, links: null };
     const res = await fetch('/api/admin/drive-links', {
@@ -1153,7 +1175,7 @@ export function App() {
                       <div className="oe-recipe-Included-tags" aria-label="Items included in this look">
                         {activeSlideRecipeCalc.lines.map((line, i) => (
                           <span key={i} className="oe-recipe-line-tag">
-                            ✓ {line.label} (£{line.amount})
+                            {line.label} (£{line.amount})
                           </span>
                         ))}
                       </div>
@@ -2023,6 +2045,8 @@ export function App() {
         studioSettings={studioSettings}
         onSaveStudioSettings={handleSaveStudioSettings}
         onFetchDriveLinks={handleFetchDriveLinks}
+        google={google}
+        openTab={studioOpenTab}
         flashToast={setSaveToast}
       />
 

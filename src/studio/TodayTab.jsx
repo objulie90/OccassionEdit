@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { buildDossierOrderLines } from './OrderDossierParts';
 import { statusInfo, parseEventDate, startOfToday, sameDay, money, orderTotal, paidSoFar, describeDaysUntil, daysUntil } from './studioFormat';
 import { balanceDueDate } from './messages';
@@ -28,7 +28,23 @@ function lastEntry(order, pattern) {
  * The Studio's home: what needs doing today, in the order it matters.
  * Every line opens the order or screen it's about.
  */
-export function TodayTab({ quotes = [], steps = [], digitOptions = [], balloonColours = [], studioSettings = {}, sale, onOpenOrder, onGo, onAddBooking }) {
+export function TodayTab({ quotes = [], steps = [], digitOptions = [], balloonColours = [], studioSettings = {}, sale, onOpenOrder, onGo, onAddBooking, google }) {
+  const g = google?.status || {};
+  const [mailState, setMailState] = useState('');
+  const checkMail = async () => {
+    setMailState('checking');
+    try {
+      const n = await google.checkEmail(null);
+      setMailState(n ? `${n} new email${n === 1 ? '' : 's'} from customers.` : 'No new emails from customers.');
+    } catch (e) {
+      setMailState(e.message);
+    }
+  };
+  // Customers whose last email to Laura hasn't had an answer yet
+  const unanswered = quotes.filter(q => {
+    const m = q.client?.messages || [];
+    return m.length && m[m.length - 1].dir === 'in';
+  });
   const today = startOfToday();
   const dated = q => parseEventDate(q.client?.eventDate);
   const tone = q => statusInfo(q.status).tone;
@@ -85,7 +101,7 @@ export function TodayTab({ quotes = [], steps = [], digitOptions = [], balloonCo
   const saleNow = saleState(sale);
   const basesToPrice = (steps.find(st => st.id === 'backdrop')?.items || []).filter(it => pricesToConfirm(it) > 0);
   const missingPrices = basesToPrice.reduce((n, it) => n + pricesToConfirm(it), 0);
-  const allClear = !view.reply.length && !view.deposits.length && !view.balances.length && !view.week.length && !view.collect.length && !(studioSettings.stockCountedAt && view.short.length);
+  const allClear = !unanswered.length && !view.reply.length && !view.deposits.length && !view.balances.length && !view.week.length && !view.collect.length && !(studioSettings.stockCountedAt && view.short.length);
   const greeting = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening';
 
   const Row = ({ q, children, tag }) => (
@@ -108,10 +124,26 @@ export function TodayTab({ quotes = [], steps = [], digitOptions = [], balloonCo
         <div className="st-business-actions">
           {onAddBooking && <button type="button" className="st-btn st-btn-primary" onClick={onAddBooking}>Add a booking</button>}
           <button type="button" className="st-btn" onClick={() => onGo('calendar')}>Open the calendar</button>
+          {g.gmail && <button type="button" className="st-btn" onClick={checkMail} disabled={mailState === 'checking'}>{mailState === 'checking' ? 'Checking emails' : 'Check for new emails'}</button>}
+          {g.links?.masterSheet
+            ? <a className="st-btn" href={g.links.masterSheet} target="_blank" rel="noopener noreferrer">Open the master sheet</a>
+            : !g.loading && !g.connected && <button type="button" className="st-btn" onClick={() => onGo('paperwork')}>Connect Google</button>}
         </div>
+        {mailState && mailState !== 'checking' && <p className="st-save-state" role="status">{mailState}</p>}
       </header>
 
       <div className="st-today-grid">
+        {unanswered.length > 0 && (
+          <section className="st-today-card is-urgent" aria-labelledby="t-mail">
+            <h3 id="t-mail" className="st-today-card-title">Emails to answer <span className="st-group-count">{unanswered.length}</span></h3>
+            <ul>
+              {unanswered.map(q => {
+                const last = q.client.messages[q.client.messages.length - 1];
+                return <Row key={q.id} q={q} tag={{ text: new Date(last.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) }}>{last.subject || 'New email'}</Row>;
+              })}
+            </ul>
+          </section>
+        )}
         {view.reply.length > 0 && (
           <section className="st-today-card is-urgent" aria-labelledby="t-reply">
             <h3 id="t-reply" className="st-today-card-title">Waiting for a reply <span className="st-group-count">{view.reply.length}</span></h3>

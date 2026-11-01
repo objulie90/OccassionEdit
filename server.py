@@ -43,6 +43,8 @@ from http import HTTPStatus
 from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+from google_drive import GoogleDrive, GoogleError
+
 ROOT_DIR = os.path.realpath(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(ROOT_DIR, "data")
 PUBLIC_DIR = os.path.join(ROOT_DIR, "public")
@@ -608,9 +610,28 @@ def sheet_connection():
     return studio_cfg if studio_cfg.get("webAppUrl") else (site_data.get("sheetConfig") or {})
 
 
+GOOGLE = GoogleDrive(os.path.join(DATA_DIR, "google.json"), encrypt_client_pii, decrypt_client_pii)
+
+
+def google_job(fn, *args):
+    """Runs one Google sheet job, reporting failure instead of crashing the request."""
+    try:
+        return fn(*args)
+    except GoogleError as e:
+        return {"ok": False, "error": str(e)}
+    except Exception as e:  # the website keeps working if Google misbehaves
+        return {"ok": False, "error": f"Google Drive job failed ({type(e).__name__})."}
+
+
+def google_in_background(fn, *args):
+    threading.Thread(target=google_job, args=(fn, *args), daemon=True).start()
+
+
 def file_document_in_drive(order, doc):
     """Turns the document into a PDF in Laura's Drive: <tax year>/Quotes or Invoices,
     named QUOTE ID_... or INVOICE ID_..., and logs it in the master sheet."""
+    if GOOGLE.connected():
+        return google_job(GOOGLE.file_document, order, doc, read_document_html(doc["id"]))
     cfg = sheet_connection()
     if not (cfg.get("webAppUrl") and cfg.get("adminSecret")):
         return {"ok": False, "error": "Google Drive isn't connected yet."}
@@ -848,6 +869,15 @@ class OccasionEditHandler(BaseHTTPRequestHandler):
             "frame-src 'self' https://www.google.com https://maps.google.com https://drive.google.com;"
         )
 
+    def google_redirect_uri(self):
+        # Must match the address Oliver gives Google exactly
+        public = os.environ.get("OE_PUBLIC_URL", "").rstrip("/")
+        if not public:
+            host = self.headers.get("Host", f"localhost:{PORT}")
+            proto = "https" if self.headers.get("X-Forwarded-Proto") == "https" else "http"
+            public = f"{proto}://{host}"
+        return public + "/api/google/callback"
+
     def send_json(self, status_code, payload, extra_headers=None):
         raw = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         self.send_response(status_code)
@@ -1035,6 +1065,29 @@ class OccasionEditHandler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(raw)))
             self.end_headers()
             self.wfile.write(raw)
+            return
+
+        # Google sends Laura back here after she presses Allow
+        if route == "/api/google/callback":
+            query = urllib.parse.parse_qs(parsed.query)
+            where = "connected"
+            if not self.get_active_session(require_csrf=False):
+                where = "signed-out"
+            elif query.get("error"):
+                where = "cancelled"
+            else:
+                try:
+                    GOOGLE.finish_sign_in((query.get("code") or [""])[0], (query.get("state") or [""])[0], self.google_redirect_uri())
+                    google_in_background(GOOGLE.add_missing_orders, load_quotes())
+                except GoogleError:
+                    where = "error"
+                except Exception:
+                    where = "error"
+            self.send_response(HTTPStatus.FOUND)
+            self.send_security_headers()
+            self.send_header("Location", f"/?drive={where}")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
             return
 
         if route == "/api/admin/settings":
@@ -1309,7 +1362,9 @@ class OccasionEditHandler(BaseHTTPRequestHandler):
                 site_data = get_default_site_data()
                 studio_cfg = load_studio_settings().get("sheetConfig") or {}
                 sheet_url = studio_cfg.get("webAppUrl") or (site_data.get("sheetConfig") or {}).get("webAppUrl", "")
-                if sheet_url:
+                if GOOGLE.connected():
+                    google_in_background(GOOGLE.add_order, quote_record)
+                elif sheet_url:
                     threading.Thread(
                         target=call_google_sheets_webhook,
                         args=(sheet_url, {"action": "new_quote", "quote": quote_record}),
@@ -1569,7 +1624,9 @@ class OccasionEditHandler(BaseHTTPRequestHandler):
                 site_data = get_default_site_data()
                 studio_cfg = load_studio_settings().get("sheetConfig") or {}
                 sheet_url = studio_cfg.get("webAppUrl") or (site_data.get("sheetConfig") or {}).get("webAppUrl", "")
-                if sheet_url:
+                if GOOGLE.connected():
+                    google_in_background(GOOGLE.add_order, order)
+                elif sheet_url:
                     threading.Thread(
                         target=call_google_sheets_webhook,
                         args=(sheet_url, {"action": "new_quote", "quote": order}),
@@ -1578,7 +1635,137 @@ class OccasionEditHandler(BaseHTTPRequestHandler):
                 self.send_json(HTTPStatus.CREATED, {"ok": True, "quote": order})
                 return
 
+            if route == "/api/admin/google/status":
+                st = GOOGLE.status()
+                st["redirectUri"] = self.google_redirect_uri()
+                st["fromEnvironment"] = bool(os.environ.get("GOOGLE_CLIENT_ID"))
+                self.send_json(HTTPStatus.OK, {"ok": True, **st})
+                return
+
+            if route == "/api/admin/google/client":
+                body = self.read_json_body(max_bytes=4096)
+                cid = str(body.get("clientId", "")).strip()
+                secret = str(body.get("clientSecret", "")).strip()
+                if not re.match(r"^[0-9]+-[a-z0-9]+\.apps\.googleusercontent\.com$", cid) or len(secret) < 10:
+                    self.send_json(HTTPStatus.BAD_REQUEST, {"ok": False, "error": "That doesn't look like a Google client ID and secret. Copy them again from Google."})
+                    return
+                GOOGLE.save_client(cid, secret)
+                self.send_json(HTTPStatus.OK, {"ok": True})
+                return
+
+            if route == "/api/admin/google/start":
+                try:
+                    url = GOOGLE.sign_in_url(self.google_redirect_uri())
+                except GoogleError as e:
+                    self.send_json(HTTPStatus.CONFLICT, {"ok": False, "error": str(e)})
+                    return
+                self.send_json(HTTPStatus.OK, {"ok": True, "url": url})
+                return
+
+            # Email the customer from Laura's own Gmail, logged on the order
+            if route == "/api/admin/email/send":
+                body = self.read_json_body(max_bytes=40000)
+                if not GOOGLE.gmail_ready():
+                    self.send_json(HTTPStatus.CONFLICT, {"ok": False, "error": "Connect your Google account in Paperwork to send emails from here."})
+                    return
+                quotes = load_quotes()
+                order = next((q for q in quotes if q.get("id") == body.get("orderId")), None)
+                if not order:
+                    self.send_json(HTTPStatus.NOT_FOUND, {"ok": False, "error": "Order not found."})
+                    return
+                client = order.get("client") or {}
+                to = str(client.get("email") or "").strip()
+                subject = str(body.get("subject") or "").replace("\r", " ").replace("\n", " ").strip()[:200]
+                text = str(body.get("body") or "").strip()[:20000]
+                if not re.match(r"^[^@\s\"<>,;]+@[^@\s\"<>,;]+\.[^@\s\"<>,;]+$", to):
+                    self.send_json(HTTPStatus.BAD_REQUEST, {"ok": False, "error": "This customer has no email address. Add one to the order first."})
+                    return
+                if not subject or not text:
+                    self.send_json(HTTPStatus.BAD_REQUEST, {"ok": False, "error": "Write a subject and a message."})
+                    return
+                attachments = []
+                doc = next((d for d in (order.get("documents") or []) if d.get("id") == body.get("documentId")), None)
+                messages = client.setdefault("messages", [])
+                thread = next((m.get("threadId") for m in reversed(messages) if m.get("threadId")), None)
+                try:
+                    if doc:
+                        attachments.append((doc["number"].replace("/", "-") + ".pdf", GOOGLE.document_pdf(doc, read_document_html(doc["id"]))))
+                    business = load_studio_settings().get("businessTradingName") or "The Occasion Edit"
+                    sent = GOOGLE.send_email(to, subject, text, from_name=business, attachments=attachments, thread_id=thread)
+                except GoogleError as e:
+                    self.send_json(HTTPStatus.BAD_GATEWAY, {"ok": False, "error": str(e)})
+                    return
+                messages.append({
+                    "id": sent.get("id"), "threadId": sent.get("threadId"), "dir": "out",
+                    "at": datetime.now(timezone.utc).isoformat(), "subject": subject, "text": text[:4000],
+                    "attachment": doc["number"] if doc else ""
+                })
+                order["client"] = client
+                add_history(order, f"Emailed: {subject}" + (f" ({doc['number']} attached)" if doc else ""))
+                # Emailing the quote is sending it: the order moves on and holds the date
+                if doc and doc.get("kind") == "quote" and order.get("status") == "New Enquiry":
+                    order["status"] = "Quote Sent"
+                    add_history(order, "Quote sent by email")
+                if GOOGLE.connected():
+                    google_in_background(GOOGLE.update_order, order)
+                save_quotes(quotes)
+                self.send_json(HTTPStatus.OK, {"ok": True, "order": order})
+                return
+
+            # Pull emails to and from customers into each order's conversation
+            if route == "/api/admin/email/check":
+                body = self.read_json_body(max_bytes=4096)
+                if not GOOGLE.gmail_ready():
+                    self.send_json(HTTPStatus.CONFLICT, {"ok": False, "error": "Connect your Google account in Paperwork to see emails here."})
+                    return
+                quotes = load_quotes()
+                wanted = body.get("orderId")
+                if wanted:
+                    targets = [q for q in quotes if q.get("id") == wanted]
+                else:
+                    # On demand from Today: every order still in progress
+                    targets = [q for q in quotes if q.get("status") not in ("Completed", "Cancelled")][:40]
+                changed, new_count, errors = [], 0, []
+                for order in targets:
+                    client = order.get("client") or {}
+                    if not client.get("email"):
+                        continue
+                    try:
+                        found = GOOGLE.mail_with(client["email"])
+                    except GoogleError as e:
+                        errors.append(str(e))
+                        break
+                    known = {m.get("id") for m in client.get("messages") or []}
+                    fresh = [m for m in found if m["id"] not in known]
+                    if not fresh:
+                        continue
+                    client["messages"] = sorted((client.get("messages") or []) + fresh, key=lambda m: m.get("at", ""))[-200:]
+                    order["client"] = client
+                    replies = [m for m in fresh if m["dir"] == "in"]
+                    if replies:
+                        order["seenByAdmin"] = False
+                        add_history(order, f"{len(replies)} new email{'s' if len(replies) != 1 else ''} from {client.get('name') or 'the customer'}")
+                    new_count += len(replies)
+                    changed.append(order)
+                if changed:
+                    save_quotes(quotes)
+                if errors and not changed:
+                    self.send_json(HTTPStatus.BAD_GATEWAY, {"ok": False, "error": errors[0]})
+                    return
+                self.send_json(HTTPStatus.OK, {"ok": True, "orders": changed, "newEmails": new_count,
+                                               "unreadEnquiriesCount": count_unread_enquiries(quotes)})
+                return
+
+            if route == "/api/admin/google/disconnect":
+                GOOGLE.disconnect()
+                self.send_json(HTTPStatus.OK, {"ok": True})
+                return
+
             if route == "/api/admin/drive-links":
+                if GOOGLE.connected():
+                    st = GOOGLE.status()
+                    self.send_json(HTTPStatus.OK, {"ok": True, "connected": True, "links": st["links"], "email": st["email"]})
+                    return
                 sheet_cfg = load_studio_settings().get("sheetConfig") or {}
                 if not sheet_cfg.get("webAppUrl") or not sheet_cfg.get("adminSecret"):
                     self.send_json(HTTPStatus.OK, {"ok": True, "connected": False, "links": None})
@@ -1703,7 +1890,9 @@ class OccasionEditHandler(BaseHTTPRequestHandler):
             site_data = get_default_site_data()
             studio_cfg = load_studio_settings().get("sheetConfig") or {}
             sheet_cfg = studio_cfg if studio_cfg.get("webAppUrl") else (site_data.get("sheetConfig") or {})
-            if sheet_cfg.get("webAppUrl") and sheet_cfg.get("adminSecret"):
+            if GOOGLE.connected() and updated_quote:
+                google_in_background(GOOGLE.update_order, updated_quote)
+            elif sheet_cfg.get("webAppUrl") and sheet_cfg.get("adminSecret"):
                 cfg = (updated_quote or {}).get("configuration", {})
                 threading.Thread(
                     target=call_google_sheets_webhook,
@@ -1758,7 +1947,9 @@ class OccasionEditHandler(BaseHTTPRequestHandler):
             studio_cfg = load_studio_settings().get("sheetConfig") or {}
             sheet_cfg = studio_cfg if studio_cfg.get("webAppUrl") else (site_data.get("sheetConfig") or {})
             sheet_res = None
-            if sheet_cfg.get("webAppUrl") and sheet_cfg.get("adminSecret"):
+            if GOOGLE.connected():
+                sheet_res = google_job(GOOGLE.forget_customer, quote_id, kept_for_tax)
+            elif sheet_cfg.get("webAppUrl") and sheet_cfg.get("adminSecret"):
                 sheet_res = call_google_sheets_webhook(sheet_cfg["webAppUrl"], {
                     "action": "delete_booking_gdpr",
                     "adminSecret": sheet_cfg["adminSecret"],

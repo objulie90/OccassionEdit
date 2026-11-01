@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { quoteMessage, invoiceMessage, whatsappLink, emailLink, hasBankDetails } from './messages';
+import { quoteMessage, invoiceMessage, whatsappLink, hasBankDetails } from './messages';
 import { money, whatsappNumber } from './studioFormat';
 
 /**
  * Writes the quote or balance invoice for Laura, ready to send by WhatsApp or
  * email. She can change the price (quotes) and any word of the message first.
  */
-export function SendMessage({ kind, order, lines, guidePrice, total, paid, settings, onSent, onCancel }) {
+export function SendMessage({ kind, order, lines, guidePrice, total, paid, settings, google, onSent, onCancel }) {
   const c = order.client || {};
   const isQuote = kind === 'quote';
   const [price, setPrice] = useState(String(Math.round(total * 100) / 100));
@@ -20,7 +20,20 @@ export function SendMessage({ kind, order, lines, guidePrice, total, paid, setti
   const text = edited ?? draft;
   const subject = isQuote ? 'Your quote from The Occasion Edit' : 'Your balance invoice from The Occasion Edit';
   const wa = whatsappLink(whatsappNumber(c.phone), text);
-  const mail = emailLink(c.email, subject, text);
+  const canEmail = Boolean(google?.status?.gmail && c.email);
+  // The latest quote or invoice written for this order goes with the email
+  const doc = [...(order.documents || [])].reverse().find(d => d.kind === (isQuote ? 'quote' : 'invoice') && d.status !== 'void' && d.status !== 'replaced');
+  const [emailState, setEmailState] = useState('');
+  const sendEmail = async () => {
+    setEmailState('sending');
+    try {
+      await google.sendEmail(order, { subject, body: text, documentId: doc?.id, attachmentName: doc?.number });
+      setEmailState('');
+      onSent('email', priceNum);
+    } catch (e) {
+      setEmailState(e.message);
+    }
+  };
   const what = isQuote ? `Quote of ${money(priceNum)}` : `Balance invoice for ${money(Math.max(0, total - paid))}`;
 
   const copy = async () => {
@@ -76,10 +89,10 @@ export function SendMessage({ kind, order, lines, guidePrice, total, paid, setti
             Send by WhatsApp
           </a>
         )}
-        {mail && (
-          <a className="st-btn" href={mail} onClick={() => onSent('email', priceNum)}>
-            Send by email
-          </a>
+        {canEmail && (
+          <button type="button" className="st-btn" onClick={sendEmail} disabled={emailState === 'sending'}>
+            {emailState === 'sending' ? 'Sending' : doc ? `Email it with ${doc.number}` : 'Send by email'}
+          </button>
         )}
         <button type="button" className="st-btn" onClick={copy}>Copy message</button>
         <button type="button" className="st-link st-link-quiet" onClick={onCancel}>Cancel</button>
@@ -91,6 +104,8 @@ export function SendMessage({ kind, order, lines, guidePrice, total, paid, setti
         </p>
       )}
       {copied === 'failed' && <p className="st-save-state" role="status">Couldn't copy here. Select the message and copy it yourself.</p>}
+      {emailState && emailState !== 'sending' && <p className="st-warning" role="status">{emailState}</p>}
+      {!google?.status?.gmail && c.email && <p className="st-hint">Connect Google in Paperwork to email it from here, with the PDF attached.</p>}
       <p className="st-hint">{what} to {c.name || 'the customer'}.</p>
     </section>
   );

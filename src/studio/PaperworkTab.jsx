@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { getUkTaxYear } from '../data/catalogData.js';
 import { statusInfo, parseEventDate, money, orderTotal } from './studioFormat';
 
@@ -25,47 +25,8 @@ function csvCell(value) {
   return /[",\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
 }
 
-export function PaperworkTab({ quotes, studioSettings, onSaveStudioSettings, onFetchDriveLinks }) {
-  const [drive, setDrive] = useState({ state: 'loading', links: null });
-  const [conn, setConn] = useState({
-    webAppUrl: studioSettings?.sheetConfig?.webAppUrl || '',
-    adminSecret: studioSettings?.sheetConfig?.adminSecret || ''
-  });
-  const [connState, setConnState] = useState('idle');
-  const [copied, setCopied] = useState('');
+export function PaperworkTab({ quotes, google }) {
   const taxYear = getUkTaxYear().slash;
-
-  const loadLinks = () => {
-    if (!onFetchDriveLinks) { setDrive({ state: 'not-connected', links: null }); return; }
-    setDrive({ state: 'loading', links: null });
-    onFetchDriveLinks()
-      .then(res => setDrive({ state: res.connected ? (res.links ? 'ready' : 'not-set-up') : 'not-connected', links: res.links }))
-      .catch(() => setDrive({ state: 'error', links: null }));
-  };
-  useEffect(loadLinks, []);
-
-  const copyScript = async () => {
-    try {
-      const { default: text } = await import('../../GoogleAppsScript.gs?raw');
-      await navigator.clipboard.writeText(text);
-      setCopied('Copied. Paste it into Apps Script.');
-    } catch (_e) {
-      setCopied("Couldn't copy here. Ask Oliver for the GoogleAppsScript.gs file.");
-    }
-  };
-
-  const saveConnection = async (e) => {
-    e.preventDefault();
-    if (!onSaveStudioSettings) return;
-    setConnState('saving');
-    try {
-      await onSaveStudioSettings({ ...studioSettings, sheetConfig: { webAppUrl: conn.webAppUrl.trim(), adminSecret: conn.adminSecret.trim() } });
-      setConnState('saved');
-      loadLinks();
-    } catch (_e) {
-      setConnState('error');
-    }
-  };
 
   // This tax year's bookings that have taken money, by event date
   const yearOrders = quotes.filter(q => {
@@ -95,76 +56,7 @@ export function PaperworkTab({ quotes, studioSettings, onSaveStudioSettings, onF
 
   return (
     <div className="st-catalogue">
-      <section className="st-palettes" aria-labelledby="st-drive-title">
-        <h3 id="st-drive-title" className="st-section-title">Your Google Drive</h3>
-
-        {drive.state === 'loading' && <p className="st-cat-note">Checking your Google Drive…</p>}
-
-        {drive.state === 'ready' && (
-          <ul className="st-drive-grid">
-            {DRIVE_LINKS.filter(([key]) => drive.links[key]).map(([key, title, note]) => (
-              <li key={key}>
-                <a className="st-drive-link" href={drive.links[key]} target="_blank" rel="noopener noreferrer">
-                  <strong>{title}</strong>
-                  <span>{note}</span>
-                </a>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {drive.state === 'error' && (
-          <p className="st-warning">Your Google Sheet didn't answer just now. Check the web app address below, or try again later.</p>
-        )}
-
-        {(drive.state === 'not-connected' || drive.state === 'not-set-up' || drive.state === 'error') && (
-          <>
-            <p className="st-cat-note">
-              Do this once. It builds your business folders and an Income &amp; Expenses record in your own Google Drive,
-              then links them here so every quote, invoice, receipt and photo has a home.
-            </p>
-            <ol className="st-setup-steps">
-              <li>
-                Open a new Google Sheet at <a href="https://sheets.new" target="_blank" rel="noopener noreferrer">sheets.new</a> and
-                call it "THE Occasion Edit — Studio Master Sheet".
-              </li>
-              <li>
-                Choose <strong>Extensions</strong>, then <strong>Apps Script</strong>. Delete what's there and paste the setup script.
-                <div className="st-business-actions">
-                  <button type="button" className="st-btn" onClick={copyScript}>Copy the setup script</button>
-                  <span role="status" className="st-save-state">{copied}</span>
-                </div>
-              </li>
-              <li>
-                Pick <strong>setUpMyDrive</strong> next to Run, press <strong>Run</strong> and allow access. Your folders appear in Drive.
-              </li>
-              <li>
-                Choose <strong>Deploy</strong>, then <strong>New deployment</strong>, then <strong>Web app</strong> (execute as you, anyone can access).
-                Paste the web app address and the secret from the log here:
-              </li>
-            </ol>
-            <form className="st-fieldset" onSubmit={saveConnection}>
-              <div className="st-field">
-                <label htmlFor="st-sheet-url">Web app address</label>
-                <input id="st-sheet-url" type="text" inputMode="url" placeholder="https://script.google.com/macros/s/…" value={conn.webAppUrl} onChange={e => setConn({ ...conn, webAppUrl: e.target.value })} />
-              </div>
-              <div className="st-field">
-                <label htmlFor="st-sheet-secret">Secret</label>
-                <input id="st-sheet-secret" type="text" autoComplete="off" value={conn.adminSecret} onChange={e => setConn({ ...conn, adminSecret: e.target.value })} />
-              </div>
-              <div className="st-business-actions">
-                <button type="submit" className="st-btn st-btn-primary" disabled={!conn.webAppUrl || !conn.adminSecret || connState === 'saving'}>
-                  {connState === 'saving' ? 'Connecting' : 'Connect my Google Drive'}
-                </button>
-                <span role="status" className="st-save-state">
-                  {connState === 'saved' && 'Connected.'}
-                  {connState === 'error' && 'Not saved. Check your connection and try again.'}
-                </span>
-              </div>
-            </form>
-          </>
-        )}
-      </section>
+      <GoogleConnection google={google} />
 
       <section className="st-palettes" aria-labelledby="st-tax-title">
         <h3 id="st-tax-title" className="st-section-title">Tax</h3>
@@ -193,5 +85,126 @@ export function PaperworkTab({ quotes, studioSettings, onSaveStudioSettings, onF
         </div>
       </section>
     </div>
+  );
+}
+
+/**
+ * Laura's Google account paired with the site, in one sign-in: her paperwork
+ * files itself in Drive and customer emails show on each order.
+ */
+function GoogleConnection({ google }) {
+  const st = google?.status || {};
+  const [busy, setBusy] = useState('');
+  const [error, setError] = useState('');
+  const [confirmOff, setConfirmOff] = useState(false);
+  const [keys, setKeys] = useState({ id: '', secret: '' });
+  const [copied, setCopied] = useState(false);
+
+  const run = async (what, fn) => {
+    setBusy(what);
+    setError('');
+    try { await fn(); } catch (e) { setError(e.message); }
+    setBusy('');
+  };
+
+  return (
+    <section className="st-palettes" aria-labelledby="st-drive-title">
+      <h3 id="st-drive-title" className="st-section-title">Your Google account</h3>
+
+      {st.loading && <p className="st-cat-note">Checking your Google connection…</p>}
+
+      {st.connected && (
+        <>
+          <p className="st-cat-note">
+            Connected to {st.email}. New enquiries, payments, quotes and invoices go into your master sheet by themselves,
+            and every email with a customer shows on their order.
+            {st.demo && ' This preview opens a demo master sheet filled with example orders.'}
+          </p>
+          {st.links && (
+            <ul className="st-drive-grid">
+              {DRIVE_LINKS.filter(([key]) => st.links[key]).map(([key, title, note]) => (
+                <li key={key}>
+                  <a className="st-drive-link" href={st.links[key]} target="_blank" rel="noopener noreferrer">
+                    <strong>{title}</strong>
+                    <span>{note}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
+          {!st.gmail && (
+            <div className="st-callout">
+              <p>Connect again to add Gmail, so you can email customers from their orders.</p>
+              <button type="button" className="st-btn st-btn-primary" onClick={() => run('connect', google.connect)}>Connect again</button>
+            </div>
+          )}
+          {!st.demo && (
+            confirmOff ? (
+              <div className="st-business-actions">
+                <span>Your folders and sheet stay in your Drive. The site just stops using them.</span>
+                <button type="button" className="st-btn" onClick={() => run('off', google.disconnect)}>Disconnect</button>
+                <button type="button" className="st-link st-link-quiet" onClick={() => setConfirmOff(false)}>Keep connected</button>
+              </div>
+            ) : (
+              <button type="button" className="st-link st-link-quiet" onClick={() => setConfirmOff(true)}>Disconnect Google</button>
+            )
+          )}
+        </>
+      )}
+
+      {!st.loading && !st.connected && st.available && (
+        <div className="st-connect">
+          <p>
+            Sign in with Google once. The site then builds your business folders and master sheet in your Drive,
+            files every quote and invoice there, and lets you email customers from their orders.
+          </p>
+          <button type="button" className="st-btn st-btn-primary st-btn-large" disabled={busy === 'connect'} onClick={() => run('connect', google.connect)}>
+            {busy === 'connect' ? 'Opening Google' : 'Connect my Google account'}
+          </button>
+          <p className="st-hint">
+            Google will ask you to allow three things: keeping the site's own files in your Drive, sending emails as you,
+            and reading emails so customer conversations appear on their orders. It can't see your other files.
+            If Google says it hasn't checked the app, that's because it's your own site: choose Advanced, then carry on.
+          </p>
+        </div>
+      )}
+
+      {!st.loading && !st.connected && !st.available && (
+        <>
+          <p className="st-cat-note">Oliver needs to switch Google sign-in on once. After that, it's one button for you.</p>
+          <details className="st-oliver">
+            <summary>For Oliver: switch on Google sign-in</summary>
+            <ol className="st-setup-steps">
+              <li>Follow GOOGLE-SETUP.md in the project to make a Google client ID and secret (about ten minutes).</li>
+              <li>
+                When Google asks for the redirect address, give it this:
+                <div className="st-business-actions">
+                  <code className="st-code-box">{st.redirectUri || 'Open this page on the live site to see it'}</code>
+                  {st.redirectUri && (
+                    <button type="button" className="st-btn" onClick={async () => { try { await navigator.clipboard.writeText(st.redirectUri); setCopied(true); } catch (_e) { setCopied(false); } }}>
+                      {copied ? 'Copied' : 'Copy'}
+                    </button>
+                  )}
+                </div>
+              </li>
+              <li>Paste the client ID and secret here:</li>
+            </ol>
+            <form className="st-fieldset" onSubmit={e => { e.preventDefault(); run('keys', () => google.saveClient(keys.id.trim(), keys.secret.trim())); }}>
+              <div className="st-field">
+                <label htmlFor="st-g-id">Client ID</label>
+                <input id="st-g-id" type="text" autoComplete="off" placeholder="…apps.googleusercontent.com" value={keys.id} onChange={e => setKeys({ ...keys, id: e.target.value })} />
+              </div>
+              <div className="st-field">
+                <label htmlFor="st-g-secret">Client secret</label>
+                <input id="st-g-secret" type="password" autoComplete="off" value={keys.secret} onChange={e => setKeys({ ...keys, secret: e.target.value })} />
+              </div>
+              <button type="submit" className="st-btn st-btn-primary" disabled={!keys.id || !keys.secret || busy === 'keys'}>{busy === 'keys' ? 'Saving' : 'Switch on Google sign-in'}</button>
+            </form>
+          </details>
+        </>
+      )}
+
+      {(error || st.error) && <p className="st-warning" role="alert">{error || st.error}</p>}
+    </section>
   );
 }

@@ -62,6 +62,8 @@ export function OrdersTab({
   digitOptions,
   balloonColours,
   deliveryConfig,
+  google,
+  onOpenTab,
   flashToast
 }) {
   const [search, setSearch] = useState('');
@@ -156,6 +158,8 @@ export function OrdersTab({
             digitOptions={digitOptions}
             balloonColours={balloonColours}
             deliveryConfig={deliveryConfig}
+            google={google}
+            onOpenTab={onOpenTab}
             flashToast={flashToast}
           />
         ) : (

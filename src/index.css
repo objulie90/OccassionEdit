@@ -1748,7 +1748,7 @@ input:focus-visible,
 }
 
 .oe-ribbon-coral {
-  background: linear-gradient(135deg, #C95B4C, #A33E31);
+  background: linear-gradient(135deg, #B54A3B, #93362A);
   color: #FFFFFF;
 }
 
@@ -1769,7 +1769,7 @@ input:focus-visible,
 
 .oe-price-old {
   text-decoration: line-through;
-  color: #8C857B;
+  color: #5F5A52;
   font-weight: 500;
   margin-right: 0.4rem;
   font-size: 0.88em;
