@@ -9,8 +9,10 @@
 // - Deposit paid, confirmed and completed bookings always count.
 // - A new enquiry holds its props until Laura replies (`holdUntilReply`),
 //   or otherwise for `holdHours` after it was sent.
+// - A sent quote holds its date while Laura waits for the deposit.
 // - Cancelled bookings never count.
-// - A date is full once it has `maxSetupsPerDay` counted bookings.
+// - A date is full once it has `maxSetupsPerDay` counted bookings, or when
+//   Laura has blocked it (`blockedDates`, holidays and family days).
 // - Bookings need `minNoticeDays` notice.
 
 // Laura's answers, November 2026
@@ -39,7 +41,7 @@ export function dayNumber(isoOrDmy) {
 export function bookingCounts(order, nowMs, holdHours, holdUntilReply = false) {
   const s = String(order.status || '').toLowerCase();
   if (s.includes('cancel')) return false;
-  if (s.includes('deposit') || s.includes('confirm') || s.includes('complete')) return true;
+  if (s.includes('deposit') || s.includes('confirm') || s.includes('complete') || s.includes('quote')) return true;
   if (holdUntilReply) return true;
   const created = Date.parse(order.createdAt || '');
   if (Number.isNaN(created)) return true;
@@ -62,12 +64,12 @@ export function hirePropIds(order, hireItems) {
  * @param {string} date        event date the customer wants, "YYYY-MM-DD"
  * @param {object[]} orders    stored orders (only status, createdAt, client.eventDate, configuration are read)
  * @param {object[]} hireItems builder items with hireOnly true: { id, name, ownedCount }
- * @param {object} settings    { maxSetupsPerDay, holdHours }
+ * @param {object} settings    { maxSetupsPerDay, holdHours, holdUntilReply, sameDayTurnaround, blockedDates }
  * @param {number} nowMs       current time
  * @param {string} [ignoreOrderId] an order to leave out (when rechecking that order itself)
  */
 export function computeAvailability(date, orders, hireItems, settings = {}, nowMs = Date.now(), ignoreOrderId = null) {
-  const { maxSetupsPerDay, holdHours, holdUntilReply, sameDayTurnaround } = { ...AVAILABILITY_DEFAULTS, ...settings };
+  const { maxSetupsPerDay, holdHours, holdUntilReply, sameDayTurnaround, blockedDates } = { ...AVAILABILITY_DEFAULTS, ...settings };
   const clashWindow = sameDayTurnaround ? 0 : 1;
   const target = dayNumber(date);
   const items = {};
@@ -92,12 +94,13 @@ export function computeAvailability(date, orders, hireItems, settings = {}, nowM
     }
   });
 
+  const blocked = (blockedDates || []).some(d => dayNumber(d) === target);
   return {
     date,
     valid: true,
     setupsThatDay,
     maxSetupsPerDay,
-    dayFull: setupsThatDay >= maxSetupsPerDay,
+    dayFull: blocked || setupsThatDay >= maxSetupsPerDay,
     items
   };
 }

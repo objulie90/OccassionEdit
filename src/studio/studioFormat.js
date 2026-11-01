@@ -1,20 +1,24 @@
 // Shared helpers for the staff studio: order statuses, dates, money and contact links.
 
+// The path every order follows. Ids are what is stored; labels are what Laura reads.
 export const ORDER_STATUSES = [
   { id: 'New Enquiry', label: 'New enquiry', tone: 'new' },
-  { id: 'Deposit Paid', label: 'Deposit paid', tone: 'deposit' },
-  { id: 'Confirmed', label: 'Confirmed', tone: 'confirmed' },
-  { id: 'Completed', label: 'Completed', tone: 'done' },
+  { id: 'Quote Sent', label: 'Quote sent', tone: 'quoted' },
+  { id: 'Deposit Paid', label: 'Booked', tone: 'deposit' },
+  { id: 'Confirmed', label: 'Paid in full', tone: 'confirmed' },
+  { id: 'Completed', label: 'Done', tone: 'done' },
   { id: 'Cancelled', label: 'Cancelled', tone: 'cancelled' }
 ];
 
 export function statusInfo(status) {
   const s = (status || '').toLowerCase();
-  if (s.includes('cancel')) return ORDER_STATUSES[4];
-  if (s.includes('complete')) return ORDER_STATUSES[3];
-  if (s.includes('confirm')) return ORDER_STATUSES[2];
-  if (s.includes('deposit')) return ORDER_STATUSES[1];
-  return ORDER_STATUSES[0];
+  const byTone = tone => ORDER_STATUSES.find(x => x.tone === tone);
+  if (s.includes('cancel')) return byTone('cancelled');
+  if (s.includes('complete')) return byTone('done');
+  if (s.includes('confirm')) return byTone('confirmed');
+  if (s.includes('deposit')) return byTone('deposit');
+  if (s.includes('quote')) return byTone('quoted');
+  return byTone('new');
 }
 
 // Event dates arrive as "2026-12-12" (date picker) or "12/12/2026" (older sheet rows)
@@ -67,9 +71,16 @@ export function money(value) {
   return `£${n.toLocaleString('en-GB', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 })}`;
 }
 
+// The agreed price: what Laura quoted, otherwise the website's guide price
 export function orderTotal(order) {
   const cfg = order?.configuration || {};
+  if (cfg.quotedPrice != null && cfg.quotedPrice !== '') return Number(cfg.quotedPrice) || 0;
   return Number(cfg.estimatedTotal ?? cfg.subtotal ?? 0);
+}
+
+export function paidSoFar(order) {
+  const cfg = order?.configuration || {};
+  return (Number(cfg.depositPaid) || 0) + (Number(cfg.balancePaid) || 0);
 }
 
 // UK mobile "07700 900000" becomes "447700900000" for WhatsApp links

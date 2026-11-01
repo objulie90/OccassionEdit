@@ -30,7 +30,12 @@
           "backdropType": "arch-board",
           "surfaceColor": "#E5D5C3",
           "image": "public/assets/pl-board-sixty.jpg",
-          "ownedCount": 1
+          "ownedCount": 1,
+          "heightIn": 84,
+          "suggestFor": [
+            "Baby Shower"
+          ],
+          "code": "BASE_Board_1"
         },
         {
           "id": "gold-shimmer",
@@ -46,7 +51,17 @@
           "backdropType": "shimmer-wall",
           "surfaceColor": "#D4AF37",
           "image": "public/assets/pl-shimmer-lilac.jpg",
-          "ownedCount": 2
+          "ownedCount": 2,
+          "heightIn": 72,
+          "heightInLarge": 96,
+          "suggestFor": [
+            "Birthday",
+            "Prom"
+          ],
+          "styleFor": [
+            "Luxury"
+          ],
+          "code": "BASE_Wall_Gold"
         },
         {
           "id": "silver-shimmer",
@@ -62,7 +77,10 @@
           "backdropType": "shimmer-wall",
           "surfaceColor": "#C4C9CE",
           "image": "public/assets/examples/silver-shimmer-wall.jpg",
-          "ownedCount": 2
+          "ownedCount": 2,
+          "heightIn": 72,
+          "heightInLarge": 96,
+          "code": "BASE_Wall_Silver"
         },
         {
           "id": "black-shimmer",
@@ -78,7 +96,13 @@
           "backdropType": "shimmer-wall",
           "surfaceColor": "#242623",
           "image": "public/assets/examples/black-shimmer-wall.jpg",
-          "ownedCount": 2
+          "ownedCount": 2,
+          "heightIn": 72,
+          "heightInLarge": 96,
+          "suggestFor": [
+            "Prom"
+          ],
+          "code": "BASE_Wall_Black"
         },
         {
           "id": "pink-shimmer",
@@ -94,7 +118,10 @@
           "backdropType": "shimmer-wall",
           "surfaceColor": "#E2B4BD",
           "image": "public/assets/examples/pink-shimmer-wall.jpg",
-          "ownedCount": 2
+          "ownedCount": 2,
+          "heightIn": 72,
+          "heightInLarge": 96,
+          "code": "BASE_Wall_Blush"
         },
         {
           "id": "balloon-hoop",
@@ -108,7 +135,13 @@
           "backdropType": "hoop",
           "surfaceColor": "#C5A059",
           "image": "public/assets/hero-arch.jpg",
-          "ownedCount": 1
+          "ownedCount": 1,
+          "heightIn": 79,
+          "suggestFor": [
+            "Wedding / Engagement",
+            "Anniversary"
+          ],
+          "code": "BASE_Hoop_1"
         },
         {
           "id": "easel-sign",
@@ -122,7 +155,11 @@
           "backdropType": "easel",
           "surfaceColor": "#FAF8F5",
           "image": "public/assets/examples/easel-welcome-sign.jpg",
-          "ownedCount": 2
+          "ownedCount": 2,
+          "suggestFor": [
+            "Wedding / Engagement"
+          ],
+          "code": "BASE_Sign_1"
         }
       ]
     },
@@ -144,7 +181,9 @@
           "hireOnly": false,
           "inStock": true,
           "layoutType": "side-7ft",
-          "image": "public/assets/pl-board-sixty.jpg"
+          "image": "public/assets/pl-board-sixty.jpg",
+          "heightIn": 84,
+          "code": "STRUC_Garland_1"
         },
         {
           "id": "clusters-top-bottom",
@@ -155,7 +194,8 @@
           "hireOnly": false,
           "inStock": true,
           "layoutType": "clusters",
-          "image": "public/assets/examples/corner-clusters.jpg"
+          "image": "public/assets/examples/corner-clusters.jpg",
+          "code": "STRUC_Corners_1"
         },
         {
           "id": "garland-full",
@@ -167,7 +207,15 @@
           "hireOnly": false,
           "inStock": true,
           "layoutType": "full-surround",
-          "image": "public/assets/hero-arch.jpg"
+          "image": "public/assets/hero-arch.jpg",
+          "suggestFor": [
+            "Wedding / Engagement",
+            "Prom"
+          ],
+          "styleFor": [
+            "Luxury"
+          ],
+          "code": "STRUC_Arch_1"
         }
       ]
     },
@@ -200,7 +248,21 @@
           "inStock": true,
           "extraType": "neon",
           "image": "public/assets/inspire-birthday.jpg",
-          "ownedCount": 1
+          "ownedCount": 1,
+          "suggestFor": [
+            "Birthday",
+            "Wedding / Engagement",
+            "Anniversary",
+            "Prom"
+          ],
+          "styleFor": [
+            "Fancy",
+            "Luxury"
+          ],
+          "code": "FINISH_Neon_1",
+          "phrases": [
+            "Happy Birthday"
+          ]
         },
         {
           "id": "add-on-flowers",
@@ -212,7 +274,16 @@
           "inStock": true,
           "extraType": "flowers",
           "image": "public/assets/inspire-baby.jpg",
-          "madeToOrder": true
+          "madeToOrder": true,
+          "suggestFor": [
+            "Wedding / Engagement",
+            "Anniversary",
+            "Baby Shower"
+          ],
+          "styleFor": [
+            "Luxury"
+          ],
+          "code": "FINISH_Flowers_1"
         },
         {
           "id": "baby-boxes",
@@ -224,7 +295,11 @@
           "inStock": true,
           "extraType": "boxes",
           "image": "public/assets/inspire-baby.jpg",
-          "ownedCount": 1
+          "ownedCount": 1,
+          "suggestFor": [
+            "Baby Shower"
+          ],
+          "code": "FINISH_Baby_1"
         },
         {
           "id": "bubble-balloon",
@@ -235,7 +310,15 @@
           "hireOnly": false,
           "inStock": true,
           "extraType": "bubble",
-          "image": "public/assets/pl-bubble-helium.jpg"
+          "image": "public/assets/pl-bubble-helium.jpg",
+          "suggestFor": [
+            "Birthday",
+            "Baby Shower"
+          ],
+          "styleFor": [
+            "Fancy"
+          ],
+          "code": "FINISH_Bubble_1"
         },
         {
           "id": "cut-outs",
@@ -247,7 +330,8 @@
           "inStock": true,
           "extraType": "cutouts",
           "image": "public/assets/examples/character-cut-outs.jpg",
-          "madeToOrder": true
+          "madeToOrder": true,
+          "code": "FINISH_Cutout_1"
         },
         {
           "id": "centerpieces",
@@ -258,7 +342,8 @@
           "hireOnly": false,
           "inStock": true,
           "extraType": "centerpiece",
-          "image": "public/assets/examples/table-centrepiece.jpg"
+          "image": "public/assets/examples/table-centrepiece.jpg",
+          "code": "FINISH_Posy_1"
         },
         {
           "id": "cake-stand",
@@ -270,7 +355,8 @@
           "inStock": false,
           "extraType": "plinth",
           "image": "public/assets/examples/cake-plinth.jpg",
-          "ownedCount": 1
+          "ownedCount": 1,
+          "code": "FINISH_Plinth_1"
         }
       ]
     }
@@ -281,84 +367,96 @@
       "name": "Organic Sage",
       "hex": "#7A8C68",
       "finish": "Matte",
-      "inStock": true
+      "inStock": true,
+      "code": "001"
     },
     {
       "id": "pearl-white",
       "name": "Pearl Ivory",
       "hex": "#F5F2EB",
       "finish": "Pearl",
-      "inStock": true
+      "inStock": true,
+      "code": "002"
     },
     {
       "id": "champagne-gold",
       "name": "Chrome Gold",
       "hex": "#C5A059",
       "finish": "Chrome",
-      "inStock": true
+      "inStock": true,
+      "code": "003"
     },
     {
       "id": "blush-pink",
       "name": "Soft Blush",
       "hex": "#E6B8AF",
       "finish": "Matte",
-      "inStock": true
+      "inStock": true,
+      "code": "004"
     },
     {
       "id": "nude-stone",
       "name": "Warm Taupe",
       "hex": "#B8A693",
       "finish": "Matte",
-      "inStock": true
+      "inStock": true,
+      "code": "005"
     },
     {
       "id": "butter-yellow",
       "name": "Lemon Butter",
       "hex": "#F0DE6C",
       "finish": "Matte",
-      "inStock": true
+      "inStock": true,
+      "code": "006"
     },
     {
       "id": "pastel-blue",
       "name": "Sky Blue",
       "hex": "#9EC1CF",
       "finish": "Matte",
-      "inStock": true
+      "inStock": true,
+      "code": "007"
     },
     {
       "id": "lilac-mist",
       "name": "Soft Lilac",
       "hex": "#C3B1CE",
       "finish": "Matte",
-      "inStock": true
+      "inStock": true,
+      "code": "008"
     },
     {
       "id": "chrome-silver",
       "name": "Chrome Silver",
       "hex": "#BCC0C7",
       "finish": "Chrome",
-      "inStock": true
+      "inStock": true,
+      "code": "009"
     },
     {
       "id": "matte-black",
       "name": "Obsidian Black",
       "hex": "#222421",
       "finish": "Matte",
-      "inStock": true
+      "inStock": true,
+      "code": "010"
     },
     {
       "id": "rose-gold",
       "name": "Rose Gold",
       "hex": "#C48B7B",
       "finish": "Chrome",
-      "inStock": false
+      "inStock": false,
+      "code": "011"
     },
     {
       "id": "eucalyptus",
       "name": "Deep Forest",
       "hex": "#4A5840",
       "finish": "Matte",
-      "inStock": false
+      "inStock": false,
+      "code": "012"
     }
   ],
   "curatedPalettes": [
@@ -450,7 +548,15 @@
       "maxChars": 4,
       "defaultText": "30",
       "image": "public/assets/pl-bubble-helium.jpg",
-      "inStock": true
+      "inStock": true,
+      "suggestFor": [
+        "Birthday",
+        "Anniversary"
+      ],
+      "styleFor": [
+        "Fancy"
+      ],
+      "code": "EXTRAS_Num_Set"
     },
     {
       "id": "stack-basic",
@@ -461,7 +567,8 @@
       "maxChars": 2,
       "defaultText": "3",
       "image": "public/assets/pl-stack-30.jpg",
-      "inStock": true
+      "inStock": true,
+      "code": "EXTRAS_Stk_Cls"
     },
     {
       "id": "stack-themed",
@@ -472,7 +579,11 @@
       "maxChars": 2,
       "defaultText": "13",
       "image": "public/assets/pl-stack-30.jpg",
-      "inStock": true
+      "inStock": true,
+      "styleFor": [
+        "Fancy"
+      ],
+      "code": "EXTRAS_Stk_Fcy"
     },
     {
       "id": "stack-luxury",
@@ -483,7 +594,14 @@
       "maxChars": 2,
       "defaultText": "30",
       "image": "public/assets/pl-stack-30.jpg",
-      "inStock": true
+      "inStock": true,
+      "suggestFor": [
+        "Birthday"
+      ],
+      "styleFor": [
+        "Luxury"
+      ],
+      "code": "EXTRAS_Stk_Lux"
     },
     {
       "id": "custom-letter-balloons",
@@ -495,7 +613,8 @@
       "maxChars": 8,
       "defaultText": "BABY",
       "image": "public/assets/examples/letter-balloons.jpg",
-      "inStock": true
+      "inStock": true,
+      "code": "EXTRAS_Ltr_1"
     }
   ],
   "inspirationSlides": [
@@ -631,7 +750,8 @@
         "digitOptionId": "stack-basic",
         "digitText": "3"
       },
-      "secondPrice": null
+      "secondPrice": null,
+      "code": "EXTRAS_Stk_Cls"
     },
     {
       "id": "csv-2",
@@ -652,7 +772,8 @@
         "digitOptionId": "stack-themed",
         "digitText": "13"
       },
-      "secondPrice": null
+      "secondPrice": null,
+      "code": "EXTRAS_Stk_Fcy"
     },
     {
       "id": "csv-3",
@@ -673,7 +794,8 @@
         "digitOptionId": "stack-luxury",
         "digitText": "30"
       },
-      "secondPrice": null
+      "secondPrice": null,
+      "code": "EXTRAS_Stk_Lux"
     },
     {
       "id": "csv-4",
@@ -695,7 +817,8 @@
         "extraIds": [
           "bubble-balloon"
         ]
-      }
+      },
+      "code": "FINISH_Bubble_1"
     },
     {
       "id": "csv-5",
@@ -716,7 +839,8 @@
         "digitOptionId": "helium-foil-numbers",
         "digitText": "21"
       },
-      "secondPrice": 52
+      "secondPrice": 52,
+      "code": "EXTRAS_Num_Set"
     },
     {
       "id": "csv-18",
@@ -731,7 +855,8 @@
       "image": "public/assets/pl-bubble-helium.jpg",
       "builderPreset": {
         "balloonId": "clusters-top-bottom"
-      }
+      },
+      "code": "EXTRAS_Bqt_1"
     },
     {
       "id": "csv-16",
@@ -753,7 +878,8 @@
         "extraIds": [
           "centerpieces"
         ]
-      }
+      },
+      "code": "FINISH_Posy_1"
     },
     {
       "id": "csv-6",
@@ -774,7 +900,8 @@
       "builderPreset": {
         "backdropId": null,
         "balloonId": "garland-7ft"
-      }
+      },
+      "code": "STRUC_Garland_1"
     },
     {
       "id": "csv-7",
@@ -796,7 +923,8 @@
       "builderPreset": {
         "backdropId": "wooden-board",
         "balloonId": "garland-7ft"
-      }
+      },
+      "code": "BASE_Board_1"
     },
     {
       "id": "csv-9",
@@ -817,7 +945,8 @@
       "builderPreset": {
         "backdropId": "easel-sign",
         "balloonId": "clusters-top-bottom"
-      }
+      },
+      "code": "BASE_Sign_1"
     },
     {
       "id": "csv-10",
@@ -840,7 +969,8 @@
         "backdropId": "gold-shimmer",
         "shimmerSize": "small",
         "balloonId": "garland-7ft"
-      }
+      },
+      "code": "BASE_Wall_Gold"
     },
     {
       "id": "csv-11",
@@ -861,7 +991,8 @@
       "builderPreset": {
         "backdropId": null,
         "balloonId": "garland-full"
-      }
+      },
+      "code": "STRUC_Arch_1"
     },
     {
       "id": "csv-12",
@@ -883,7 +1014,8 @@
       "builderPreset": {
         "backdropId": "balloon-hoop",
         "balloonId": "garland-7ft"
-      }
+      },
+      "code": "BASE_Hoop_1"
     },
     {
       "id": "csv-14",
@@ -903,7 +1035,8 @@
         "extraIds": [
           "cake-stand"
         ]
-      }
+      },
+      "code": "BASE_Pkg_1"
     },
     {
       "id": "csv-8",
@@ -925,7 +1058,8 @@
         "extraIds": [
           "baby-boxes"
         ]
-      }
+      },
+      "code": "FINISH_Baby_1"
     },
     {
       "id": "csv-13",
@@ -947,7 +1081,8 @@
         "extraIds": [
           "cake-stand"
         ]
-      }
+      },
+      "code": "FINISH_Plinth_1"
     },
     {
       "id": "csv-15",
@@ -969,7 +1104,8 @@
         "extraIds": [
           "cut-outs"
         ]
-      }
+      },
+      "code": "FINISH_Cutout_1"
     },
     {
       "id": "csv-17",
@@ -991,7 +1127,8 @@
         "extraIds": [
           "cake-stand"
         ]
-      }
+      },
+      "code": "FINISH_Plinth_1"
     },
     {
       "id": "csv-19",
@@ -1013,7 +1150,8 @@
         "extraIds": [
           "neon-sign"
         ]
-      }
+      },
+      "code": "FINISH_Neon_1"
     },
     {
       "id": "csv-20",
@@ -1035,7 +1173,8 @@
         "extraIds": [
           "add-on-flowers"
         ]
-      }
+      },
+      "code": "FINISH_Flowers_1"
     }
   ],
   "offers": [

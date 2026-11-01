@@ -71,11 +71,14 @@ DEFAULT_STUDIO_SETTINGS = {
     "holdHours": 48,
     "sameDayTurnaround": True,
     "minNoticeDays": 2,
+    "blockedDates": [],
+    "signOffName": "",
     "sheetConfig": {"webAppUrl": "", "adminSecret": ""}
 }
 
 # The order stages the studio and the Google Sheet both understand
-ORDER_STATUSES = ("New Enquiry", "Deposit Paid", "Confirmed", "Completed", "Cancelled")
+ORDER_STATUSES = ("New Enquiry", "Quote Sent", "Deposit Paid", "Confirmed", "Completed", "Cancelled")
+BOOKING_SOURCES = ("Facebook", "Instagram", "Phone", "WhatsApp", "Email", "Other")
 
 PORT = int(os.environ.get("PORT", "5173"))
 
@@ -472,7 +475,7 @@ def booking_counts(order, now_s, hold_hours, hold_until_reply=False):
     status = str(order.get("status") or "").lower()
     if "cancel" in status:
         return False
-    if "deposit" in status or "confirm" in status or "complete" in status:
+    if "deposit" in status or "confirm" in status or "complete" in status or "quote" in status:
         return True
     if hold_until_reply:
         return True
@@ -524,7 +527,8 @@ def compute_availability(date, orders, hire_items, settings=None, now_s=None, ig
             for pid in hire_prop_ids(order, hire_items):
                 items[pid]["inUse"] += 1
                 items[pid]["free"] = max(0, items[pid]["owned"] - items[pid]["inUse"])
-    return {"date": date, "valid": True, "setupsThatDay": setups, "maxSetupsPerDay": max_setups, "dayFull": setups >= max_setups, "items": items}
+    blocked = any(day_number(d) == target for d in (settings.get("blockedDates") or []))
+    return {"date": date, "valid": True, "setupsThatDay": setups, "maxSetupsPerDay": max_setups, "dayFull": blocked or setups >= max_setups, "items": items}
 
 
 def hire_items_from_site_data(site_data):
@@ -533,6 +537,27 @@ def hire_items_from_site_data(site_data):
         {"id": it.get("id"), "name": it.get("name"), "ownedCount": it.get("ownedCount")}
         for step in steps for it in (step.get("items") or []) if it.get("hireOnly") and not it.get("madeToOrder")
     ]
+
+
+def order_total(order):
+    """The agreed price: what Laura quoted, otherwise the website's guide price."""
+    cfg = order.get("configuration") or {}
+    if cfg.get("quotedPrice") not in (None, ""):
+        try:
+            return float(cfg["quotedPrice"])
+        except (ValueError, TypeError):
+            pass
+    try:
+        return float(cfg.get("estimatedTotal") or cfg.get("subtotal") or 0)
+    except (ValueError, TypeError):
+        return 0.0
+
+
+def add_history(order, text):
+    """One line in the order's history, newest last, timed by the server."""
+    history = order.get("history") if isinstance(order.get("history"), list) else []
+    history.append({"at": datetime.now(timezone.utc).isoformat(), "text": sanitize_formula_cell(str(text))[:200]})
+    order["history"] = history[-100:]
 
 
 def generate_tax_year_order_id(existing_quotes):
@@ -1178,7 +1203,8 @@ class OccasionEditHandler(BaseHTTPRequestHandler):
                             for k, v in list((cfg.get("boardCustomization") or {}).items())[:10]
                         } if isinstance(cfg.get("boardCustomization"), dict) else None,
                         "neonPhrase": sanitize_formula_cell(cfg.get("neonPhrase") or "")[:80],
-                        "bubbleText": sanitize_formula_cell(cfg.get("bubbleText") or "")[:80]
+                        "bubbleText": sanitize_formula_cell(cfg.get("bubbleText") or "")[:80],
+                        "cutoutTheme": sanitize_formula_cell(cfg.get("cutoutTheme") or "")[:60]
                     },
                     "previewSnapshotDataUrl": str(body.get("previewSnapshotDataUrl", ""))[:45000]
                 }
@@ -1240,6 +1266,23 @@ class OccasionEditHandler(BaseHTTPRequestHandler):
                     "holdHours": clamp_int(body.get("holdHours", existing.get("holdHours", 48)), 0, 336, 48),
                     "sameDayTurnaround": bool(body.get("sameDayTurnaround", existing.get("sameDayTurnaround", True))),
                     "minNoticeDays": clamp_int(body.get("minNoticeDays", existing.get("minNoticeDays", 2)), 0, 60, 2),
+                    "blockedDates": sorted({
+                        str(d)[:10] for d in (body.get("blockedDates", existing.get("blockedDates", [])) or [])[:366]
+                        if day_number(str(d)[:10]) is not None
+                    }),
+                    "signOffName": sanitize_formula_cell(body.get("signOffName", existing.get("signOffName", "")))[:60],
+                    # Balloon stock counts: { colourId: { "Sm": n, "Md": n, "Lg": n } } and foil digits 0-9
+                    "balloonStock": {
+                        str(cid)[:80]: {size: clamp_int((sizes or {}).get(size, 0), 0, 100000, 0) for size in ("Sm", "Md", "Lg")}
+                        for cid, sizes in list((body.get("balloonStock", existing.get("balloonStock", {})) or {}).items())[:200]
+                        if isinstance(sizes, dict)
+                    },
+                    "foilStock": {
+                        d: clamp_int((body.get("foilStock", existing.get("foilStock", {})) or {}).get(d, 0), 0, 10000, 0)
+                        for d in "0123456789"
+                    },
+                    "lowStockAt": clamp_int(body.get("lowStockAt", existing.get("lowStockAt", 25)), 0, 10000, 25),
+                    "stockCountedAt": sanitize_formula_cell(body.get("stockCountedAt", existing.get("stockCountedAt", "")))[:40],
                     "sheetConfig": {
                         "webAppUrl": sanitize_formula_cell(sheet_in.get("webAppUrl", ""))[:500],
                         "adminSecret": sanitize_formula_cell(sheet_in.get("adminSecret", ""))[:200]
@@ -1288,6 +1331,68 @@ class OccasionEditHandler(BaseHTTPRequestHandler):
 
             # 6. Pull Latest Catalog & Stock from Google Sheet (doGet)
             # Links to Laura's Drive folders and records, as set up by the sheet script
+            # A booking agreed outside the website (Facebook, Instagram, phone), so the diary knows
+            if route == "/api/admin/bookings":
+                body = self.read_json_body(max_bytes=16384)
+                client = body.get("client") or {}
+                name = sanitize_formula_cell(client.get("name", ""))[:120]
+                event_date = str(client.get("eventDate", ""))[:10]
+                if not name or day_number(event_date) is None:
+                    self.send_json(HTTPStatus.BAD_REQUEST, {"ok": False, "error": "Add a name and a date."})
+                    return
+                hire_ids = {it["id"] for it in hire_items_from_site_data(get_default_site_data())}
+                prop_ids = [str(i)[:60] for i in (body.get("propIds") or [])[:12] if str(i) in hire_ids]
+                try:
+                    price = round(max(0.0, min(20000.0, float(body.get("price") or 0))), 2)
+                    deposit = round(max(0.0, min(price or 20000.0, float(body.get("depositPaid") or 0))), 2)
+                except (ValueError, TypeError):
+                    self.send_json(HTTPStatus.BAD_REQUEST, {"ok": False, "error": "Check the price and deposit."})
+                    return
+                source = client.get("source") if client.get("source") in BOOKING_SOURCES else "Other"
+                quotes = load_quotes()
+                order = {
+                    "id": generate_tax_year_order_id(quotes),
+                    "createdAt": datetime.now(timezone.utc).isoformat(),
+                    "status": "Deposit Paid" if deposit > 0 else "Quote Sent",
+                    "seenByAdmin": True,
+                    "addedByStaff": True,
+                    "client": {
+                        "name": name,
+                        "phone": sanitize_formula_cell(client.get("phone", ""))[:40],
+                        "email": sanitize_formula_cell(client.get("email", ""))[:150],
+                        "eventDate": event_date,
+                        "postcode": sanitize_formula_cell(client.get("postcode", ""))[:20],
+                        "area": sanitize_formula_cell(client.get("area", ""))[:80],
+                        "hasVenue": "yes" if client.get("postcode") else "no",
+                        "occasion": sanitize_formula_cell(client.get("occasion", ""))[:60],
+                        "notes": sanitize_formula_cell(client.get("notes", ""))[:1000],
+                        "source": source
+                    },
+                    "configuration": {
+                        "extraIds": prop_ids,
+                        "quotedPrice": price,
+                        "estimatedTotal": price,
+                        "depositPaid": deposit,
+                        "balanceDue": max(0.0, round(price - deposit, 2))
+                    }
+                }
+                add_history(order, f"Added by you, booked through {source}")
+                if deposit > 0:
+                    add_history(order, f"Deposit £{deposit:g} received")
+                quotes.insert(0, order)
+                save_quotes(quotes)
+                site_data = get_default_site_data()
+                studio_cfg = load_studio_settings().get("sheetConfig") or {}
+                sheet_url = studio_cfg.get("webAppUrl") or (site_data.get("sheetConfig") or {}).get("webAppUrl", "")
+                if sheet_url:
+                    threading.Thread(
+                        target=call_google_sheets_webhook,
+                        args=(sheet_url, {"action": "new_quote", "quote": order}),
+                        daemon=True
+                    ).start()
+                self.send_json(HTTPStatus.CREATED, {"ok": True, "quote": order})
+                return
+
             if route == "/api/admin/drive-links":
                 sheet_cfg = load_studio_settings().get("sheetConfig") or {}
                 if not sheet_cfg.get("webAppUrl") or not sheet_cfg.get("adminSecret"):
@@ -1363,9 +1468,9 @@ class OccasionEditHandler(BaseHTTPRequestHandler):
 
         if route.startswith("/api/quotes/"):
             quote_id = urllib.parse.unquote(route.split("/api/quotes/", 1)[1]).strip("/")
-            body = self.read_json_body(max_bytes=4096)
-            new_status = str(body.get("status", "New Enquiry"))
-            if new_status not in ORDER_STATUSES:
+            body = self.read_json_body(max_bytes=8192)
+            new_status = body.get("status")
+            if new_status is not None and str(new_status) not in ORDER_STATUSES:
                 self.send_json(HTTPStatus.BAD_REQUEST, {"ok": False, "error": "Unknown order status."})
                 return
             quotes = load_quotes()
@@ -1373,18 +1478,35 @@ class OccasionEditHandler(BaseHTTPRequestHandler):
             updated_quote = None
             for q in quotes:
                 if q.get("id") == quote_id:
-                    q["status"] = new_status
+                    if new_status is not None:
+                        q["status"] = str(new_status)
                     q["seenByAdmin"] = True
-                    if "depositPaid" in body:
-                        try:
-                            dep = float(body.get("depositPaid", 0))
-                            if "configuration" not in q or not isinstance(q["configuration"], dict):
-                                q["configuration"] = {}
-                            q["configuration"]["depositPaid"] = dep
-                            cfg_total = float(q["configuration"].get("estimatedTotal") or q["configuration"].get("subtotal") or 0)
-                            q["configuration"]["balanceDue"] = max(0.0, round(cfg_total - dep, 2))
-                        except (ValueError, TypeError):
-                            pass
+                    if not isinstance(q.get("configuration"), dict):
+                        q["configuration"] = {}
+                    cfg_q = q["configuration"]
+                    # Money Laura records: what she quoted, and what has come in
+                    for key, cap in (("quotedPrice", 20000), ("depositPaid", 20000), ("balancePaid", 20000)):
+                        if key in body:
+                            raw = body.get(key)
+                            if raw is None or raw == "":
+                                if key == "quotedPrice":
+                                    cfg_q.pop(key, None)
+                                else:
+                                    cfg_q[key] = 0
+                                continue
+                            try:
+                                cfg_q[key] = round(max(0.0, min(float(cap), float(raw))), 2)
+                            except (ValueError, TypeError):
+                                pass
+                    total = order_total(q)
+                    cfg_q["balanceDue"] = max(0.0, round(total - float(cfg_q.get("depositPaid") or 0) - float(cfg_q.get("balancePaid") or 0), 2))
+                    if "staffNotes" in body:
+                        # Kept with the customer's details so it is encrypted at rest like them
+                        if not isinstance(q.get("client"), dict):
+                            q["client"] = {}
+                        q["client"]["staffNotes"] = sanitize_formula_cell(str(body.get("staffNotes") or ""))[:2000]
+                    if body.get("historyText"):
+                        add_history(q, body.get("historyText"))
                     found = True
                     updated_quote = q
                     break
@@ -1404,7 +1526,7 @@ class OccasionEditHandler(BaseHTTPRequestHandler):
                         "action": "update_booking_status",
                         "adminSecret": sheet_cfg["adminSecret"],
                         "bookingId": quote_id,
-                        "status": new_status,
+                        "status": (updated_quote or {}).get("status", "New Enquiry"),
                         "depositPaid": cfg.get("depositPaid", 0),
                         "balanceDue": cfg.get("balanceDue", 0)
                     }),

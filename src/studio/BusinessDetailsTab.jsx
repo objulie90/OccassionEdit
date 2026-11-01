@@ -15,6 +15,7 @@ const FIELDS = [
     group: 'On your quotes and invoices',
     items: [
       { key: 'businessTradingName', label: 'Business name' },
+      { key: 'signOffName', label: 'Your name, to sign off messages', hint: 'Leave blank to sign off with the business name only.' },
       { key: 'studioPhone', label: 'Phone number', type: 'tel' },
       { key: 'studioEmail', label: 'Email address', type: 'email' },
       { key: 'studioAddress', label: 'Address', hint: 'Town and postcode is enough.' }
@@ -31,13 +32,15 @@ const FIELDS = [
   }
 ];
 
-export function BusinessDetailsTab({ studioSettings, onSave }) {
+// `groups` shows only some sections: the Calendar shows "Your diary", Settings the rest
+export function BusinessDetailsTab({ studioSettings, onSave, groups = null }) {
   const [form, setForm] = useState(studioSettings || {});
   const [state, setState] = useState('idle'); // idle | saving | saved | error
 
   useEffect(() => { setForm(studioSettings || {}); }, [studioSettings]);
 
-  const missingBank = !form.sortCode || !form.accountNumber;
+  const sections = FIELDS.filter(sec => (groups ? groups.includes(sec.group) : sec.group !== 'Your diary'));
+  const missingBank = sections.some(sec => sec.group.startsWith('Bank')) && (!form.sortCode || !form.accountNumber);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -55,10 +58,10 @@ export function BusinessDetailsTab({ studioSettings, onSave }) {
     <form className="st-business" onSubmit={submit}>
       {missingBank && (
         <p className="st-warning" role="note">
-          Add your bank details before sending any invoice, so customers know where to pay.
+          Add your bank details so they go into your quotes and invoices.
         </p>
       )}
-      {FIELDS.map(section => (
+      {sections.map(section => (
         <fieldset key={section.group} className="st-fieldset">
           <legend>{section.group}</legend>
           {section.items.filter(f => !f.showIf || f.showIf(form)).map(f => f.choices ? (
@@ -96,7 +99,7 @@ export function BusinessDetailsTab({ studioSettings, onSave }) {
       ))}
       <div className="st-business-actions">
         <button type="submit" className="st-btn st-btn-primary" disabled={state === 'saving'}>
-          {state === 'saving' ? 'Saving' : 'Save details'}
+          {state === 'saving' ? 'Saving' : 'Save'}
         </button>
         <span role="status" className="st-save-state">
           {state === 'saved' && 'Saved'}

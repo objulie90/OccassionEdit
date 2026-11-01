@@ -1,5 +1,6 @@
 import React from 'react';
 import { balloonGradients, gradientId, finishOf, BalloonShine } from './balloonFinish';
+import neonHappyBirthday from '../assets/neonHappyBirthday';
 
 /**
  * ProductPreview Component — Left Panel Live Canvas
@@ -13,9 +14,11 @@ export function ProductPreview({
   boardCustomization,
   neonPhrase,
   bubbleText,
+  cutoutTheme,
   onDropItem,
   isDragOver,
-  setIsDragOver
+  setIsDragOver,
+  eventCard = null
 }) {
   const backdrop = selection.backdrop;
   const balloons = selection.balloons;
@@ -30,6 +33,26 @@ export function ProductPreview({
         { id: 'blush-pink', hex: '#E6B8AF', finish: 'Matte' },
         { id: 'nude-stone', hex: '#B8A693', finish: 'Matte' }
       ];
+
+  // Everything on the stage is drawn to one scale (40px to the foot), from each
+  // base's real height as Laura records it, so the guest beside it shows true size
+  const PX_PER_FT = 40;
+  const GUEST_IN = 67; // 5ft 7in
+  const isLargeWall = backdrop?.hasSizeTier && shimmerSize === 'large';
+  const baseHeightIn = backdrop ? Number(isLargeWall ? backdrop.heightInLarge : backdrop.heightIn) || 0 : 0;
+  const px = inches => (inches / 12) * PX_PER_FT;
+  // A hoop's height is its width across; it stands on footings, so its top is higher
+  const baseTopIn = backdrop?.backdropType === 'hoop' ? (baseHeightIn * 300) / 270 : baseHeightIn;
+  const feet = inches => `${Math.floor(inches / 12)}'${Math.round(inches % 12)}`;
+  const FLOOR_Y = 425;
+  // Grow or shrink a drawing about the middle of the floor
+  const toScale = (factor) => `translate(250 ${FLOOR_Y}) scale(${factor}) translate(-250 -${FLOOR_Y})`;
+  // Balloon structures are drawn this tall (in stage pixels) before scaling to their real height
+  const STRUCTURE_SPAN = { 'side-7ft': 335, 'full-surround': 348 };
+  const structureHeightIn = Number(balloons?.heightIn) || 0;
+  const structureScale = structureHeightIn && STRUCTURE_SPAN[balloons?.layoutType]
+    ? toScale(px(structureHeightIn) / STRUCTURE_SPAN[balloons.layoutType])
+    : undefined;
 
   const colourAt = (index) => paletteColours[index % paletteColours.length];
   // Fill for the balloon body: a gradient that shows chrome, pearl or matte
@@ -333,6 +356,28 @@ export function ProductPreview({
         <rect x="0" y="425" width="500" height="75" fill="#DDD5C7" />
         <line x1="0" y1="425" x2="500" y2="425" stroke="#C5BCAE" strokeWidth="1.5" />
 
+        {/* A guest 5ft 7in tall, to the same scale, so customers can picture the size */}
+        {(backdrop || balloons) && (
+          <g aria-hidden="true">
+            <g transform={`translate(44 ${FLOOR_Y}) scale(${px(GUEST_IN) / 254})`} fill="#4E4C46">
+              {/* A guest with her hair up, in a fitted dress, hand on hip, drawn to real proportions (about 7.5 heads tall); feet on the floor at 0 */}
+              <circle cx="3" cy="-251" r="7" />
+              <path d="M -11.5 -236 C -11.5 -248 -6 -252 0 -252 C 7 -252 11.5 -247 11.5 -236 C 11.5 -229 9 -222 5 -219 C 2 -217 -2 -217 -5 -219 C -9 -222 -11.5 -229 -11.5 -236 Z" />
+              <path d="M -4 -220 C -3.8 -214 -4.2 -209 -6 -206 L 6 -206 C 4.2 -209 3.8 -214 4 -220 Z" />
+              <path d="M -5 -206 C -10 -205 -17 -203 -20 -199 C -23 -196 -24 -190 -24 -182 C -24 -170 -25 -160 -26 -150 C -27 -140 -27 -132 -26 -124 C -25.5 -119 -23 -118 -22.5 -122 C -22 -130 -22 -140 -21.5 -150 C -21 -160 -20 -170 -19.5 -180 L -16 -182 C -14 -172 -12 -164 -11 -158 C -13 -150 -16 -142 -18 -134 C -20 -120 -23 -104 -25 -92 Q 0 -88 25 -92 C 23 -104 20 -120 18 -134 C 16 -140 14 -146 13.5 -150 C 12.5 -154 11.5 -156 11 -158 C 12 -164 14 -172 16 -182 L 19.5 -182 C 23 -176 25 -168 25 -162 C 23 -155 18 -148 15 -143 L 18 -141 C 21 -146 26 -152 30 -160 C 31 -164 30 -170 28 -178 C 26 -188 23 -196 20 -199 C 17 -203 10 -205 5 -206 Z" />
+              <path d="M -12 -91 C -11.5 -70 -10.5 -45 -9.5 -22 C -9 -13 -8.5 -8 -8 -5 L -10.5 -1 L -10.5 0 L -3.5 0 L -4.5 -4 C -5 -12 -4.8 -30 -4.4 -50 C -4 -70 -3.5 -82 -3 -91 Z" />
+              <path d="M 3 -91 C 3.6 -82 4.2 -70 4.8 -50 C 5.2 -30 5.6 -14 5.2 -5 L 4.5 0 L 12 0 L 12 -1 L 9 -4 C 9.4 -9 9.8 -14 10.2 -22 C 11 -45 11.6 -70 12 -91 Z" />
+            </g>
+            <text x="44" y={FLOOR_Y - px(GUEST_IN) - 10} textAnchor="middle" className="rpc-height-label">{feet(GUEST_IN)}</text>
+            {!backdrop && structureHeightIn > 0 && STRUCTURE_SPAN[balloons?.layoutType] && (
+              <text x="250" y={FLOOR_Y - px(structureHeightIn) - 10} textAnchor="middle" className="rpc-height-label">{feet(structureHeightIn)}</text>
+            )}
+            {baseHeightIn > 0 && (
+              <text x="250" y={FLOOR_Y - px(baseTopIn) - 10} textAnchor="middle" className="rpc-height-label">{feet(baseTopIn)}</text>
+            )}
+          </g>
+        )}
+
         {isPaletteOnlyPreview && selectedColours.length > 0 && (
           <g filter="url(#softShadow)">
             {[
@@ -354,7 +399,7 @@ export function ProductPreview({
         )}
 
         {backdrop && backdrop.backdropType === 'arch-board' && (
-          <g filter="url(#softShadow)">
+          <g filter="url(#softShadow)" transform={toScale(px(baseHeightIn || 84) / 345)}>
             <path
               d="M 155 425 L 155 175 A 95 95 0 0 1 345 175 L 345 425 Z"
               fill={boardCustomization?.color || backdrop.surfaceColor || '#F5EFEB'}
@@ -395,12 +440,13 @@ export function ProductPreview({
           <g filter="url(#softShadow)">
             {(() => {
               const isLarge = shimmerSize === 'large';
-              const w = isLarge ? 256 : 212;
-              const h = isLarge ? 305 : 280;
+              // Walls are square: as wide as they are tall
+              const h = px(baseHeightIn || (isLarge ? 96 : 72));
+              const w = h;
               const x = (500 - w) / 2;
               const y = 425 - h;
               const cols = isLarge ? 16 : 13;
-              const rows = 18;
+              const rows = cols;
               const cellW = w / cols;
               const cellH = h / rows;
               const tiles = [];
@@ -432,7 +478,7 @@ export function ProductPreview({
         )}
 
         {backdrop && backdrop.backdropType === 'hoop' && (
-          <g filter="url(#softShadow)">
+          <g filter="url(#softShadow)" transform={toScale(px(baseHeightIn || 79) / 270)}>
             <circle cx="250" cy="260" r="135" fill="none" stroke="#C5A059" strokeWidth="6" />
             <line x1="210" y1="395" x2="195" y2="425" stroke="#C5A059" strokeWidth="4" />
             <line x1="290" y1="395" x2="305" y2="425" stroke="#C5A059" strokeWidth="4" />
@@ -441,22 +487,36 @@ export function ProductPreview({
         )}
 
         {backdrop && backdrop.backdropType === 'easel' && (
-          <g filter="url(#softShadow)">
+          <g filter="url(#softShadow)" transform={toScale(px(baseHeightIn || 66) / 310)}>
             <line x1="250" y1="115" x2="185" y2="425" stroke="#9C7E5E" strokeWidth="6" strokeLinecap="round" />
             <line x1="250" y1="115" x2="315" y2="425" stroke="#9C7E5E" strokeWidth="6" strokeLinecap="round" />
             <line x1="250" y1="115" x2="250" y2="425" stroke="#806549" strokeWidth="5" strokeLinecap="round" />
-            <rect x="180" y="150" width="140" height="195" rx="70" fill="#FAF8F5" stroke="#C9C1B4" strokeWidth="2" />
-            <text x="250" y="235" textAnchor="middle" fill="#232620" fontFamily="Cormorant Garamond, serif" fontSize="22" fontStyle="italic" fontWeight="600">
-              Welcome
-            </text>
-            <text x="250" y="258" textAnchor="middle" fill="#4A5240" fontFamily="Montserrat, sans-serif" fontSize="8" fontWeight="600" letterSpacing="2.5">
-              THE OCCASION EDIT
-            </text>
+            <rect x="180" y="150" width="140" height="195" rx="70" fill={boardCustomization?.color || '#FAF8F5'} stroke="#C9C1B4" strokeWidth="2" />
+            {(() => {
+              // Their own wording, wrapped onto up to three lines inside the sign
+              const words = (boardCustomization?.text || 'Welcome').trim().split(/\s+/);
+              const lines = [];
+              words.forEach(w => {
+                const last = lines[lines.length - 1];
+                if (last && (last + ' ' + w).length <= 12) lines[lines.length - 1] = last + ' ' + w;
+                else lines.push(w);
+              });
+              const shown = lines.slice(0, 4);
+              const size = shown.length > 2 ? 17 : 22;
+              const ink = boardCustomization?.vinylColor === 'white' ? '#FFFFFF' : boardCustomization?.vinylColor === 'black' ? '#1C1E1B' : '#C5A059';
+              return (
+                <text x="250" textAnchor="middle" fill={ink} fontFamily="'Cormorant Garamond', Georgia, serif" fontSize={size} fontStyle="italic" fontWeight="700">
+                  {shown.map((line, i) => (
+                    <tspan key={i} x="250" y={248 - ((shown.length - 1) * size * 0.6) + i * size * 1.2}>{line}</tspan>
+                  ))}
+                </text>
+              );
+            })()}
           </g>
         )}
 
         {balloons && balloons.layoutType === 'side-7ft' && (
-          <g filter="url(#softShadow)">
+          <g filter="url(#softShadow)" transform={structureScale}>
             {renderBalloonCluster(148, 390, 1.15, 0)}
             {renderBalloonCluster(140, 325, 1.02, 1)}
             {renderBalloonCluster(146, 260, 1.08, 2)}
@@ -476,7 +536,7 @@ export function ProductPreview({
         )}
 
         {balloons && balloons.layoutType === 'full-surround' && (
-          <g filter="url(#softShadow)">
+          <g filter="url(#softShadow)" transform={structureScale}>
             {renderBalloonCluster(138, 395, 1.15, 0)}
             {renderBalloonCluster(132, 330, 1.05, 1)}
             {renderBalloonCluster(138, 260, 1.0, 2)}
@@ -654,23 +714,25 @@ export function ProductPreview({
           </g>
         )}
 
+        {/* The neon sign glowing on the wall: Laura's own photo-cut for Happy Birthday, matching glow lettering for any other sign she owns */}
         {extras.some(e => e.extraType === 'neon') && (
-          <g filter="url(#softShadow)">
-            <rect x="175" y="196" width="168" height="78" rx="12" fill="rgba(28, 30, 27, 0.88)" stroke="#C5A059" strokeWidth="1.5" />
+          (neonPhrase || 'Happy Birthday') === 'Happy Birthday' ? (
+            <image href={neonHappyBirthday} x="200" y="178" width="118" height="91" preserveAspectRatio="xMidYMid meet" />
+          ) : (
             <text
               x="259"
-              y="244"
+              y="236"
               textAnchor="middle"
-              fill="#FFF9D2"
-              fontFamily="'Cormorant Garamond', Georgia, serif"
-              fontStyle="italic"
-              fontWeight="600"
-              fontSize={(neonPhrase || 'Happy Birthday').length > 14 ? 20 : 25}
-              style={{ filter: 'drop-shadow(0 0 6px rgba(255, 249, 210, 0.75))' }}
+              fill="#FF6AD5"
+              stroke="#FFD6F3"
+              strokeWidth="0.6"
+              fontFamily="'Mrs Saint Delafield', 'Brush Script MT', cursive"
+              fontSize={neonPhrase.length > 14 ? 30 : 38}
+              style={{ filter: 'drop-shadow(0 0 3px #FF4FD8) drop-shadow(0 0 8px rgba(255, 79, 216, 0.7))' }}
             >
-              {neonPhrase || 'Happy Birthday'}
+              {neonPhrase}
             </text>
-          </g>
+          )
         )}
 
         {extras.some(e => e.extraType === 'boxes') && (
@@ -686,6 +748,14 @@ export function ProductPreview({
                 </g>
               );
             })}
+          </g>
+        )}
+
+        {/* A backdrop chosen before the balloons: show their colours at its foot so the build keeps their palette */}
+        {backdrop && !balloons && selectedColours.length > 0 && (
+          <g filter="url(#softShadow)">
+            {renderBalloonCluster(132, 398, 0.85, 0)}
+            {renderBalloonCluster(368, 398, 0.85, 2)}
           </g>
         )}
 
@@ -707,11 +777,8 @@ export function ProductPreview({
         {extras.some(e => e.extraType === 'cutouts') && (
           <g filter="url(#softShadow)">
             <path d="M 285 425 L 285 330 C 285 298 340 298 340 330 L 340 425 Z" fill="#FAF8F5" stroke="#232620" strokeWidth="1.8" />
-            <text x="312" y="372" textAnchor="middle" fill="#232620" fontFamily="Cormorant Garamond, serif" fontStyle="italic" fontWeight="700" fontSize="15">
-              Theme
-            </text>
-            <text x="312" y="390" textAnchor="middle" fill="#232620" fontFamily="Montserrat, sans-serif" fontWeight="600" fontSize="8" letterSpacing="1.2">
-              CUT-OUT
+            <text x="312" y="372" textAnchor="middle" fill="#232620" fontFamily="Cormorant Garamond, serif" fontStyle="italic" fontWeight="700" fontSize={(cutoutTheme || '').length > 8 ? 11 : 15}>
+              {(cutoutTheme || 'Your theme').slice(0, 14)}
             </text>
           </g>
         )}
@@ -725,7 +792,10 @@ export function ProductPreview({
       </svg>
 
       {/* Until they choose colours, the empty stage explains how ordering works */}
-      {isPaletteOnlyPreview && selectedColours.length === 0 && (
+      {isPaletteOnlyPreview && selectedColours.length === 0 && eventCard && (
+        <p className="rpc-start-hint">Choose your colours and watch your edit build here.</p>
+      )}
+      {isPaletteOnlyPreview && selectedColours.length === 0 && !eventCard && (
         <div className="rpc-how-it-works">
           <h3>How it works</h3>
           <ol>

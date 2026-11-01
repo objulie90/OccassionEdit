@@ -424,8 +424,8 @@ function doPost(e) {
       var stockIdsStr = (cfg.stockIds && Array.isArray(cfg.stockIds)) ? cfg.stockIds.join(', ') : (cfg.stockIds || '');
       var pullListStr = cfg.balloonPullList || '';
 
-      var quotePdfFormula = q.quotePdfUrl ? '=HYPERLINK("' + q.quotePdfUrl + '", "📄 Quote PDF")' : '';
-      var invoicePdfFormula = q.invoicePdfUrl ? '=HYPERLINK("' + q.invoicePdfUrl + '", "🧾 Invoice PDF")' : '';
+      var quotePdfFormula = q.quotePdfUrl ? '=HYPERLINK("' + q.quotePdfUrl + '", "Quote PDF")' : '';
+      var invoicePdfFormula = q.invoicePdfUrl ? '=HYPERLINK("' + q.invoicePdfUrl + '", "Invoice PDF")' : '';
 
       // Insert at Row 2 so the newest enquiry always sits at the top of Tab 1
       s1.insertRowAfter(1);
@@ -819,7 +819,7 @@ function handleArchivePdfDocument_(ss, body) {
       if (String(ids[r][0]).trim() === bookingId) {
         var rowNum = r + 2;
         var colNum = (docType === 'invoice') ? 19 : 18; // Col R is 18, Col S is 19
-        var linkLabel = (docType === 'invoice') ? '🧾 Invoice PDF' : '📄 Quote PDF';
+        var linkLabel = (docType === 'invoice') ? 'Invoice PDF' : 'Quote PDF';
         s1.getRange(rowNum, colNum).setValue('=HYPERLINK("' + fileUrl + '", "' + linkLabel + '")');
         updatedRow = rowNum;
         break;

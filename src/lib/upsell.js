@@ -1,26 +1,23 @@
-// What to suggest for each occasion. Kept short on purpose: one suggestion
-// that doesn't fit makes customers distrust all of them.
-export const OCCASION_PICKS = {
-  Birthday: { label: 'birthdays', ids: ['helium-foil-numbers', 'stack-luxury', 'neon-sign', 'bubble-balloon', 'gold-shimmer'] },
-  'Wedding / Engagement': { label: 'weddings', ids: ['balloon-hoop', 'add-on-flowers', 'neon-sign', 'easel-sign', 'garland-full'] },
-  Anniversary: { label: 'anniversaries', ids: ['balloon-hoop', 'add-on-flowers', 'helium-foil-numbers', 'neon-sign'] },
-  Prom: { label: 'proms', ids: ['black-shimmer', 'gold-shimmer', 'neon-sign', 'garland-full'] },
-  'Baby Shower': { label: 'baby showers', ids: ['baby-boxes', 'wooden-board', 'add-on-flowers', 'bubble-balloon'] }
+// Which products to suggest for each occasion and style lives on the products
+// themselves (suggestFor, styleFor), set by Laura in the Studio's Inventory.
+// Keep suggestions few: one that doesn't fit makes customers distrust all of them.
+export const OCCASION_LABELS = {
+  Birthday: 'birthdays',
+  'Wedding / Engagement': 'weddings',
+  Anniversary: 'anniversaries',
+  Prom: 'proms',
+  'Baby Shower': 'baby showers'
 };
+export const STYLES = ['Classic', 'Fancy', 'Luxury'];
 
-export function picksFor(occasion) {
-  return OCCASION_PICKS[occasion] || null;
+export function picksFor(occasion, items = []) {
+  if (!OCCASION_LABELS[occasion]) return null;
+  return { label: OCCASION_LABELS[occasion], ids: items.filter(it => (it.suggestFor || []).includes(occasion)).map(it => it.id) };
 }
 
-// What each of Laura's styles adds, from her own definitions
-export const STYLE_PICKS = {
-  Classic: [],
-  Fancy: ['helium-foil-numbers', 'stack-themed', 'neon-sign', 'bubble-balloon'],
-  Luxury: ['add-on-flowers', 'stack-luxury', 'garland-full', 'gold-shimmer', 'neon-sign']
-};
-
-export function stylePicksFor(style) {
-  return STYLE_PICKS[style] || null;
+export function stylePicksFor(style, items = []) {
+  if (!STYLES.includes(style)) return null;
+  return items.filter(it => (it.styleFor || []).includes(style)).map(it => it.id);
 }
 
 /**

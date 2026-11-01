@@ -33,187 +33,60 @@ export function DossierVisualArtwork({ activeQuote, colours = [] }) {
   );
 }
 
-export function WorkshopBalloonPullList({ garland, colours, isExpandedDefault = true }) {
+// Balloon codes follow Oliver's pattern: BALL_size_colour, e.g. BALL_Sm_003 is a small Chrome Gold
+const SIZES = [
+  { key: 'small', code: 'Sm', words: 'small (5")' },
+  { key: 'med', code: 'Md', words: 'medium (11")' },
+  { key: 'large', code: 'Lg', words: 'large (18")' }
+];
+
+/**
+ * The balloons to prepare for a garland, in plain words, spares included.
+ * Laura can change the total; the sizes keep the garland's own mix.
+ */
+export function WorkshopBalloonPullList({ garland, colours }) {
   const recipe = garland?.recipe || {};
-  const [totalBalloons, setTotalBalloons] = useState(recipe.defaultTotal || 0);
-  const [smallCount, setSmallCount] = useState(recipe.defaultSmall || 0);
-  const [medCount, setMedCount] = useState(recipe.defaultMed || 0);
-  const [largeCount, setLargeCount] = useState(recipe.defaultLarge || 0);
-  const [showBuffer, setShowBuffer] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(isExpandedDefault);
+  const baseTotal = recipe.defaultTotal || 0;
+  const [total, setTotal] = useState(baseTotal);
 
-  // Invariant keeper: S + M + L = Total
-  const updateCounts = (newTotal, newS, newM) => {
-    const t = Math.max(10, newTotal);
-    const s = Math.max(0, Math.min(t, newS));
-    const m = Math.max(0, Math.min(t - s, newM));
-    const l = Math.max(0, t - s - m);
-    setTotalBalloons(t);
-    setSmallCount(s);
-    setMedCount(m);
-    setLargeCount(l);
-  };
+  if (!garland) return null;
 
-  if (!garland) {
-    return (
-      <div className="oe-pull-list-card">
-        <p className="oe-dossier-empty-note">No balloon garland on this order, so there is no pull list.</p>
-      </div>
-    );
-  }
-
-  const paletteColorsList = colours || [];
-
-  const pullList = calculateBalloonPullList(
-    garland,
-    paletteColorsList,
-    { total: totalBalloons, small: smallCount, med: medCount, large: largeCount, bufferPercent: 8 }
-  );
+  const share = (n) => (baseTotal ? Math.round((n / baseTotal) * total) : 0);
+  const small = share(recipe.defaultSmall || 0);
+  const med = share(recipe.defaultMed || 0);
+  const pull = calculateBalloonPullList(garland, colours || [], { total, small, med, large: Math.max(0, total - small - med), bufferPercent: 8 });
+  const withSpares = pull.summary.totalWithBuffer;
 
   return (
-    <div className="oe-pull-list-card">
-      <div className="oe-pull-list-header" onClick={() => setIsExpanded(!isExpanded)}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          {garland.sku && <span className="oe-sku-badge">{garland.sku}</span>}
-          <strong style={{ fontSize: '0.86rem', color: '#1C1E1B', letterSpacing: '0.02em' }}>
-            Workshop Balloon Pull List
-          </strong>
-          <span className="oe-badge-count">{totalBalloons} Balloons</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <button
-            type="button"
-            className={`oe-buffer-toggle-pill ${showBuffer ? 'active' : ''}`}
-            onClick={(e) => { e.stopPropagation(); setShowBuffer(!showBuffer); }}
-            title="Toggle 8% studio popping/loss buffer"
-          >
-            {showBuffer ? '✓ 8% Buffer Active' : '+8% Loss Buffer'}
-          </button>
-          <span style={{ fontSize: '0.85rem', color: '#78716C', transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
-            ▼
-          </span>
-        </div>
-      </div>
-
-      {isExpanded && (
-        <div className="oe-pull-list-body">
-          {/* Laura's 4 Open Parameter Inputs */}
-          <div className="oe-pull-list-stepper-bar">
-            <div className="oe-stepper-group">
-              <label>TOTAL COUNT</label>
-              <div className="oe-stepper-controls">
-                <button type="button" onClick={() => updateCounts(totalBalloons - 10, Math.round((totalBalloons - 10) * 0.3), Math.round((totalBalloons - 10) * 0.5))}>-</button>
-                <input
-                  type="number"
-                  value={totalBalloons}
-                  onChange={(e) => {
-                    const val = parseInt(e.target.value) || 0;
-                    updateCounts(val, Math.round(val * 0.3), Math.round(val * 0.5));
-                  }}
-                />
-                <button type="button" onClick={() => updateCounts(totalBalloons + 10, Math.round((totalBalloons + 10) * 0.3), Math.round((totalBalloons + 10) * 0.5))}>+</button>
-              </div>
-            </div>
-
-            <div className="oe-stepper-group">
-              <label>5&quot; SMALL ({smallCount})</label>
-              <div className="oe-stepper-controls">
-                <button type="button" onClick={() => updateCounts(totalBalloons, smallCount - 5, medCount)}>-</button>
-                <input
-                  type="number"
-                  value={smallCount}
-                  onChange={(e) => updateCounts(totalBalloons, parseInt(e.target.value) || 0, medCount)}
-                />
-                <button type="button" onClick={() => updateCounts(totalBalloons, smallCount + 5, medCount)}>+</button>
-              </div>
-            </div>
-
-            <div className="oe-stepper-group">
-              <label>11&quot; MED ({medCount})</label>
-              <div className="oe-stepper-controls">
-                <button type="button" onClick={() => updateCounts(totalBalloons, smallCount, medCount - 5)}>-</button>
-                <input
-                  type="number"
-                  value={medCount}
-                  onChange={(e) => updateCounts(totalBalloons, smallCount, parseInt(e.target.value) || 0)}
-                />
-                <button type="button" onClick={() => updateCounts(totalBalloons, smallCount, medCount + 5)}>+</button>
-              </div>
-            </div>
-
-            <div className="oe-stepper-group">
-              <label>16/24&quot; LARGE</label>
-              <div className="oe-stepper-controls locked">
-                <input type="number" value={largeCount} readOnly />
-                <span className="oe-locked-hint">auto-bal</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Itemized Table across Palette Shades */}
-          <div className="oe-pull-list-table-wrap">
-            <table className="oe-pull-list-table">
-              <thead>
-                <tr>
-                  <th>PALETTE COLOUR</th>
-                  <th style={{ textAlign: 'center' }}>5&quot; SMALL</th>
-                  <th style={{ textAlign: 'center' }}>11&quot; MEDIUM</th>
-                  <th style={{ textAlign: 'center' }}>16/24&quot; LARGE</th>
-                  <th style={{ textAlign: 'right' }}>{showBuffer ? 'PREP (+8%)' : 'EXACT TOTAL'}</th>
-                  <th style={{ textAlign: 'right' }}>TRADE PACKS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pullList.colorBreakdown.map((row) => (
-                  <tr key={row.id}>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                        <span className="oe-pull-swatch-dot" style={{ background: row.hex }} />
-                        <strong style={{ fontSize: '0.78rem', color: '#1C1E1B' }}>{row.color}</strong>
-                      </div>
-                    </td>
-                    <td style={{ textAlign: 'center', fontFamily: 'monospace', fontWeight: 700 }}>
-                      {showBuffer ? row.smallBuffer : row.small}
-                    </td>
-                    <td style={{ textAlign: 'center', fontFamily: 'monospace', fontWeight: 700 }}>
-                      {showBuffer ? row.medBuffer : row.med}
-                    </td>
-                    <td style={{ textAlign: 'center', fontFamily: 'monospace', fontWeight: 700 }}>
-                      {showBuffer ? row.largeBuffer : row.large}
-                    </td>
-                    <td style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 800, color: '#4A5840' }}>
-                      {showBuffer ? row.totalBuffer : row.total}
-                    </td>
-                    <td style={{ textAlign: 'right', fontSize: '0.68rem', color: '#78716C' }}>
-                      {row.bagsToOrder.med}x 11&quot; · {row.bagsToOrder.small}x 5&quot;
-                    </td>
-                  </tr>
+    <div className="st-pull">
+      <p className="st-pull-summary">
+        About <strong>{withSpares} balloons</strong> for the {garland.name.toLowerCase()}, including a few spares in case of pops.
+      </p>
+      <ul className="st-pull-list">
+        {pull.colorBreakdown.map((row, i) => {
+          const colour = (colours || [])[i] || {};
+          const counts = { small: row.smallBuffer, med: row.medBuffer, large: row.largeBuffer };
+          return (
+            <li key={row.id} className="st-pull-row">
+              <BalloonGraphic hex={row.hex} finish={colour.finish} size={22} />
+              <span className="st-pull-colour">{row.color}</span>
+              <span className="st-pull-counts">
+                {SIZES.filter(sz => counts[sz.key] > 0).map(sz => (
+                  <span key={sz.key}>
+                    {counts[sz.key]} {sz.words}
+                    {colour.code && <span className="st-code"> BALL_{sz.code}_{colour.code}</span>}
+                  </span>
                 ))}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td><strong>TOTAL TO INFLATE</strong></td>
-                  <td style={{ textAlign: 'center', fontFamily: 'monospace', fontWeight: 800 }}>
-                    {showBuffer ? Math.ceil(smallCount * 1.08) : smallCount}
-                  </td>
-                  <td style={{ textAlign: 'center', fontFamily: 'monospace', fontWeight: 800 }}>
-                    {showBuffer ? Math.ceil(medCount * 1.08) : medCount}
-                  </td>
-                  <td style={{ textAlign: 'center', fontFamily: 'monospace', fontWeight: 800 }}>
-                    {showBuffer ? Math.ceil(largeCount * 1.08) : largeCount}
-                  </td>
-                  <td style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 800, color: '#C5A059' }}>
-                    {showBuffer ? pullList.summary.totalWithBuffer : totalBalloons}
-                  </td>
-                  <td style={{ textAlign: 'right', fontSize: '0.7rem', fontWeight: 700, color: '#1C1E1B' }}>
-                    {pullList.colorBreakdown.reduce((sum, r) => sum + r.bagsToOrder.small + r.bagsToOrder.med + r.bagsToOrder.large, 0)} Trade Bags
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </div>
-      )}
+              </span>
+              <span className="st-pull-total">{row.totalBuffer}</span>
+            </li>
+          );
+        })}
+      </ul>
+      <div className="st-field st-pull-adjust">
+        <label htmlFor={`st-pull-total-${garland.id}`}>Making it fuller or smaller? Change the total (before spares)</label>
+        <input id={`st-pull-total-${garland.id}`} type="number" inputMode="numeric" min="10" step="10" value={total} onChange={e => setTotal(Math.max(10, parseInt(e.target.value, 10) || 10))} />
+      </div>
     </div>
   );
 }
@@ -267,6 +140,7 @@ export function buildDossierOrderLines(cfg, steps = [], digitOptions = []) {
       let detail = '';
       if (id === 'neon-sign' && cfg.neonPhrase) detail = `Wording: "${cfg.neonPhrase}"`;
       if (id === 'bubble-balloon' && cfg.bubbleText) detail = `Wording: "${cfg.bubbleText}"`;
+      if (id === 'cut-outs' && cfg.cutoutTheme) detail = `Theme: ${cfg.cutoutTheme}`;
       lines.push({ key: `extra-${id}`, sku: extra.sku, title: extra.name, hire: !!extra.hireOnly, image: extra.image, detail });
     });
   } else {

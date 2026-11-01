@@ -50,42 +50,39 @@
 /* --- Top bar ------------------------------------------------------------- */
 .st-topbar {
   display: flex;
-  align-items: center;
-  gap: 1rem;
+  flex-direction: column;
+  gap: 0.5rem;
   padding: calc(0.6rem + env(safe-area-inset-top, 0px)) max(1rem, env(safe-area-inset-right, 0px)) 0.6rem max(1rem, env(safe-area-inset-left, 0px));
   background: var(--st-olive);
   color: var(--st-paper);
+  position: relative;
 }
+.st-topbar-row { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
 .st-wordmark {
   font-family: var(--st-serif);
   font-weight: 500;
   font-size: 1.6rem;
   letter-spacing: 0.02em;
 }
-.st-tabs {
-  display: flex;
-  gap: 0.25rem;
-  flex: 1;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.st-tabs::-webkit-scrollbar { display: none; }
+.st-tabs { display: flex; gap: 0.25rem; }
 .st-tab {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.4rem;
   padding: 0.5rem 0.85rem;
   border: 0;
   border-radius: 999px;
   background: transparent;
-  color: rgba(250, 246, 240, 0.78);
+  color: rgba(250, 246, 240, 0.8);
   font-size: 0.88rem;
   font-weight: 500;
   white-space: nowrap;
   cursor: pointer;
 }
 .st-tab:hover { color: var(--st-paper); }
-.st-tab[aria-selected="true"] { background: var(--st-paper); color: var(--st-olive); font-weight: 600; }
+.st-tab[aria-current="page"] { background: var(--st-paper); color: var(--st-olive); font-weight: 600; }
+.st-tab-more { display: none; }
 .st-tab-count {
   min-width: 1.35rem;
   padding: 0 0.35rem;
@@ -104,6 +101,67 @@
   padding: 0.45rem 0.95rem;
   font-size: 0.85rem;
   cursor: pointer;
+  white-space: nowrap;
+}
+.st-more-sheet { display: none; }
+
+/* Phones: the daily sections sit in a bar at the bottom, within thumb reach */
+@media (max-width: 719px) {
+  .st-tabs {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 5;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    padding: 0.35rem max(0.5rem, env(safe-area-inset-right, 0px)) calc(0.35rem + env(safe-area-inset-bottom, 0px)) max(0.5rem, env(safe-area-inset-left, 0px));
+    background: var(--st-olive);
+    border-top: 1px solid rgba(250, 246, 240, 0.15);
+  }
+  .st-tab { padding: 0.6rem 0.25rem; font-size: 0.85rem; }
+  .st-tab.is-more { display: none; }
+  .st-tab-more { display: inline-flex; }
+  .st-tab-more.is-open { background: rgba(250, 246, 240, 0.15); color: var(--st-paper); }
+  .st-more-sheet {
+    position: fixed;
+    right: max(0.5rem, env(safe-area-inset-right, 0px));
+    bottom: calc(3.6rem + env(safe-area-inset-bottom, 0px));
+    z-index: 6;
+    display: flex;
+    flex-direction: column;
+    min-width: 12rem;
+    padding: 0.35rem;
+    border-radius: 14px;
+    background: var(--st-card);
+    border: 1px solid var(--st-line);
+    box-shadow: 0 12px 32px rgba(30, 33, 28, 0.18);
+  }
+  .st-more-item { padding: 0.75rem 1rem; border: 0; border-radius: 10px; background: none; color: var(--st-ink); text-align: left; font-size: 0.95rem; cursor: pointer; }
+  .st-more-item:hover { background: var(--st-olive-wash); }
+  .st-body { scroll-padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px)); }
+  /* Room at the end of every page so the bottom menu never covers the last button */
+  .st-body::after { content: ""; display: block; height: calc(4.5rem + env(safe-area-inset-bottom, 0px)); }
+  /* On phones Log out lives under More, so the switch has the header to itself */
+  .st-topbar .st-logout { display: none; }
+  .st-topbar-row { justify-content: center; }
+  .st-more-logout { border-top: 1px solid var(--st-line) !important; border-radius: 0 0 10px 10px !important; color: var(--st-danger) !important; }
+}
+
+/* The staff switch: the same three places, on the site bar and in the Studio */
+.st-switch { display: inline-flex; padding: 3px; border-radius: 999px; background: rgba(250, 246, 240, 0.14); max-width: 100%; }
+.st-switch-option {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  padding: 0.42rem 0.9rem; border: 0; border-radius: 999px;
+  background: transparent; color: rgba(250, 246, 240, 0.85);
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 0.85rem; font-weight: 500; white-space: nowrap; cursor: pointer;
+}
+.st-switch-option:hover { color: #FAF6F0; }
+.st-switch-option[aria-pressed="true"] { background: #FAF6F0; color: #4A5840; font-weight: 600; }
+.st-switch-option:focus-visible { outline: 2px solid #F3DFB2; outline-offset: 2px; }
+.st-switch-count { min-width: 1.25rem; padding: 0 0.3rem; border-radius: 999px; background: #F3DFB2; color: #6B4E12; font-size: 0.72rem; font-weight: 700; text-align: center; }
+@media (max-width: 400px) {
+  .st-switch-option { padding: 0.4rem 0.6rem; font-size: 0.8rem; }
 }
 
 .st-body {
@@ -430,10 +488,6 @@
 .st-business-actions { display: flex; align-items: center; gap: 1rem; }
 .st-save-state { color: var(--st-ink-soft); font-size: 0.9rem; }
 
-@media (max-width: 719px) {
-  .st-topbar { flex-wrap: wrap; justify-content: space-between; row-gap: 0.4rem; }
-  .st-tabs { order: 3; flex-basis: 100%; margin: 0 -0.25rem; }
-}
 
 /* --- Wider screens ------------------------------------------------------- */
 @media (min-width: 720px) {
@@ -448,7 +502,6 @@
   .st-cal-cell.is-blank { background: #F6F2EB; }
   .st-cal-date { font-size: 0.85rem; color: var(--st-ink-soft); }
   .st-cal-cell.is-today .st-cal-date { color: var(--st-paper); background: var(--st-olive); border-radius: 999px; width: 1.6rem; height: 1.6rem; display: inline-flex; align-items: center; justify-content: center; font-weight: 600; }
-  .st-product { grid-template-columns: 1fr 8.5rem 6rem 7.5rem; grid-template-areas: "main tag price stock"; }
 }
 
 @media (min-width: 960px) {
@@ -493,3 +546,132 @@
 .st-setup-steps { list-style: decimal !important; padding-left: 1.3rem !important; display: flex; flex-direction: column; gap: 0.8rem; max-width: 44rem; }
 .st-setup-steps a { color: var(--st-olive); font-weight: 600; }
 .st-fieldset p { max-width: 44rem; }
+
+/* --- Order steps: where it's up to, and the one thing to do next ---------- */
+.st-progress { display: flex; flex-direction: column; align-items: stretch; gap: 0.85rem; }
+.st-path { display: flex; flex-wrap: wrap; gap: 0.3rem 0; font-size: 0.82rem; color: var(--st-ink-soft); }
+.st-path-step { display: inline-flex; align-items: center; }
+.st-path-step:not(:last-child)::after { content: ""; width: 1.1rem; height: 1px; margin: 0 0.45rem; background: var(--st-line); }
+.st-path-step.is-done { color: var(--st-olive); }
+.st-path-step.is-current { color: var(--st-ink); font-weight: 700; }
+.st-next { display: flex; flex-direction: column; gap: 0.7rem; padding: 1rem 1.1rem; border: 1px solid var(--st-line); border-left: 4px solid var(--st-olive); border-radius: 14px; background: var(--st-card); }
+.st-next-title { font-family: var(--st-serif); font-size: 1.35rem; font-weight: 600; line-height: 1.2; }
+.st-next-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 0.9rem; }
+.st-next .st-btn { min-height: 2.75rem; padding: 0.5rem 1.1rem; }
+.st-cancel-link { align-self: flex-start; font-size: 0.82rem; }
+.st-undo { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.9rem; padding: 0.65rem 0.9rem; border-radius: 12px; background: var(--st-ink); color: var(--st-paper); font-size: 0.9rem; }
+.st-undo .st-link { color: #F3DFB2; }
+.st-undo .st-link-quiet { color: rgba(250, 246, 240, 0.75); }
+.st-status-quoted { background: #EFE6F5; color: #5B3B78; }
+
+.st-send { display: flex; flex-direction: column; gap: 0.85rem; padding: 1rem 1.1rem; border: 1px solid var(--st-line); border-radius: 14px; background: var(--st-card); }
+.st-send .st-field input[type="number"] { max-width: 10rem; }
+.st-send-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 0.9rem; }
+.st-send-actions .st-btn { min-height: 2.75rem; }
+
+.st-notes-form { display: flex; flex-direction: column; gap: 0.6rem; }
+.st-history { display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.9rem; }
+.st-history li { display: grid; grid-template-columns: 7.5rem 1fr; gap: 0.75rem; }
+.st-history-when { color: var(--st-ink-soft); font-size: 0.8rem; font-variant-numeric: tabular-nums; padding-top: 0.1rem; }
+.st-btn:disabled { opacity: 0.55; cursor: default; }
+
+.st-card-waiting { font-size: 0.78rem; font-weight: 600; color: #7A5200; }
+.st-add-btn { align-self: flex-start; }
+
+/* --- Add a booking ------------------------------------------------------- */
+.st-add-booking { display: flex; flex-direction: column; gap: 1rem; padding: 1rem max(1rem, env(safe-area-inset-right, 0px)) 2rem max(1rem, env(safe-area-inset-left, 0px)); max-width: 46rem; }
+.st-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 0.9rem 1rem; }
+.st-root input[type="date"], .st-root input[type="color"] { min-height: 2.75rem; padding: 0.4rem 0.75rem; border: 1px solid var(--st-line); border-radius: 10px; background: var(--st-card); font: inherit; font-size: 1rem; }
+.st-prop-pick { border: 1px solid var(--st-line); border-radius: 14px; background: var(--st-card); padding: 0.85rem 1rem; margin: 0; min-width: 0; }
+.st-prop-pick ul { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 0.4rem 1rem; margin-top: 0.5rem; }
+.st-check { display: flex; align-items: center; gap: 0.55rem; min-height: 2.25rem; font-size: 0.9rem; cursor: pointer; }
+.st-check input { width: 1.1rem; height: 1.1rem; accent-color: var(--st-olive); }
+.st-free { margin-left: auto; font-size: 0.78rem; color: #2D6A3E; white-space: nowrap; }
+.st-free.is-none { color: var(--st-danger); font-weight: 600; }
+
+/* --- Calendar: blocked days and the chosen day --------------------------- */
+.st-cal-blocked { display: inline-block; padding: 0.05rem 0.5rem; border-radius: 999px; background: repeating-linear-gradient(135deg, #ECEAE5 0 6px, #F6F4EF 6px 12px); color: #55574F; font-size: 0.72rem; font-weight: 600; }
+.st-cal-date { border: 0; background: none; padding: 0; font: inherit; color: var(--st-ink-soft); cursor: pointer; text-align: left; }
+.st-cal-cell.is-blocked { background: #F6F4EF; }
+.st-cal-cell.is-picked { box-shadow: inset 0 0 0 2px var(--st-olive); }
+.st-day { display: flex; flex-direction: column; gap: 0.7rem; padding: 1rem 1.1rem; border: 1px solid var(--st-line); border-radius: 16px; background: var(--st-card); }
+.st-day-pick { max-width: 14rem; }
+.st-more-panel { border: 1px solid var(--st-line); border-radius: 16px; background: var(--st-card); }
+.st-more-panel > summary { padding: 0.9rem 1.1rem; font-family: var(--st-serif); font-size: 1.25rem; font-weight: 600; cursor: pointer; }
+.st-more-panel > .st-palettes, .st-more-panel > .st-business { padding: 0 1.1rem 1.1rem; }
+
+/* --- Products: photo, name and code at a glance -------------------------- */
+.st-cat-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.6rem; }
+.st-code { color: var(--st-ink-soft); font-size: 0.75rem; font-weight: 500; letter-spacing: 0.02em; }
+.st-product { grid-template-columns: 3rem 1fr auto; grid-template-areas: "thumb main price" "thumb tag stock"; }
+.st-product-thumb { grid-area: thumb; width: 3rem; height: 3rem; border-radius: 8px; overflow: hidden; background: var(--st-olive-wash); }
+.st-product-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.st-remove-link { align-self: flex-start; margin-top: 0.4rem; font-size: 0.85rem; }
+.st-catalogue > .st-product-editor { border: 1px solid var(--st-line); border-radius: 16px; }
+@media (min-width: 720px) {
+  .st-product { grid-template-columns: 3rem 1fr 8.5rem 6rem 7.5rem; grid-template-areas: "thumb main tag price stock"; }
+}
+
+/* --- Colours ------------------------------------------------------------- */
+.st-add-colour { display: flex; flex-direction: column; gap: 0.85rem; padding: 1rem; border: 1px solid var(--st-line); border-radius: 14px; background: var(--st-card); max-width: 30rem; }
+.st-colour-pick { display: flex; align-items: center; gap: 0.75rem; }
+.st-stock-pick { display: flex; gap: 0.3rem; }
+.st-stock-pick .st-chip { padding: 0.3rem 0.65rem; font-size: 0.78rem; }
+.st-colour-card.is-out { opacity: 0.75; }
+
+/* --- Balloons to prepare ------------------------------------------------- */
+.st-pull { display: flex; flex-direction: column; gap: 0.8rem; }
+.st-pull-summary { font-size: 0.95rem; }
+.st-pull-list { display: flex; flex-direction: column; border-top: 1px solid var(--st-line); }
+.st-pull-row { display: grid; grid-template-columns: 1.6rem minmax(6rem, 9rem) 1fr auto; align-items: center; gap: 0.6rem; padding: 0.55rem 0; border-bottom: 1px solid var(--st-line); font-size: 0.9rem; }
+.st-pull-colour { font-weight: 600; }
+.st-pull-counts { display: flex; flex-direction: column; gap: 0.1rem; color: var(--st-ink); }
+.st-pull-total { font-weight: 700; font-variant-numeric: tabular-nums; }
+.st-pull-adjust input { max-width: 8rem; }
+@media (max-width: 480px) {
+  .st-pull-row { grid-template-columns: 1.6rem 1fr auto; }
+  .st-pull-counts { grid-column: 2 / -1; }
+}
+.st-height-row { display: flex; flex-wrap: wrap; gap: 0.6rem 1.5rem; }
+.st-height { display: flex; flex-direction: column; gap: 0.25rem; }
+.st-height-inputs { display: flex; align-items: center; gap: 0.4rem; }
+.st-root .st-height-inputs input { width: 4.5rem; }
+
+/* --- Inventory ------------------------------------------------------------ */
+.st-subnav { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.st-tree-section { display: flex; flex-direction: column; gap: 0.7rem; padding-top: 0.5rem; border-top: 1px solid var(--st-line); }
+.st-tree-section:first-of-type { border-top: 0; }
+.st-tree-group { display: flex; flex-direction: column; gap: 0.4rem; }
+.st-tree-group-title { font-size: 0.82rem; font-weight: 700; color: var(--st-ink-soft); margin-top: 0.3rem; }
+.st-root select { min-height: 2.75rem; padding: 0.45rem 0.75rem; border: 1px solid var(--st-line); border-radius: 10px; background: var(--st-card); font: inherit; font-size: 1rem; width: 100%; }
+
+.st-stock-list { display: flex; flex-direction: column; background: var(--st-card); border: 1px solid var(--st-line); border-radius: 16px; }
+.st-stock-row { display: grid; grid-template-columns: 1fr; gap: 0.7rem; padding: 0.85rem 1rem; border-bottom: 1px solid var(--st-line); }
+.st-stock-row:last-child { border-bottom: 0; }
+.st-stock-row.is-out .st-product-name { color: var(--st-ink-soft); }
+.st-stock-colour { display: flex; align-items: center; gap: 0.7rem; }
+.st-stock-colour > span { display: flex; flex-direction: column; }
+.st-stock-sizes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.6rem; }
+.st-stock-size { display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.8rem; }
+.st-stock-size label { color: var(--st-ink-soft); }
+.st-stock-left { font-size: 0.78rem; color: #2D6A3E; font-weight: 600; }
+.st-stock-left.is-low { color: #8A5A00; }
+.st-stock-left.is-short { color: var(--st-danger); }
+.st-foil-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr)); gap: 0.6rem; }
+.st-foil { display: flex; flex-direction: column; gap: 0.25rem; padding: 0.6rem; border: 1px solid var(--st-line); border-radius: 12px; background: var(--st-card); }
+.st-foil label { display: flex; align-items: baseline; justify-content: space-between; gap: 0.4rem; }
+.st-foil-digit { font-family: var(--st-serif); font-size: 1.6rem; font-weight: 600; line-height: 1; color: var(--st-gold); }
+.st-low-field { flex-direction: row; align-items: center; gap: 0.5rem; }
+.st-root .st-low-field input { width: 5.5rem; }
+@media (min-width: 900px) {
+  .st-stock-row { grid-template-columns: minmax(12rem, 16rem) 1fr auto; align-items: center; }
+}
+
+/* --- Sale --------------------------------------------------------------- */
+.st-sale-status { padding: 0.65rem 0.9rem; border-radius: 10px; background: var(--st-olive-wash); color: var(--st-olive); font-weight: 600; font-size: 0.92rem; }
+.st-sale-status.is-live { background: #F6E3E0; color: var(--st-danger); }
+.st-sale-status.is-scheduled { background: var(--st-gold-wash); color: #6B4E12; }
+.st-sale-pick { display: flex; flex-direction: column; gap: 0.7rem; }
+.st-sale-preview { font-size: 0.92rem; }
+.st-delivery-zone { display: flex; flex-direction: column; gap: 0.7rem; padding-bottom: 0.9rem; border-bottom: 1px solid var(--st-line); }
+.st-delivery-zone:last-of-type { border-bottom: 0; padding-bottom: 0; }

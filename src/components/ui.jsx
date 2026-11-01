@@ -228,12 +228,12 @@ export function VisualColourPicker({ currentHex, currentName, currentFinish, onS
       <div className="oe-swatch-picker-modal" onClick={(e) => e.stopPropagation()}>
         <div className="oe-swatch-picker-header">
           <div>
-            <span className="oe-dock-col-label">STUDIO COLOUR PALETTE</span>
+            <span className="oe-dock-col-label">Balloon colours</span>
             <h3 style={{ margin: '0.2rem 0', fontSize: '1rem', fontWeight: 800, color: '#0F172A' }}>
               Select Balloon Shade
             </h3>
           </div>
-          <button type="button" onClick={onClose} className="oe-swatch-close-btn">✕</button>
+          <button type="button" onClick={onClose} className="oe-swatch-close-btn">Close</button>
         </div>
 
         {/* Selected Balloon Live Preview & Name Customiser */}
@@ -245,7 +245,7 @@ export function VisualColourPicker({ currentHex, currentName, currentFinish, onS
             }}
           />
           <div style={{ flex: 1 }}>
-            <label className="oe-dock-col-label">COLOUR NAME</label>
+            <label className="oe-dock-col-label">Colour name</label>
             <input
               type="text"
               value={customName}
@@ -318,7 +318,7 @@ export function VisualColourPicker({ currentHex, currentName, currentFinish, onS
             className="oe-dock-action-btn"
             style={{ background: '#0284C7', color: '#FFFFFF' }}
           >
-            ✓ Save Colour
+            Save colour
           </button>
         </div>
       </div>
@@ -365,8 +365,8 @@ export function RibbonPickerPopover({ banner, onChange, onClose }) {
   return (
     <div className="oe-ribbon-popover" onClick={(e) => e.stopPropagation()}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <strong>🎀 Corner Ribbon &amp; Offer</strong>
-        <button type="button" onClick={onClose} className="oe-mini-admin-btn">Done ✓</button>
+        <strong>Label and offer</strong>
+        <button type="button" onClick={onClose} className="oe-mini-admin-btn">Done</button>
       </div>
 
       <div className="oe-ribbon-preset-row">
@@ -394,7 +394,7 @@ export function RibbonPickerPopover({ banner, onChange, onClose }) {
           className="oe-ribbon-preset-chip"
           onClick={() => onChange({ ...current, enabled: false, discountType: 'none', discountValue: 0 })}
         >
-          ✕ Remove Ribbon
+          Remove label
         </button>
       </div>
 

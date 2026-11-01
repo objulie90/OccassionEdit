@@ -93,6 +93,19 @@
       "configuration": {
         "backdropId": "gold-shimmer"
       }
+    },
+    {
+      "id": "G",
+      "status": "Quote Sent",
+      "createdAt": "2026-11-01T10:00:00Z",
+      "client": {
+        "eventDate": "2027-01-09"
+      },
+      "configuration": {
+        "extraIds": [
+          "gold-shimmer"
+        ]
+      }
     }
   ],
   "cases": [
@@ -202,6 +215,27 @@
       },
       "expect": {
         "gold-shimmer": 0
+      },
+      "dayFull": true
+    },
+    {
+      "name": "a sent quote holds its prop while Laura waits for the deposit",
+      "date": "2027-01-09",
+      "expect": {
+        "gold-shimmer": 0
+      },
+      "dayFull": false
+    },
+    {
+      "name": "a day Laura has blocked is full",
+      "date": "2026-12-14",
+      "settings": {
+        "blockedDates": [
+          "2026-12-14"
+        ]
+      },
+      "expect": {
+        "balloon-hoop": 3
       },
       "dayFull": true
     }

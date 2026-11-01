@@ -2,16 +2,18 @@ import React, { useState, useMemo } from 'react';
 import { buildDossierOrderLines } from './OrderDossierParts';
 import { OrderDetail } from './OrderDetail';
 import { DateTicket } from './DateTicket';
+import { AddBooking } from './AddBooking';
 import { statusInfo, parseEventDate, startOfToday, money, orderTotal } from './studioFormat';
 
 // Orders fall into three groups, each in the order Laura works through them
 function groupOrders(quotes) {
   const today = startOfToday();
-  const groups = { reply: [], booked: [], finished: [] };
+  const groups = { reply: [], quoted: [], booked: [], finished: [] };
   quotes.forEach(q => {
     const tone = statusInfo(q.status).tone;
     const date = parseEventDate(q.client?.eventDate);
     if (tone === 'new') groups.reply.push(q);
+    else if (tone === 'quoted' && !(date && date < today)) groups.quoted.push(q);
     else if (tone === 'done' || tone === 'cancelled' || (date && date < today)) groups.finished.push(q);
     else groups.booked.push(q);
   });
@@ -24,10 +26,12 @@ function groupOrders(quotes) {
     return dir * (da - db);
   };
   groups.reply.sort(byDate(1));
+  groups.quoted.sort(byDate(1));
   groups.booked.sort(byDate(1));
   groups.finished.sort(byDate(-1));
   return [
     { id: 'reply', title: 'Needs a reply', empty: 'No new enquiries waiting.', items: groups.reply },
+    { id: 'quoted', title: 'Waiting for a deposit', empty: null, items: groups.quoted },
     { id: 'booked', title: 'Booked', empty: 'No upcoming bookings yet.', items: groups.booked },
     { id: 'finished', title: 'Finished or cancelled', empty: null, items: groups.finished }
   ];
@@ -44,8 +48,10 @@ export function OrdersTab({
   quotes,
   selectedOrderId,
   onSelectOrder,
-  onUpdateQuoteStatus,
+  onUpdateOrder,
+  onAddBooking,
   onDeleteQuote,
+  studioSettings,
   steps,
   digitOptions,
   balloonColours,
@@ -53,6 +59,7 @@ export function OrdersTab({
   flashToast
 }) {
   const [search, setSearch] = useState('');
+  const [adding, setAdding] = useState(false);
   const term = search.trim().toLowerCase();
 
   const groups = useMemo(
@@ -63,8 +70,13 @@ export function OrdersTab({
   const selected = quotes.find(q => q.id === selectedOrderId) || null;
 
   return (
-    <div className={`st-orders ${selected ? 'has-selection' : ''}`}>
+    <div className={`st-orders ${selected || adding ? 'has-selection' : ''}`}>
       <section className="st-order-list" aria-label="Orders">
+        {onAddBooking && (
+          <button type="button" className="st-btn st-add-btn" onClick={() => { setAdding(true); onSelectOrder(null); }}>
+            Add a booking
+          </button>
+        )}
         <div className="st-list-search">
           <label htmlFor="st-order-search" className="st-visually-hidden">Search orders</label>
           <input
@@ -94,7 +106,7 @@ export function OrdersTab({
                     <OrderCard
                       order={q}
                       isSelected={q.id === selectedOrderId}
-                      onSelect={() => onSelectOrder(q.id)}
+                      onSelect={() => { setAdding(false); onSelectOrder(q.id); }}
                       steps={steps}
                       digitOptions={digitOptions}
                     />
@@ -107,15 +119,25 @@ export function OrdersTab({
       </section>
 
       <section className="st-order-pane" aria-label="Order details">
-        {selected ? (
+        {adding ? (
+          <AddBooking
+            steps={steps}
+            quotes={quotes}
+            settings={studioSettings}
+            onAdd={onAddBooking}
+            onDone={order => { setAdding(false); onSelectOrder(order.id); }}
+            onCancel={() => setAdding(false)}
+          />
+        ) : selected ? (
           <OrderDetail
             key={selected.id}
             order={selected}
             allOrders={quotes}
             onBack={() => onSelectOrder(null)}
             onSelectOrder={onSelectOrder}
-            onUpdateQuoteStatus={onUpdateQuoteStatus}
+            onUpdateOrder={onUpdateOrder}
             onDeleteQuote={onDeleteQuote}
+            studioSettings={studioSettings}
             steps={steps}
             digitOptions={digitOptions}
             balloonColours={balloonColours}
@@ -123,18 +145,29 @@ export function OrdersTab({
             flashToast={flashToast}
           />
         ) : (
-          <p className="st-pane-placeholder">Choose an order to see everything about it.</p>
+          <p className="st-pane-placeholder">Choose an order to see where it's up to and what to do next.</p>
         )}
       </section>
     </div>
   );
 }
 
+// How long a new enquiry has been waiting for a reply
+function waitingFor(iso) {
+  const ms = Date.now() - Date.parse(iso || '');
+  if (Number.isNaN(ms) || ms < 0) return '';
+  const mins = Math.round(ms / 60000);
+  if (mins < 60) return `Waiting ${Math.max(1, mins)} min`;
+  const hours = Math.round(mins / 60);
+  if (hours < 48) return `Waiting ${hours} hour${hours === 1 ? '' : 's'}`;
+  return `Waiting ${Math.round(hours / 24)} days`;
+}
+
 function OrderCard({ order, isSelected, onSelect, steps, digitOptions }) {
   const c = order.client || {};
   const status = statusInfo(order.status);
   const date = parseEventDate(c.eventDate);
-  const missedDate = date && date < startOfToday() && (status.tone === 'new' || status.tone === 'deposit' || status.tone === 'confirmed');
+  const missedDate = date && date < startOfToday() && ['new', 'quoted', 'deposit', 'confirmed'].includes(status.tone);
   const lines = buildDossierOrderLines(order.configuration || {}, steps, digitOptions);
   const summary = lines.length === 0
     ? 'No items recorded'
@@ -152,6 +185,7 @@ function OrderCard({ order, isSelected, onSelect, steps, digitOptions }) {
         <span className="st-card-name">{c.name || 'Name not given'}</span>
         <span className="st-card-summary">{summary}</span>
         {missedDate && <span className="st-card-warning">The date has passed</span>}
+        {!missedDate && status.tone === 'new' && order.createdAt && <span className="st-card-waiting">{waitingFor(order.createdAt)}</span>}
         <span className="st-card-meta">
           <span className="st-card-price">{money(orderTotal(order))}</span>
           <span className={`st-status st-status-${status.tone}`}>{status.label}</span>

@@ -4,18 +4,18 @@
  */
 
 export const INITIAL_BALLOON_COLOURS = [
-  { id: 'sage', name: 'Organic Sage', hex: '#7A8C68', finish: 'Matte', inStock: true },
-  { id: 'pearl-white', name: 'Pearl Ivory', hex: '#F5F2EB', finish: 'Pearl', inStock: true },
-  { id: 'champagne-gold', name: 'Chrome Gold', hex: '#C5A059', finish: 'Chrome', inStock: true },
-  { id: 'blush-pink', name: 'Soft Blush', hex: '#E6B8AF', finish: 'Matte', inStock: true },
-  { id: 'nude-stone', name: 'Warm Taupe', hex: '#B8A693', finish: 'Matte', inStock: true },
-  { id: 'butter-yellow', name: 'Lemon Butter', hex: '#F0DE6C', finish: 'Matte', inStock: true },
-  { id: 'pastel-blue', name: 'Sky Blue', hex: '#9EC1CF', finish: 'Matte', inStock: true },
-  { id: 'lilac-mist', name: 'Soft Lilac', hex: '#C3B1CE', finish: 'Matte', inStock: true },
-  { id: 'chrome-silver', name: 'Chrome Silver', hex: '#BCC0C7', finish: 'Chrome', inStock: true },
-  { id: 'matte-black', name: 'Obsidian Black', hex: '#222421', finish: 'Matte', inStock: true },
-  { id: 'rose-gold', name: 'Rose Gold', hex: '#C48B7B', finish: 'Chrome', inStock: false },
-  { id: 'eucalyptus', name: 'Deep Forest', hex: '#4A5840', finish: 'Matte', inStock: false }
+  { id: 'sage', code: '001', name: 'Organic Sage', hex: '#7A8C68', finish: 'Matte', inStock: true },
+  { id: 'pearl-white', code: '002', name: 'Pearl Ivory', hex: '#F5F2EB', finish: 'Pearl', inStock: true },
+  { id: 'champagne-gold', code: '003', name: 'Chrome Gold', hex: '#C5A059', finish: 'Chrome', inStock: true },
+  { id: 'blush-pink', code: '004', name: 'Soft Blush', hex: '#E6B8AF', finish: 'Matte', inStock: true },
+  { id: 'nude-stone', code: '005', name: 'Warm Taupe', hex: '#B8A693', finish: 'Matte', inStock: true },
+  { id: 'butter-yellow', code: '006', name: 'Lemon Butter', hex: '#F0DE6C', finish: 'Matte', inStock: true },
+  { id: 'pastel-blue', code: '007', name: 'Sky Blue', hex: '#9EC1CF', finish: 'Matte', inStock: true },
+  { id: 'lilac-mist', code: '008', name: 'Soft Lilac', hex: '#C3B1CE', finish: 'Matte', inStock: true },
+  { id: 'chrome-silver', code: '009', name: 'Chrome Silver', hex: '#BCC0C7', finish: 'Chrome', inStock: true },
+  { id: 'matte-black', code: '010', name: 'Obsidian Black', hex: '#222421', finish: 'Matte', inStock: true },
+  { id: 'rose-gold', code: '011', name: 'Rose Gold', hex: '#C48B7B', finish: 'Chrome', inStock: false },
+  { id: 'eucalyptus', code: '012', name: 'Deep Forest', hex: '#4A5840', finish: 'Matte', inStock: false }
 ];
 
 export const INITIAL_CURATED_PALETTES = [
@@ -859,8 +859,11 @@ export function calculateLookRecipePrice(recipe, steps = CONFIGURATOR_STEPS, dig
       lines.push({ label: `${backdrop.shortName} + ${balloons.shortName}`, rawAmount: raw, amount: finalAmt });
     }
   } else if (backdrop && !balloons) {
-    const raw = backdrop.packageBasePrice || backdrop.price;
-    lines.push({ label: backdrop.shortName, rawAmount: raw, amount: applyCornerBannerDiscount(raw, backdrop.cornerBanner) });
+    // A wall's price depends on its size even before any balloons are chosen
+    const isLargeWall = backdrop.backdropType === 'shimmer-wall' && shimmerSize === 'large';
+    const raw = isLargeWall ? (backdrop.packageLargePrice || 180) : (backdrop.packageBasePrice || backdrop.price);
+    const label = backdrop.backdropType === 'shimmer-wall' ? `${backdrop.shortName} (${isLargeWall ? 'Large' : 'Small'})` : backdrop.shortName;
+    lines.push({ label, rawAmount: raw, amount: applyCornerBannerDiscount(raw, backdrop.cornerBanner) });
   } else if (!backdrop && balloons) {
     const raw = balloons.price;
     lines.push({ label: balloons.shortName, rawAmount: raw, amount: applyCornerBannerDiscount(raw, balloons.cornerBanner) });

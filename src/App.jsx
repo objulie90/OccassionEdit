@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { computeAvailability, hireItemsFromSteps } from './lib/availability';
+import { buildLocalBooking } from './lib/bookings';
+import { applySale, saleBannerText } from './lib/sale';
 import {
   INITIAL_BALLOON_COLOURS,
   INITIAL_CURATED_PALETTES,
@@ -22,6 +24,7 @@ import { ProductBuilder } from './components/ProductBuilder';
 import { EditableText, EditablePrice, CornerRibbon, RibbonPickerPopover } from './components/ui';
 import { compressAndStripExifJpeg, sanitizeCsvCell } from './lib/media';
 import { MasterOrdersDashboard } from './studio/MasterOrdersDashboard';
+import { StaffSwitch } from './studio/StaffSwitch';
 
 /**
  * Main App Component — Carbon-Copy WYSIWYG Studio Edition
@@ -56,6 +59,7 @@ export function App() {
   const [seoSettings, setSeoSettings] = useState(INITIAL_SEO_SETTINGS);
   const [faqs, setFaqs] = useState(INITIAL_FAQS);
   const [deliveryConfig, setDeliveryConfig] = useState(INITIAL_DELIVERY_CONFIG);
+  const [sale, setSale] = useState(null);
   const [studioSettings, setStudioSettings] = useState({});
   const [showMasterDashboard, setShowMasterDashboard] = useState(false);
   const [sheetConfig, setSheetConfig] = useState({
@@ -76,8 +80,6 @@ export function App() {
   const [showPinModal, setShowPinModal] = useState(false);
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState('');
-  const [showBookingsDrawer, setShowBookingsDrawer] = useState(false);
-  const [showSheetSyncDrawer, setShowSheetSyncDrawer] = useState(false);
   const [showLookRecipeEditor, setShowLookRecipeEditor] = useState(false);
   const [openLookRibbonId, setOpenLookRibbonId] = useState(null);
   const [openCatalogRibbonId, setOpenCatalogRibbonId] = useState(null);
@@ -117,6 +119,8 @@ export function App() {
         if (sd.seo) setSeoSettings(prev => ({ ...prev, ...sd.seo }));
         if (Array.isArray(sd.faqs) && sd.faqs.length > 0) setFaqs(sd.faqs);
         if (sd.sheetConfig) setSheetConfig(prev => ({ ...prev, ...sd.sheetConfig }));
+        if (sd.sale) setSale(sd.sale);
+        if (sd.deliveryConfig?.zones?.length) setDeliveryConfig(sd.deliveryConfig);
     };
 
     // The preview has no server, so it carries a copy of the live site's public data
@@ -167,6 +171,23 @@ export function App() {
 
   // Derive Unified Catalog so Price Guide Cards stay 100% in sync with Builder prices & stock
   const unifiedCatalog = deriveUnifiedCatalog(catalog, steps, digitOptions);
+  // What customers see right now: the saved shop with any running sale applied on top,
+  // every list cheapest first so a smaller budget always sees something it can have
+  const saleShop = applySale({ steps, digitOptions, catalog, inspirationSlides }, sale);
+  const entryPrice = (it) => applyCornerBannerDiscount(it.packageBasePrice || it.price || it.basePrice || 0, it.cornerBanner);
+  const cheapestFirst = (list, priceOf) => list
+    .map((item, i) => ({ item, i, p: priceOf(item) }))
+    .sort((a, b) => a.p - b.p || a.i - b.i)
+    .map(x => x.item);
+  const shop = {
+    ...saleShop,
+    steps: saleShop.steps.map(st => ({ ...st, items: cheapestFirst(st.items || [], entryPrice) })),
+    digitOptions: cheapestFirst(saleShop.digitOptions, d => (d.id === 'digits-none' ? -1 : entryPrice(d))),
+    inspirationSlides: cheapestFirst(saleShop.inspirationSlides, sl => (sl.manualPriceOverride
+      ? applyCornerBannerDiscount(sl.guidePrice, sl.cornerBanner)
+      : calculateLookRecipePrice(sl.preset || {}, saleShop.steps, saleShop.digitOptions, balloonColours, curatedPalettes, sl.cornerBanner).finalTotal))
+  };
+  const shopCatalog = cheapestFirst(deriveUnifiedCatalog(shop.catalog, shop.steps, shop.digitOptions), entryPrice);
 
   const buildSiteDataPayload = () => ({
     steps,
@@ -178,7 +199,9 @@ export function App() {
     offers,
     seo: seoSettings,
     faqs,
-    sheetConfig
+    sheetConfig,
+    sale,
+    deliveryConfig
   });
 
   // ---------------------------------------------------------------------------
@@ -192,7 +215,8 @@ export function App() {
     if (baselineRequested && savedSnapshot === null) setSavedSnapshot(currentSnapshot);
   }, [baselineRequested, savedSnapshot, currentSnapshot]);
 
-  const isDirty = isAdminUnlocked && savedSnapshot !== null && currentSnapshot !== savedSnapshot;
+  // The preview can't publish, so nothing there ever counts as unsaved
+  const isDirty = !IS_PREVIEW_BUILD && isAdminUnlocked && savedSnapshot !== null && currentSnapshot !== savedSnapshot;
 
   const applySiteSnapshot = (snapshotStr) => {
     try {
@@ -207,6 +231,8 @@ export function App() {
       if (sd.seo) setSeoSettings(sd.seo);
       if (Array.isArray(sd.faqs)) setFaqs(sd.faqs);
       if (sd.sheetConfig) setSheetConfig(sd.sheetConfig);
+      if ('sale' in sd) setSale(sd.sale);
+      if (sd.deliveryConfig) setDeliveryConfig(sd.deliveryConfig);
     } catch (_e) {}
   };
 
@@ -255,7 +281,7 @@ export function App() {
     try {
       localStorage.removeItem(DRAFT_KEY);
     } catch (_e) {}
-    flashToast('↺ Changes discarded.');
+    flashToast('Changes discarded.');
   };
 
   const handleLockStudio = async () => {
@@ -268,6 +294,7 @@ export function App() {
     } catch (_e) {}
     draftCheckedRef.current = false;
     setIsEditMode(false);
+    setShowMasterDashboard(false);
     setIsAdminUnlocked(false);
     try {
       await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
@@ -337,12 +364,20 @@ export function App() {
   // works the same rules out from the orders it holds.
   const getAvailability = async (date) => {
     if (IS_PREVIEW_BUILD) {
-      return computeAvailability(date, quotes, hireItemsFromSteps(steps), {}, Date.now());
+      return computeAvailability(date, quotes, hireItemsFromSteps(steps), studioSettings, Date.now());
     }
     const res = await fetch(`/api/availability?date=${encodeURIComponent(date)}`);
     const data = await res.json();
     if (!res.ok || !data.ok) throw new Error(data.error || 'availability unavailable');
     return data.availability;
+  };
+
+  // Where staff are: the customer's view, editing the page, or the Studio
+  // Everything is edited in the Studio, so the page itself is never in an editing mode
+  const staffMode = showMasterDashboard ? 'studio' : 'customer';
+  const setStaffMode = (mode) => {
+    setShowMasterDashboard(mode === 'studio');
+    setIsEditMode(false);
   };
 
   const openStudio = () => {
@@ -355,44 +390,15 @@ export function App() {
     else setShowPinModal(true);
   };
 
-  const handleSaveHireCounts = async (counts) => {
-    const nextSteps = steps.map(st => ({
-      ...st,
-      items: (st.items || []).map(it => (it.id in counts ? { ...it, ownedCount: counts[it.id] } : it))
-    }));
-    setSteps(nextSteps);
-    if (IS_PREVIEW_BUILD) return true;
-    return handleSaveAndPublish(false, { ...buildSiteDataPayload(), steps: nextSteps });
-  };
 
-  // A product edited in the Studio: the price-list card and its builder option change together
-  const handleSaveProduct = async (cardId, patch) => {
-    const card = catalog.find(c => c.id === cardId);
-    if (!card) return false;
-    const { builderNote, ...cardPatch } = patch;
-    const nextCatalog = catalog.map(c => (c.id === cardId ? { ...c, ...cardPatch } : c));
-    const link = card.builderLink;
-    const linkPatch = {};
-    if (link) {
-      if (typeof cardPatch.basePrice === 'number') {
-        if (link.type === 'digit') linkPatch.basePrice = cardPatch.basePrice;
-        else {
-          linkPatch.price = cardPatch.basePrice;
-          if (link.usePackagePrice) linkPatch.packageBasePrice = cardPatch.basePrice;
-        }
-      }
-      ['inStock', 'image', 'cornerBanner'].forEach(k => { if (k in cardPatch) linkPatch[k] = cardPatch[k]; });
-      if (builderNote !== undefined) linkPatch[link.type === 'digit' ? 'description' : 'styleNote'] = builderNote;
-    }
-    const nextSteps = link?.type === 'step'
-      ? steps.map(st => (st.id !== link.stepId ? st : { ...st, items: st.items.map(it => (it.id === link.id ? { ...it, ...linkPatch } : it)) }))
-      : steps;
-    const nextDigits = link?.type === 'digit'
-      ? digitOptions.map(d => (d.id === link.id ? { ...d, ...linkPatch } : d))
-      : digitOptions;
-    setCatalog(nextCatalog);
+
+
+
+  // Publishes the builder options and price list together, as the Studio's inventory changes them
+  const publishInventory = async (nextSteps, nextDigits, nextCatalog) => {
     setSteps(nextSteps);
     setDigitOptions(nextDigits);
+    setCatalog(nextCatalog);
     if (IS_PREVIEW_BUILD) return true;
     return handleSaveAndPublish(false, {
       ...buildSiteDataPayload(),
@@ -400,6 +406,74 @@ export function App() {
       digitOptions: nextDigits,
       catalog: deriveUnifiedCatalog(nextCatalog, nextSteps, nextDigits)
     });
+  };
+
+  const cardLinksTo = (card, ref) => {
+    const l = card.builderLink;
+    if (!l || ref.kind === 'card') return false;
+    return ref.kind === 'digit' ? l.type === 'digit' && l.id === ref.id : l.type === 'step' && l.stepId === ref.stepId && l.id === ref.id;
+  };
+
+  // One product from the Studio's inventory: its builder option and any price-list card showing it
+  const handleSaveInventoryItem = (ref, itemPatch, cardPatch = {}) => {
+    const nextSteps = ref.kind === 'step'
+      ? steps.map(st => (st.id !== ref.stepId ? st : { ...st, items: st.items.map(it => (it.id === ref.id ? { ...it, ...itemPatch } : it)) }))
+      : steps;
+    const nextDigits = ref.kind === 'digit' ? digitOptions.map(d => (d.id === ref.id ? { ...d, ...itemPatch } : d)) : digitOptions;
+    const nextCatalog = catalog.map(c => {
+      if (ref.kind === 'card' && c.id === ref.id) return { ...c, ...itemPatch, ...cardPatch };
+      return cardLinksTo(c, ref) ? { ...c, ...cardPatch } : c;
+    });
+    return publishInventory(nextSteps, nextDigits, nextCatalog);
+  };
+
+  // A new product: a builder option in its section (with a price-list card), or a price-list-only card
+  const handleAddInventoryItem = (sectionId, item, card) => {
+    if (sectionId === 'pricelist') return publishInventory(steps, digitOptions, [...catalog, { ...card, ...item }]);
+    const link = sectionId === 'digits' ? { type: 'digit', id: item.id } : { type: 'step', stepId: sectionId, id: item.id };
+    const nextSteps = sectionId === 'digits' ? steps : steps.map(st => (st.id === sectionId ? { ...st, items: [...(st.items || []), item] } : st));
+    const nextDigits = sectionId === 'digits' ? [...digitOptions, item] : digitOptions;
+    const nextCatalog = card ? [...catalog, { ...card, builderLink: link }] : catalog;
+    return publishInventory(nextSteps, nextDigits, nextCatalog);
+  };
+
+  // Removing a product takes it out of the builder and the price list; the snapshot puts it back
+  const handleRemoveInventoryItem = async (ref) => {
+    const snapshot = { steps, digitOptions, catalog };
+    const nextSteps = ref.kind === 'step'
+      ? steps.map(st => (st.id !== ref.stepId ? st : { ...st, items: st.items.filter(it => it.id !== ref.id) }))
+      : steps;
+    const nextDigits = ref.kind === 'digit' ? digitOptions.filter(d => d.id !== ref.id) : digitOptions;
+    const nextCatalog = catalog.filter(c => !(ref.kind === 'card' && c.id === ref.id) && !cardLinksTo(c, ref));
+    const ok = await publishInventory(nextSteps, nextDigits, nextCatalog);
+    return ok === false ? null : snapshot;
+  };
+  const handleRestoreInventory = (snapshot) => publishInventory(snapshot.steps, snapshot.digitOptions, snapshot.catalog);
+
+  const handleSaveSale = async (nextSale) => {
+    setSale(nextSale);
+    if (IS_PREVIEW_BUILD) return true;
+    return handleSaveAndPublish(false, { ...buildSiteDataPayload(), sale: nextSale });
+  };
+
+  const handleSaveDeliveryConfig = async (nextConfig) => {
+    setDeliveryConfig(nextConfig);
+    if (IS_PREVIEW_BUILD) return true;
+    return handleSaveAndPublish(false, { ...buildSiteDataPayload(), deliveryConfig: nextConfig });
+  };
+
+  const handleSaveBundles = async (nextSlides) => {
+    setInspirationSlides(nextSlides);
+    if (IS_PREVIEW_BUILD) return true;
+    return handleSaveAndPublish(false, { ...buildSiteDataPayload(), inspirationSlides: nextSlides });
+  };
+
+
+
+  const handleSaveColours = async (nextColours) => {
+    setBalloonColours(nextColours);
+    if (IS_PREVIEW_BUILD) return true;
+    return handleSaveAndPublish(false, { ...buildSiteDataPayload(), balloonColours: nextColours });
   };
 
   const handleUploadPhotoForStudio = (file) =>
@@ -412,6 +486,11 @@ export function App() {
     if (IS_PREVIEW_BUILD) return true;
     return handleSaveAndPublish(false, { ...buildSiteDataPayload(), curatedPalettes: nextPalettes });
   };
+
+  // Orders load whenever staff are logged in, including after a page refresh
+  useEffect(() => {
+    if (isAdminUnlocked && !IS_PREVIEW_BUILD) fetchAdminQuotes();
+  }, [isAdminUnlocked]);
 
   // Business and bank details live on the studio server, not in the public site data
   useEffect(() => {
@@ -467,26 +546,16 @@ export function App() {
       const data = await res.json();
       if (res.ok && data.ok) {
         setIsAdminUnlocked(true);
-        setIsEditMode(true);
         setCsrfToken(data.csrfToken);
         setUnreadEnquiriesCount(data.unreadEnquiriesCount || 0);
         setShowPinModal(false);
         setPinInput('');
-        flashToast('✦ Studio Mode Unlocked · Click any text, price, or photo to edit directly.');
-        fetchAdminQuotes();
+        setStaffMode('studio');
       } else {
-        setPinError(data.error || 'Incorrect Studio PIN.');
+        setPinError(data.error || "That PIN isn't right. Try again.");
       }
     } catch (_err) {
-      if (pinInput.trim() === '2026') {
-        setIsAdminUnlocked(true);
-        setIsEditMode(true);
-        setShowPinModal(false);
-        setPinInput('');
-        flashToast('✦ Studio Mode Unlocked (Local Preview)');
-      } else {
-        setPinError('Incorrect Studio PIN.');
-      }
+      setPinError("Couldn't reach the studio just now. Check your connection and try again.");
     }
   };
 
@@ -501,64 +570,61 @@ export function App() {
     } catch (_e) {}
   };
 
-  const handleOpenBookingsDrawer = async () => {
-    setShowBookingsDrawer(true);
-    await fetchAdminQuotes();
-    if (unreadEnquiriesCount > 0) {
-      try {
-        await fetch('/api/quotes/mark-seen', {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: { 'X-CSRF-Token': csrfToken || '' }
-        });
-        setUnreadEnquiriesCount(0);
-      } catch (_e) {}
-    }
-  };
 
-  const handleUpdateQuoteStatus = async (quoteId, newStatus, depositVal = null) => {
+
+  // One change to an order from the Studio: status, money, notes, plus a line for its history.
+  // Shown at once; put back if the server doesn't save it.
+  const handleUpdateOrder = async (quoteId, patch, historyText) => {
     const before = quotes;
+    const at = new Date().toISOString();
     setQuotes(prev => prev.map(q => {
-      if (q.id === quoteId) {
-        const nextQ = { ...q, status: newStatus };
-        if (depositVal !== null && depositVal !== undefined) {
-          const cfg = nextQ.configuration || {};
-          const dep = parseFloat(depositVal) || 0;
-          const tot = parseFloat(cfg.estimatedTotal || cfg.subtotal || 0);
-          nextQ.configuration = {
-            ...cfg,
-            depositPaid: dep,
-            balanceDue: Math.max(0, Math.round((tot - dep) * 100) / 100)
-          };
-        }
-        return nextQ;
-      }
-      return q;
+      if (q.id !== quoteId) return q;
+      const next = { ...q, configuration: { ...(q.configuration || {}) }, client: { ...(q.client || {}) } };
+      if (patch.status) next.status = patch.status;
+      ['quotedPrice', 'depositPaid', 'balancePaid'].forEach(k => {
+        if (k in patch) next.configuration[k] = patch[k] === '' || patch[k] == null ? (k === 'quotedPrice' ? undefined : 0) : Number(patch[k]);
+      });
+      if ('staffNotes' in patch) next.client.staffNotes = patch.staffNotes;
+      if (historyText) next.history = [...(q.history || []), { at, text: historyText }];
+      return next;
     }));
-    if (IS_PREVIEW_BUILD) return;
+    if (IS_PREVIEW_BUILD) return true;
     try {
-      const payload = { status: newStatus };
-      if (depositVal !== null && depositVal !== undefined) {
-        payload.depositPaid = parseFloat(depositVal) || 0;
-      }
       const res = await fetch(`/api/quotes/${encodeURIComponent(quoteId)}`, {
         method: 'PATCH',
         credentials: 'same-origin',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken || ''
-        },
-        body: JSON.stringify(payload)
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken || '' },
+        body: JSON.stringify({ ...patch, historyText })
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) throw new Error(data.error || 'not saved');
-      if (typeof data.unreadEnquiriesCount === 'number') {
-        setUnreadEnquiriesCount(data.unreadEnquiriesCount);
-      }
+      if (data.quote) setQuotes(prev => prev.map(q => (q.id === quoteId ? data.quote : q)));
+      if (typeof data.unreadEnquiriesCount === 'number') setUnreadEnquiriesCount(data.unreadEnquiriesCount);
+      return true;
     } catch (_e) {
       setQuotes(before);
       flashToast("That change wasn't saved. Check your connection and try again.");
+      return false;
     }
+  };
+
+  // A booking agreed on Facebook, Instagram or the phone, added so the diary knows about it
+  const handleAddBooking = async (booking) => {
+    if (IS_PREVIEW_BUILD) {
+      const order = buildLocalBooking(booking, quotes);
+      setQuotes(prev => [order, ...prev]);
+      return order;
+    }
+    const res = await fetch('/api/admin/bookings', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken || '' },
+      body: JSON.stringify(booking)
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) throw new Error(data.error || 'not saved');
+    setQuotes(prev => [data.quote, ...prev]);
+    return data.quote;
   };
 
   const handleDeleteQuoteGdpr = async (quoteId, clientName) => {
@@ -573,38 +639,11 @@ export function App() {
         credentials: 'same-origin',
         headers: { 'X-CSRF-Token': csrfToken || '' }
       });
-      flashToast(`🗑 Erased enquiry ${quoteId} (GDPR).`);
+      flashToast(`Enquiry ${quoteId} and the customer's details deleted.`);
     } catch (_e) {}
   };
 
-  const handleExportSafeCsv = () => {
-    const headers = ['Enquiry ID', 'Received At', 'Status', 'Client Name', 'Phone', 'Email', 'Event Date', 'Postcode', 'Palette', 'Backdrop', 'Garland', 'Digits/Letters', 'Extras', 'Estimated Total (GBP)', 'Notes'];
-    const rows = quotes.map(q => [
-      sanitizeCsvCell(q.id),
-      sanitizeCsvCell(q.createdAt),
-      sanitizeCsvCell(q.status || 'New Enquiry'),
-      sanitizeCsvCell(q.client?.name),
-      sanitizeCsvCell(q.client?.phone),
-      sanitizeCsvCell(q.client?.email),
-      sanitizeCsvCell(q.client?.eventDate),
-      sanitizeCsvCell(q.client?.postcode),
-      sanitizeCsvCell((q.configuration?.palette || []).join(', ')),
-      sanitizeCsvCell(q.configuration?.backdrop),
-      sanitizeCsvCell(q.configuration?.balloonLayout),
-      sanitizeCsvCell(q.configuration?.digitsOrLetters),
-      sanitizeCsvCell((q.configuration?.extras || []).join(', ')),
-      sanitizeCsvCell(q.configuration?.estimatedTotal),
-      sanitizeCsvCell(q.client?.notes)
-    ]);
-    const csvContent = [headers.map(sanitizeCsvCell).join(','), ...rows.map(r => r.join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `the-occasion-edit-enquiries-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+
 
   // Layer-1 + Layer-2 Photo Upload Pipeline
   const handleUploadPhotoForTarget = async (file, applyUrlCallback) => {
@@ -624,69 +663,19 @@ export function App() {
         const data = await res.json();
         if (res.ok && data.ok && data.url) {
           applyUrlCallback(data.url);
-          flashToast('📷 Photo uploaded & EXIF GPS stripped! Click "Save & Publish" to make permanent.');
+          flashToast('Photo added. Press Save to publish it.');
           return;
         }
       } catch (_e) {}
       applyUrlCallback(compressedDataUrl);
-      flashToast('📷 Photo updated! Click "Save & Publish" to save.');
+      flashToast('Photo changed. Press Save to publish it.');
     } catch (err) {
-      flashToast(`⚠️ Photo error: ${err.message}`);
+      flashToast(`That photo didn't upload: ${err.message}`);
     }
   };
 
   // Pull Latest Prices & Stock from Google Sheet (Two-Way Sync)
-  const handlePullFromGoogleSheet = async () => {
-    if (!sheetConfig.webAppUrl) {
-      flashToast('⚠️ Paste your Google Apps Script Web App URL first.');
-      return;
-    }
-    flashToast('⏳ Pulling latest prices & stock from Google Sheets...');
-    try {
-      const res = await fetch('/api/sync-from-sheet', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken || ''
-        },
-        body: JSON.stringify({ webAppUrl: sheetConfig.webAppUrl })
-      });
-      const data = await res.json();
-      if (data.ok) {
-        if (data.sheetRevisionMs) setLoadedSheetRevisionMs(data.sheetRevisionMs);
-        if (Array.isArray(data.balloonColours) && data.balloonColours.length > 0) setBalloonColours(data.balloonColours);
-        if (Array.isArray(data.inspirationSlides) && data.inspirationSlides.length > 0) setInspirationSlides(data.inspirationSlides);
-        if (Array.isArray(data.offers) && data.offers.length > 0) setOffers(data.offers);
-        if (Array.isArray(data.builderItems) && data.builderItems.length > 0) {
-          setSteps(prevSteps =>
-            prevSteps.map(st => ({
-              ...st,
-              items: st.items.map(it => {
-                const match = data.builderItems.find(b => b.id === it.id);
-                return match
-                  ? {
-                      ...it,
-                      name: match.name || it.name,
-                      price: Number(match.price ?? it.price),
-                      packageBasePrice: match.packageBasePrice ? Number(match.packageBasePrice) : it.packageBasePrice,
-                      packageLargePrice: match.packageLargePrice ? Number(match.packageLargePrice) : it.packageLargePrice,
-                      inStock: Boolean(match.inStock),
-                      image: match.image || it.image
-                    }
-                  : it;
-              })
-            }))
-          );
-        }
-        flashToast('✓ Synced latest prices & stock from Google Sheet!');
-      } else {
-        flashToast(`⚠️ Sheet sync failed: ${data.error || 'Check Web App URL'}`);
-      }
-    } catch (_e) {
-      flashToast('⚠️ Could not reach Google Sheet Web App.');
-    }
-  };
+
 
   // Mutators for Builder Items, Digit Options, Colours, Lookbook Slides & Catalog
   const updateBuilderItem = (stepId, itemId, patch) => {
@@ -727,7 +716,7 @@ export function App() {
     setBalloonColours(prev =>
       prev.map(c => (c.id === colourId ? { ...c, ...patch } : c))
     );
-    flashToast(`✓ Updated colour shade to "${patch.name || 'Custom'}"`);
+    flashToast(`Colour updated to ${patch.name || 'your custom shade'}.`);
   };
 
   const addNewColour = (colourData) => {
@@ -742,7 +731,7 @@ export function App() {
       inStock: true
     };
     setBalloonColours(prev => [...prev, newColour]);
-    flashToast(`✨ Added new shade #${nextCode}: ${newColour.name}!`);
+    flashToast(`${newColour.name} added.`);
   };
 
   const updateSlide = (slideId, patch) => {
@@ -791,7 +780,7 @@ export function App() {
     setInspirationSlides(prev => [newLook, ...prev]);
     setCarouselIndex(0);
     setShowLookRecipeEditor(true);
-    flashToast('✦ Added new Lookbook card! Use "Compile Look from Stock" below to pick its items.');
+    flashToast('New bundle added. Choose what goes in it below.');
   };
 
   const handleSaveBuilderSetupAsLook = (recipe, total) => {
@@ -811,7 +800,7 @@ export function App() {
     setCarouselIndex(0);
     const el = document.getElementById('be-inspired');
     if (el) el.scrollIntoView({ behavior: 'smooth' });
-    flashToast('✨ Saved your 3D Builder setup as a new Lookbook Card!');
+    flashToast('Saved as a new bundle.');
   };
 
   const handleDeleteLookSlide = (slideId) => {
@@ -875,12 +864,12 @@ export function App() {
   };
 
   const inspireCategories = ['All', 'Birthdays', 'Baby Showers', 'Anniversaries', 'Parties'];
-  const filteredSlides = inspirationSlides.filter(
+  const filteredSlides = shop.inspirationSlides.filter(
     s => inspireCategory === 'All' || s.category === inspireCategory
   );
-  const activeSlide = filteredSlides[carouselIndex % Math.max(1, filteredSlides.length)] || inspirationSlides[0];
+  const activeSlide = filteredSlides[carouselIndex % Math.max(1, filteredSlides.length)] || shop.inspirationSlides[0];
   const activeSlideRecipeCalc = activeSlide
-    ? calculateLookRecipePrice(activeSlide.preset, steps, digitOptions, balloonColours, curatedPalettes, activeSlide.cornerBanner)
+    ? calculateLookRecipePrice(activeSlide.preset, shop.steps, shop.digitOptions, balloonColours, curatedPalettes, activeSlide.cornerBanner)
     : null;
   const activeSlideLivePrice = activeSlide
     ? (activeSlide.manualPriceOverride
@@ -900,7 +889,7 @@ export function App() {
   };
 
   const priceSections = ['All', 'Backdrops, Walls & Garlands', 'Numbers, Helium & Gifts', 'Hire Props & Finishing Extras'];
-  const filteredCatalog = unifiedCatalog.filter(item => {
+  const filteredCatalog = shopCatalog.filter(item => {
     const matchesSection = priceSectionFilter === 'All' || item.section === priceSectionFilter;
     return matchesSection;
   });
@@ -909,71 +898,33 @@ export function App() {
     <div className={`oe-site-wrapper ${IS_PREVIEW_BUILD ? 'is-preview' : ''}`}>
       {IS_PREVIEW_BUILD && (
         <div className="oe-preview-banner" role="note">
-          Preview of the new website · orders are not sent · the Studio shows a demo order
+          Preview: orders aren't sent, and the Studio shows a demo order
         </div>
       )}
-      {/* STICKY STUDIO ADMIN TOP BAR (Calm STUDIO OS) */}
+      {/* Staff bar: one switch between the customer's view, editing the page and the Studio */}
       {isAdminUnlocked && (
-        <div className="oe-studio-topbar" role="region" aria-label="Studio Admin Controls">
-          <div className="oe-studio-topbar-left">
-            <span className="oe-studio-mode-pill">
-              ✦ STUDIO OS
-            </span>
-
-            <button
-              type="button"
-              onClick={() => setIsEditMode(!isEditMode)}
-              className={`oe-studio-bar-btn ${isEditMode ? 'active-toggle' : ''}`}
-            >
-              {isEditMode ? '✎ Edit Directly' : '👁 Customer View'}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setShowMasterDashboard(true)}
-              className="oe-studio-bar-btn"
-            >
-              📊 Master Sheet &amp; Orders ({quotes.length})
-              {unreadEnquiriesCount > 0 && (
-                <span className="oe-notif-badge">🔔 {unreadEnquiriesCount} New</span>
-              )}
-            </button>
-          </div>
-
+        <div className="oe-studio-topbar" role="region" aria-label="Staff controls">
+          <StaffSwitch mode={staffMode} onChange={setStaffMode} unread={unreadEnquiriesCount} />
           <div className="oe-studio-topbar-right">
+            {isDirty && <span className="oe-unsaved-badge">Unsaved changes</span>}
             {isDirty && (
-              <span className="oe-unsaved-badge">● Unsaved changes</span>
+              <button type="button" onClick={handleDiscardChanges} className="oe-studio-bar-btn discard-btn">
+                Discard
+              </button>
             )}
             {isDirty && (
               <button
                 type="button"
-                onClick={handleDiscardChanges}
-                className="oe-studio-bar-btn discard-btn"
-                title="Discard unsaved edits and restore published website"
+                disabled={isSavingSite}
+                onClick={() => handleSaveAndPublish(false)}
+                className="oe-studio-bar-btn save-btn"
               >
-                ↺ Discard
+                {isSavingSite ? 'Saving' : 'Save'}
               </button>
             )}
-            {saveToast && (
-              <span style={{ color: '#F3DFB2', fontWeight: 700, fontSize: '0.75rem' }}>
-                {saveToast}
-              </span>
-            )}
-            <button
-              type="button"
-              disabled={isSavingSite}
-              onClick={() => handleSaveAndPublish(false)}
-              className="oe-studio-bar-btn save-btn"
-            >
-              {isSavingSite ? 'Saving...' : '💾 Save & Publish'}
-            </button>
-            <button
-              type="button"
-              onClick={handleLockStudio}
-              className="oe-studio-bar-btn"
-              title="Lock Studio Admin"
-            >
-              🔒 Lock
+            {!isDirty && saveToast && <span className="oe-studio-bar-note" role="status">{saveToast}</span>}
+            <button type="button" onClick={handleLockStudio} className="oe-studio-bar-btn">
+              Log out
             </button>
           </div>
         </div>
@@ -981,6 +932,9 @@ export function App() {
 
       {/* SECTION 1: MOCKUP V1 HERO WITH CENTERED ANIMATED LOGO */}
       <header id="top" className="oe-hero-section">
+        {shop.live && sale?.showBanner && (
+          <p className="oe-sale-band" role="note">{saleBannerText(sale)}</p>
+        )}
         <img
           src="public/assets/hero-v1-bg.jpg"
           alt="Luxury Sage, Pearl, Blush and Gold Balloon Crescent Arch"
@@ -1162,7 +1116,7 @@ export function App() {
                 {/* STUDIO MODE: "Compile Look from Stock" Recipe Checklist */}
                 {isEditMode && showLookRecipeEditor && (
                   <div className="oe-look-recipe-drawer">
-                    <h4>🧩 Compile This Look&apos;s Recipe from Live Stock</h4>
+                    <h4>What's in this bundle</h4>
                     <div className="oe-recipe-grid">
                       <div className="oe-recipe-field">
                         <label>Occasion Category</label>
@@ -1329,10 +1283,10 @@ export function App() {
             <div className="oe-studio-dock-col" role="region" aria-label="Studio Look Inspector">
               {/* PANEL 1: CORNER BANNER */}
               <div className="oe-dock-card">
-                <h4 className="oe-dock-title">CORNER BANNER</h4>
+                <h4 className="oe-dock-title">Label and offer</h4>
                 <div className="oe-dock-two-cols">
                   <div>
-                    <span className="oe-dock-col-label">PRE-BUILT</span>
+                    <span className="oe-dock-col-label">Ready-made labels</span>
                     <div className="oe-dock-pills-list">
                       <button
                         type="button"
@@ -1383,7 +1337,7 @@ export function App() {
                   </div>
 
                   <div>
-                    <span className="oe-dock-col-label">CUSTOM BANNER</span>
+                    <span className="oe-dock-col-label">Your own words</span>
                     <input
                       type="text"
                       value={activeSlide.cornerBanner?.text || ''}
@@ -1427,10 +1381,10 @@ export function App() {
 
               {/* PANEL 2: PICK & MIX STOCK */}
               <div className="oe-dock-card">
-                <h4 className="oe-dock-title">PICK &amp; MIX STOCK</h4>
+                <h4 className="oe-dock-title">What's in this bundle</h4>
                 <div className="oe-dock-two-cols">
                   <div>
-                    <span className="oe-dock-col-label">SELECT STOCK RECIPE</span>
+                    <span className="oe-dock-col-label">Choose the items</span>
                     <div className="oe-product-tree">
                       {/* Branch 1: Backdrops & Walls */}
                       <div className="oe-tree-branch">
@@ -1523,7 +1477,7 @@ export function App() {
                   </div>
 
                   <div>
-                    <span className="oe-dock-col-label">APPLY DISCOUNT</span>
+                    <span className="oe-dock-col-label">Offer</span>
                     <div className="oe-discount-input-row" style={{ display: 'flex', gap: '0.35rem', marginBottom: '0.45rem' }}>
                       <input
                         type="number"
@@ -1578,7 +1532,7 @@ export function App() {
                       </select>
                     </div>
 
-                    <span className="oe-dock-col-label" style={{ marginTop: '0.5rem' }}>LOOK GUIDE PRICE</span>
+                    <span className="oe-dock-col-label" style={{ marginTop: '0.5rem' }}>Guide price</span>
                     <div className="oe-dock-price-display">
                       <span className="price-num">£{activeSlideLivePrice}</span>
                     </div>
@@ -1588,7 +1542,7 @@ export function App() {
 
               {/* PANEL 3: UPLOAD PHOTO */}
               <div className="oe-dock-card">
-                <h4 className="oe-dock-title">UPLOAD PHOTO</h4>
+                <h4 className="oe-dock-title">Photo</h4>
                 <div className="oe-dock-photo-row">
                   <img src={activeSlide.image} alt={activeSlide.title} className="oe-dock-photo-thumb" />
                   <div className="oe-dock-photo-controls">
@@ -1623,7 +1577,7 @@ export function App() {
                         className="oe-dock-action-btn"
                         style={{ border: '1px solid #FCA5A5', color: '#B91C1C', background: '#FEF2F2', padding: '0.25rem 0.4rem', fontSize: '0.65rem' }}
                       >
-                        🗑 Delete Look Card
+                        Delete this bundle
                       </button>
                     )}
                   </div>
@@ -1666,10 +1620,12 @@ export function App() {
 
       {/* SECTION 3: BUILD YOUR EDIT */}
       <ProductBuilder
-        steps={steps}
+        steps={shop.steps}
         balloonColours={balloonColours}
         curatedPalettes={curatedPalettes}
-        digitOptions={digitOptions}
+        digitOptions={shop.digitOptions}
+        bundles={shop.inspirationSlides}
+        deliveryZones={deliveryConfig.zones}
         offers={offers}
         externalPreset={externalPreset}
         onClearExternalPreset={() => setExternalPreset(null)}
@@ -1803,10 +1759,10 @@ export function App() {
                         onClick={() => updateCatalogCard(item.id, { inStock: !item.inStock })}
                         className={`oe-mini-admin-btn ${item.inStock ? 'in-stock' : 'out-stock'}`}
                       >
-                        {item.inStock ? '✓ In Stock' : '✕ Out of Stock'}
+                        {item.inStock ? 'In stock' : 'Out of stock'}
                       </button>
                       <label className="oe-mini-admin-btn">
-                        📷 Photo
+                        Photo
                         <input
                           type="file"
                           accept="image/*"
@@ -1825,7 +1781,7 @@ export function App() {
                         onClick={() => setOpenCatalogRibbonId(openCatalogRibbonId === item.id ? null : item.id)}
                         className="oe-mini-admin-btn"
                       >
-                        🎀 Ribbon
+                        Label and offer
                       </button>
                     </div>
                   )}
@@ -1864,7 +1820,7 @@ export function App() {
             <div>
               <p className="oe-footer-title">THE OCCASION EDIT</p>
               <p className="oe-footer-sub">Bespoke Balloon Styling &amp; Prop Hire</p>
-              <p className="oe-footer-location">📍 Bottesford, Leicestershire · Serving the Vale of Belvoir &amp; East Midlands</p>
+              <p className="oe-footer-location">Bottesford, Leicestershire · Serving the Vale of Belvoir &amp; East Midlands</p>
             </div>
           </div>
 
@@ -1937,20 +1893,21 @@ export function App() {
         <div className="oe-modal-backdrop" onClick={() => setShowPinModal(false)}>
           <div className="oe-modal-panel" style={{ maxWidth: '420px' }} onClick={e => e.stopPropagation()}>
             <div className="oe-modal-header">
-              <h3>Unlock Studio Edit Mode</h3>
+              <h3>Staff login</h3>
               <button type="button" onClick={() => setShowPinModal(false)} className="oe-close-btn">
-                CLOSE ×
+                Close
               </button>
             </div>
             <form onSubmit={handleVerifyPin} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               <p style={{ fontSize: '0.85rem', color: '#4A4843', margin: 0 }}>
-                Enter your Studio PIN to edit prices, stock, photos, corner banners, and view customer enquiries directly on the page.
+                Enter your PIN to open the Studio.
               </p>
               <input
                 type="password"
                 inputMode="numeric"
                 autoFocus
-                placeholder="Studio PIN (e.g. 2026)"
+                aria-label="Studio PIN"
+                placeholder="PIN"
                 value={pinInput}
                 onChange={(e) => setPinInput(e.target.value)}
                 className="oe-form-input"
@@ -1959,219 +1916,23 @@ export function App() {
                 <p style={{ color: '#A33E31', fontSize: '0.8rem', fontWeight: 700, margin: 0 }}>{pinError}</p>
               )}
               <button type="submit" className="oe-btn-primary">
-                Unlock Studio Mode →
+                Open the Studio
               </button>
             </form>
           </div>
         </div>
       )}
 
-      {/* SLIDE-OVER DRAWER: ENQUIRIES & BOOKINGS */}
-      {showBookingsDrawer && (
-        <div className="oe-admin-drawer-backdrop" onClick={() => setShowBookingsDrawer(false)}>
-          <aside className="oe-admin-drawer" onClick={e => e.stopPropagation()} aria-label="Customer Enquiries Drawer">
-            <div className="oe-admin-drawer-header">
-              <div>
-                <h3>Customer Enquiries &amp; Bookings ({quotes.length})</h3>
-                <p style={{ fontSize: '0.78rem', color: '#5C5852', margin: '0.2rem 0 0' }}>
-                  Every enquiry includes the client&apos;s live 3D visual build snapshot and 1-tap WhatsApp reply.
-                </p>
-              </div>
-              <div style={{ display: 'flex', gap: '0.45rem' }}>
-                {quotes.length > 0 && (
-                  <button type="button" onClick={handleExportSafeCsv} className="oe-mini-admin-btn">
-                    ⬇ Safe CSV
-                  </button>
-                )}
-                <button type="button" onClick={() => setShowBookingsDrawer(false)} className="oe-close-btn">
-                  CLOSE ×
-                </button>
-              </div>
-            </div>
-
-            {quotes.length === 0 ? (
-              <p className="oe-admin-empty">No customer enquiries received yet.</p>
-            ) : (
-              quotes.map(q => {
-                const cleanPhone = (q.client?.phone || '').replace(/\D+/g, '').replace(/^0/, '44');
-                const waText = encodeURIComponent(
-                  `Hi ${q.client?.name || ''}! Thank you for sending your custom Occasion Edit enquiry for ${q.client?.eventDate || 'your event'} (${q.configuration?.backdrop || 'Custom Display'}, est. £${q.configuration?.estimatedTotal || 0}). We'd love to check availability for you!`
-                );
-                return (
-                  <div key={q.id} className="oe-booking-card">
-                    <div>
-                      {q.previewSnapshotDataUrl ? (
-                        <img
-                          src={q.previewSnapshotDataUrl}
-                          alt="Customer 3D Build Snapshot"
-                          className="oe-booking-snapshot"
-                        />
-                      ) : (
-                        <div className="oe-booking-snapshot" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', color: '#8C857B', textAlign: 'center', padding: '0.5rem' }}>
-                          3D Build Snapshot
-                        </div>
-                      )}
-                    </div>
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
-                        <div>
-                          <strong style={{ fontSize: '0.98rem' }}>{q.client?.name}</strong>
-                          <span style={{ display: 'block', fontSize: '0.75rem', color: '#5C5852' }}>
-                            Event Date: <strong>{q.client?.eventDate || 'TBC'}</strong> · Postcode: <strong>{q.client?.postcode || 'TBC'}</strong>
-                          </span>
-                        </div>
-                        <strong style={{ fontSize: '1.05rem', color: '#6E805E' }}>
-                          £{q.configuration?.estimatedTotal}
-                        </strong>
-                      </div>
-
-                      <div style={{ fontSize: '0.76rem', color: '#3B3834', marginTop: '0.45rem', lineHeight: 1.45 }}>
-                        <div><strong>Palette:</strong> {(q.configuration?.palette || []).join(', ')}</div>
-                        <div><strong>Backdrop:</strong> {q.configuration?.backdrop} · <strong>Garland:</strong> {q.configuration?.balloonLayout}</div>
-                        <div><strong>Numbers/Letters:</strong> {q.configuration?.digitsOrLetters}</div>
-                        <div><strong>Extras:</strong> {(q.configuration?.extras || []).join(', ') || 'None'}</div>
-                        {q.client?.notes && <div><strong>Notes:</strong> &ldquo;{q.client.notes}&rdquo;</div>}
-                      </div>
-
-                      <div className="oe-booking-actions-row">
-                        <select
-                          value={q.status || 'New Enquiry'}
-                          onChange={(e) => handleUpdateQuoteStatus(q.id, e.target.value)}
-                          className="oe-recipe-select"
-                          style={{ width: 'auto' }}
-                        >
-                          <option value="New Enquiry">New Enquiry</option>
-                          <option value="Quoted">Quoted</option>
-                          <option value="Deposit Paid">Deposit Paid</option>
-                          <option value="Completed">Completed</option>
-                        </select>
-
-                        {cleanPhone && (
-                          <a
-                            href={`https://wa.me/${cleanPhone}?text=${waText}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="oe-wa-btn"
-                          >
-                            💬 WhatsApp
-                          </a>
-                        )}
-                        {q.client?.phone && (
-                          <a href={`tel:${q.client.phone}`} className="oe-contact-pill">
-                            📞 {q.client.phone}
-                          </a>
-                        )}
-                        {q.client?.email && (
-                          <a href={`mailto:${q.client.email}`} className="oe-contact-pill">
-                            ✉️ Email
-                          </a>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteQuoteGdpr(q.id, q.client?.name)}
-                          className="oe-mini-admin-btn danger"
-                        >
-                          🗑 Delete (GDPR)
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </aside>
-        </div>
-      )}
-
-      {/* SLIDE-OVER DRAWER: GOOGLE SHEET TWO-WAY SYNC */}
-      {showSheetSyncDrawer && (
-        <div className="oe-admin-drawer-backdrop" onClick={() => setShowSheetSyncDrawer(false)}>
-          <aside className="oe-admin-drawer" onClick={e => e.stopPropagation()} aria-label="Google Sheet Sync Settings">
-            <div className="oe-admin-drawer-header">
-              <h3>📊 Two-Way Google Sheet Sync</h3>
-              <button type="button" onClick={() => setShowSheetSyncDrawer(false)} className="oe-close-btn">
-                CLOSE ×
-              </button>
-            </div>
-
-            <p style={{ fontSize: '0.84rem', lineHeight: 1.55, color: '#4A4843', margin: 0 }}>
-              Connect your Google Sheet (powered by <code>GoogleAppsScript.gs</code>) so every customer quote automatically logs to <strong>1_Bookings_and_Quotes</strong>, and you can sync prices &amp; stock both ways.
-            </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-              <div>
-                <label className="oe-field-label">Google Apps Script Web App URL (Ends in /exec)</label>
-                <input
-                  type="url"
-                  placeholder="https://script.google.com/macros/s/.../exec"
-                  value={sheetConfig.webAppUrl || ''}
-                  onChange={(e) => setSheetConfig({ ...sheetConfig, webAppUrl: e.target.value })}
-                  className="oe-form-input"
-                />
-              </div>
-
-              <div>
-                <label className="oe-field-label">Your Google Sheet URL (For 1-Click Open)</label>
-                <input
-                  type="url"
-                  placeholder="https://docs.google.com/spreadsheets/d/..."
-                  value={sheetConfig.sheetUrl || ''}
-                  onChange={(e) => setSheetConfig({ ...sheetConfig, sheetUrl: e.target.value })}
-                  className="oe-form-input"
-                />
-              </div>
-
-              <div>
-                <label className="oe-field-label">Admin Sync Secret (Matches Script Properties ADMIN_SYNC_SECRET)</label>
-                <input
-                  type="password"
-                  placeholder="e.g. occasion-edit-sync-2026"
-                  value={sheetConfig.adminSecret || ''}
-                  onChange={(e) => setSheetConfig({ ...sheetConfig, adminSecret: e.target.value })}
-                  className="oe-form-input"
-                />
-              </div>
-
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem', marginTop: '0.5rem' }}>
-                <button
-                  type="button"
-                  onClick={() => handleSaveAndPublish(false)}
-                  className="oe-btn-primary"
-                >
-                  💾 Save Sheet Connection &amp; Push Website Data
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handlePullFromGoogleSheet}
-                  className="oe-btn-secondary"
-                >
-                  ↻ Pull Latest Prices &amp; Stock from Sheet
-                </button>
-
-                {sheetConfig.sheetUrl && (
-                  <a
-                    href={sheetConfig.sheetUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="oe-contact-pill"
-                    style={{ padding: '0.65rem 1rem', fontWeight: 700 }}
-                  >
-                    Open My Google Sheet ↗
-                  </a>
-                )}
-              </div>
-            </div>
-          </aside>
-        </div>
-      )}
-
       {/* Master Orders & Stock Dashboard */}
       <MasterOrdersDashboard
         isOpen={showMasterDashboard}
-        onClose={() => setShowMasterDashboard(false)}
+        onClose={() => setStaffMode('customer')}
+        staffMode={staffMode}
+        onStaffModeChange={setStaffMode}
+        onLogOut={handleLockStudio}
         quotes={quotes}
-        onUpdateQuoteStatus={handleUpdateQuoteStatus}
+        onUpdateOrder={handleUpdateOrder}
+        onAddBooking={handleAddBooking}
         onDeleteQuote={handleDeleteQuoteGdpr}
         catalog={catalog}
         steps={steps}
@@ -2179,8 +1940,16 @@ export function App() {
         balloonColours={balloonColours}
         curatedPalettes={curatedPalettes}
         onSaveCuratedPalettes={handleSaveCuratedPalettes}
-        onSaveHireCounts={handleSaveHireCounts}
-        onSaveProduct={handleSaveProduct}
+        onSaveInventoryItem={handleSaveInventoryItem}
+        onAddInventoryItem={handleAddInventoryItem}
+        onRemoveInventoryItem={handleRemoveInventoryItem}
+        onRestoreInventory={handleRestoreInventory}
+        inspirationSlides={inspirationSlides}
+        onSaveBundles={handleSaveBundles}
+        sale={sale}
+        onSaveSale={handleSaveSale}
+        onSaveDeliveryConfig={handleSaveDeliveryConfig}
+        onSaveColours={handleSaveColours}
         onUploadPhoto={handleUploadPhotoForStudio}
         deliveryConfig={deliveryConfig}
         studioSettings={studioSettings}

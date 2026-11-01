@@ -1,24 +1,72 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   calculateLookRecipePrice,
-  applyCornerBannerDiscount
+  applyCornerBannerDiscount,
+  getDeliveryZoneForMileage
 } from '../data/catalogData.js';
+import { milesFromBase } from '../lib/places';
 import { ProductPreview } from './ProductPreview';
 import { BalloonGraphic, EditableText, EditablePrice, VisualColourPicker, CornerRibbon, RibbonPickerPopover } from './ui';
 import { captureSvgSnapshotDataUrl } from '../lib/media';
 import { EventStep, formatEventDate } from './EventStep';
 import { picksFor, stylePicksFor, offerLine } from '../lib/upsell';
 import { BOOKING_TERMS } from '../lib/terms';
+import { findBundleDeal } from '../lib/bundleDeals';
 
 /**
  * ProductBuilder Component — Simple, clean two-panel builder using "Our" wording
  * Now powered by the unified calculateLookRecipePrice engine & Carbon-Copy Studio Edit Mode.
  */
+// The next step up from each option, offered on the receipt: "Upgrade to … for just £30"
+const UPGRADE_TO = {
+  'clusters-top-bottom': 'garland-7ft',
+  'garland-7ft': 'garland-full',
+  'stack-basic': 'stack-themed',
+  'stack-themed': 'stack-luxury'
+};
+
+// Bases customers personalise with their own wording
+const PERSONALISED_BASES = {
+  'wooden-board': {
+    title: 'Your board',
+    paints: [
+      { name: 'Warm Ivory', hex: '#F5EFEB' },
+      { name: 'Organic Sage', hex: '#8A9A7B' },
+      { name: 'Soft Blush', hex: '#E8D3CE' },
+      { name: 'Warm Taupe', hex: '#C8B098' },
+      { name: 'Matte White', hex: '#FDFDFD' },
+      { name: 'Obsidian Black', hex: '#242623' }
+    ],
+    vinyls: [
+      { id: 'gold', name: 'Metallic Gold' },
+      { id: 'white', name: 'Matte White' },
+      { id: 'black', name: 'Gloss Black' },
+      { id: 'rose-gold', name: 'Rose Gold' }
+    ],
+    placeholder: "e.g. Sophie's 30th"
+  },
+  'easel-sign': {
+    title: 'Your welcome sign',
+    paints: [
+      { name: 'White', hex: '#FDFDFD' },
+      { name: 'Black', hex: '#242623' }
+    ],
+    vinyls: [
+      { id: 'gold', name: 'Metallic Gold' },
+      { id: 'black', name: 'Gloss Black' },
+      { id: 'white', name: 'Matte White' }
+    ],
+    placeholder: 'e.g. Welcome to Sophie and Tom\'s wedding'
+  }
+};
+
 export function ProductBuilder({
   steps,
   balloonColours,
   curatedPalettes,
   digitOptions,
+  bundles = [],
+  deliveryZones,
   offers,
   externalPreset,
   onClearExternalPreset,
@@ -65,6 +113,11 @@ export function ProductBuilder({
   });
   const [neonPhrase, setNeonPhrase] = useState('Happy Birthday');
   const [bubbleText, setBubbleText] = useState('');
+  const [cutoutTheme, setCutoutTheme] = useState('');
+  // Only the neon signs Laura owns can be chosen
+  const neonItem = steps.flatMap(st => st.items || []).find(it => it.extraType === 'neon');
+  const neonOptions = neonItem?.phrases?.length ? neonItem.phrases : ['Happy Birthday'];
+  const activeNeon = neonOptions.includes(neonPhrase) ? neonPhrase : neonOptions[0];
 
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [promoCode, setPromoCode] = useState('');
@@ -195,7 +248,55 @@ export function ProductBuilder({
     curatedPalettes
   );
   const lineItems = recipeCalc.lines;
-  const subtotal = recipeCalc.finalTotal;
+  // Their own build matching a bundle gets the bundle's saving (see lib/bundleDeals.js)
+  const bundleDeal = findBundleDeal(currentRecipe, bundles, steps, digitOptions, balloonColours, curatedPalettes);
+  const bundleSaving = bundleDeal.applied?.saving || 0;
+  const subtotal = Math.max(0, recipeCalc.finalTotal - bundleSaving);
+
+  const totalWith = (patch) =>
+    calculateLookRecipePrice({ ...currentRecipe, ...patch }, steps, digitOptions, balloonColours, curatedPalettes).finalTotal;
+
+  // The receipt under the picture: each line as priced, the step up offered beneath it
+  const upgradeOffer = (fromId, stepId) => {
+    const toId = UPGRADE_TO[fromId];
+    if (!toId) return null;
+    const target = stepId === 'digits' ? digitOptions.find(d => d.id === toId) : steps.find(st => st.id === stepId)?.items?.find(it => it.id === toId);
+    if (!target || target.inStock === false || isBookedOut(target)) return null;
+    const patch = stepId === 'digits' ? { digitOptionId: toId } : { balloonId: toId };
+    const more = Math.round(totalWith(patch) - recipeCalc.finalTotal);
+    if (more <= 0) return null;
+    return {
+      text: `Upgrade to ${target.name} for just £${more}`,
+      take: () => (stepId === 'digits' ? setDigitSelection(target) : setSelection(prev => ({ ...prev, balloons: target })))
+    };
+  };
+  const extrasByLabel = Object.fromEntries((selection.extras || []).map(ex => [ex.shortName, ex]));
+  const receipt = lineItems.map((line, i) => {
+    const b = selection.backdrop;
+    const isBase = b && i === 0 && line.label.startsWith(b.shortName);
+    const extra = extrasByLabel[line.label];
+    const row = { key: `${i}-${line.label}`, label: line.label, raw: line.rawAmount, amount: line.amount, hire: isBase ? !!b.hireOnly : extra ? !!extra.hireOnly : false, notes: [], upgrades: [] };
+    if (isBase && b.hasSizeTier && shimmerSize === 'small') {
+      const more = (b.packageLargePrice || 180) - (b.packageBasePrice || 150);
+      if (more > 0) row.upgrades.push({ text: `Upgrade to a large ${(b.shortName || b.name).replace(/ Wall$/, ' wall')} for just £${more}`, take: () => setShimmerSize('large') });
+    }
+    // A board, hoop or wall price includes its garland
+    if (isBase && selection.balloons && (line.label.includes('&') || b.hasSizeTier)) row.notes.push(`${selection.balloons.name}, included`);
+    // A garland inside a package has no line of its own, so its upgrade goes under the package
+    if (selection.balloons && (isBase || line.label === selection.balloons.shortName)) row.upgrades.push(upgradeOffer(selection.balloons.id, 'balloons'));
+    if (digitSelection && line.label.startsWith(digitSelection.name)) row.upgrades.push(upgradeOffer(digitSelection.id, 'digits'));
+    row.upgrades = row.upgrades.filter(Boolean);
+    return row;
+  });
+  const placeName = clientForm.hasVenue === 'yes' ? clientForm.postcode : clientForm.area;
+  const miles = placeName ? milesFromBase(placeName) : null;
+  const deliveryZone = miles != null ? getDeliveryZoneForMileage(miles, deliveryZones) : null;
+  // Laura's price per mile gives an estimate; without one the quote confirms it
+  const perMileRate = Number(deliveryZone?.zone?.perMileRate) || 0;
+  const deliveryText = !deliveryZone ? 'Confirmed in your quote'
+    : deliveryZone.outside ? "We'll confirm it with you"
+    : deliveryZone.perMile ? (perMileRate ? `About £${Math.max(1, Math.round(miles * perMileRate))}` : 'Confirmed in your quote')
+    : deliveryZone.surcharge ? `£${deliveryZone.surcharge}` : 'Free';
 
   const calculateFinalTotal = () => {
     if (!appliedOffer) return subtotal;
@@ -212,12 +313,11 @@ export function ProductBuilder({
 
   // Upselling: framed against their budget and what they've already chosen
   const budget = clientForm.hasBudget === 'yes' ? Number(clientForm.budget) || 0 : 0;
-  const picks = picksFor(clientForm.occasion);
-  const stylePicks = stylePicksFor(clientForm.style);
+  const allOptions = [...steps.flatMap(st => st.items || []), ...digitOptions];
+  const picks = picksFor(clientForm.occasion, allOptions);
+  const stylePicks = stylePicksFor(clientForm.style, allOptions);
   const isPick = (id) => !!(picks && picks.ids.includes(id));
   const isStylePick = (id) => !isPick(id) && !!(stylePicks && stylePicks.includes(id));
-  const totalWith = (patch) =>
-    calculateLookRecipePrice({ ...currentRecipe, ...patch }, steps, digitOptions, balloonColours, curatedPalettes).finalTotal;
   const offerFor = (stepId, item, isSelected) => {
     const patch = stepId === 'backdrop' ? { backdropId: item.id }
       : stepId === 'balloons' ? { balloonId: item.id }
@@ -269,6 +369,11 @@ export function ProductBuilder({
     if (!isEditMode && (!item.inStock || isBookedOut(item))) return;
 
     if (stepId === 'backdrop') {
+      // Each personalised base has its own board colours: keep the choice only if it fits
+      const opts = PERSONALISED_BASES[item.id];
+      if (opts && !opts.paints.some(p => p.name === boardCustomization.colorName)) {
+        setBoardCustomization(prev => ({ ...prev, color: opts.paints[0].hex, colorName: opts.paints[0].name, vinylColor: opts.vinyls[0].id }));
+      }
       setSelection(prev => ({
         ...prev,
         backdrop: prev.backdrop?.id === item.id ? null : item
@@ -290,6 +395,20 @@ export function ProductBuilder({
       });
     }
   };
+
+  // "Add Neon Sign to save £20": puts the one missing bundle item into their build
+  const addMissingBundleItem = (missing) => {
+    if (missing.slot === 'digits') {
+      const opt = digitOptions.find(d => d.id === missing.id);
+      if (opt) setDigitSelection(opt);
+      return;
+    }
+    const item = steps.find(st => st.id === missing.slot)?.items?.find(it => it.id === missing.id);
+    if (item) handleSelectOrDropItem(missing.slot, item);
+  };
+  const missingName = (missing) => (missing.slot === 'digits'
+    ? digitOptions.find(d => d.id === missing.id)?.name
+    : steps.find(st => st.id === missing.slot)?.items?.find(it => it.id === missing.id)?.name) || 'the last item';
 
   const handleSkipCurrentStep = () => {
     if (currentStep.id === 'backdrop') {
@@ -352,8 +471,16 @@ export function ProductBuilder({
       setQuoteSubmitError('Please type the numbers or letters you would like on your balloons.');
       return;
     }
-    if (selection.backdrop?.id === 'wooden-board' && !(boardCustomization.text || '').trim()) {
-      setQuoteSubmitError('Please type the wording for your personalised board.');
+    if (PERSONALISED_BASES[selection.backdrop?.id] && !(boardCustomization.text || '').trim()) {
+      setQuoteSubmitError(`Please type the wording for ${PERSONALISED_BASES[selection.backdrop.id].title.toLowerCase()}.`);
+      return;
+    }
+    if (selection.extras.some(e => e.id === 'bubble-balloon') && !bubbleText.trim()) {
+      setQuoteSubmitError('Please type the words for your bubble balloon.');
+      return;
+    }
+    if (selection.extras.some(e => e.id === 'cut-outs') && !cutoutTheme.trim()) {
+      setQuoteSubmitError('Please tell us which character or theme you would like for your cut-outs.');
       return;
     }
     setIsSubmittingQuote(true);
@@ -376,7 +503,7 @@ export function ProductBuilder({
     });
     const pullListStr = pullItems.length > 0 ? pullItems.join(', ') : 'Standard Mix';
 
-    const bundleDiscount = recipeCalc.hasDiscount ? Math.max(0, recipeCalc.originalTotal - recipeCalc.finalTotal) : 0;
+    const bundleDiscount = Math.max(0, recipeCalc.originalTotal - subtotal);
 
     const quotePayload = {
       id: `OE-${Date.now()}`,
@@ -392,13 +519,14 @@ export function ProductBuilder({
       configuration: {
         palette: selectedColours.map(c => c.name),
         backdrop: selection.backdrop ? selection.backdrop.name : 'Skipped (Freestanding)',
-        boardCustomization: selection.backdrop?.id === 'wooden-board' ? boardCustomization : null,
+        boardCustomization: PERSONALISED_BASES[selection.backdrop?.id] ? boardCustomization : null,
         shimmerSize: selection.backdrop?.hasSizeTier ? shimmerSize : 'N/A',
         balloonLayout: selection.balloons ? selection.balloons.name : 'Skipped',
         digitsOrLetters: digitSelection?.type !== 'none' ? `${digitSelection.name} ("${digitText}")` : 'None',
         extras: selection.extras.map(ex => `${ex.shortName} (£${applyCornerBannerDiscount(ex.price, ex.cornerBanner)})`),
-        neonPhrase: selection.extras.some(e => e.id === 'neon-sign') ? neonPhrase : null,
+        neonPhrase: selection.extras.some(e => e.id === 'neon-sign') ? activeNeon : null,
         bubbleText: selection.extras.some(e => e.id === 'bubble-balloon') ? bubbleText : null,
+        cutoutTheme: selection.extras.some(e => e.id === 'cut-outs') ? cutoutTheme : null,
         promoCode: appliedOffer ? appliedOffer.code : null,
         subtotal: recipeCalc.originalTotal || finalTotal,
         bundleDiscount,
@@ -494,61 +622,89 @@ export function ProductBuilder({
               digitSelection={digitSelection}
               digitText={digitText}
               boardCustomization={boardCustomization}
-              neonPhrase={neonPhrase}
+              neonPhrase={activeNeon}
               bubbleText={bubbleText}
+              cutoutTheme={cutoutTheme}
               onDropItem={handleSelectOrDropItem}
               isDragOver={isDragOver}
               setIsDragOver={setIsDragOver}
+              eventCard={eventConfirmed ? {
+                occasion: clientForm.occasion === 'Something else' ? (clientForm.occasionOther || 'Your celebration') : clientForm.occasion,
+                date: eventDateLabel,
+                place: clientForm.hasVenue === 'yes' ? clientForm.postcode : clientForm.area,
+                style: clientForm.style
+              } : null}
             />
           </div>
 
-          {/* Simple, Uncluttered Price & Palette Bar beneath Canvas */}
-          <div className="oe-simple-summary-bar" aria-live="polite">
-            <div className="oe-simple-summary-top">
-              <div className="oe-simple-palette-dots">
-                {selectedColours.map(col => (
-                  <span
-                    key={col.id}
-                    className="oe-simple-dot"
-                    style={{ backgroundColor: col.hex }}
-                    title={col.name}
-                  />
-                ))}
-              </div>
-
-              <div className="oe-simple-total">
-                <span>Guide price</span>
-                {recipeCalc.hasDiscount && (
-                  <span className="oe-price-old">£{recipeCalc.originalTotal}</span>
+          {/* Their edit as a receipt: the day, each item and its price, upgrades between, the total */}
+          <div className="oe-receipt" aria-live="polite">
+            {eventConfirmed && (
+              <div className="oe-receipt-head">
+                <p className="oe-receipt-occasion">{clientForm.occasion === 'Something else' ? (clientForm.occasionOther || 'Your celebration') : clientForm.occasion}</p>
+                <p className="oe-receipt-meta">
+                  {eventDateLabel}{placeName ? `, ${placeName}` : ''}{clientForm.style ? `. ${clientForm.style} style` : ''}
+                </p>
+                {selectedColours.length > 0 && (
+                  <div className="oe-receipt-colours">
+                    <span className="oe-receipt-colours-label">Colour selection</span>
+                    <span className="oe-receipt-dots">
+                      {selectedColours.map(col => <span key={col.id} className="oe-simple-dot" style={{ backgroundColor: col.hex }} title={col.name} />)}
+                    </span>
+                    <span className="oe-receipt-colour-names">{selectedColours.map(c => c.name).join(', ')}</span>
+                  </div>
                 )}
-                <strong>£{finalTotal}</strong>
               </div>
+            )}
+
+            {receipt.length > 0 && (
+              <ul className="oe-receipt-lines" aria-label="Your edit">
+                {receipt.map(row => (
+                  <li key={row.key}>
+                    <div className="oe-receipt-line">
+                      <span className="oe-receipt-item">
+                        {row.label}
+                        <span className={`oe-own-badge ${row.hire ? 'is-hire' : 'is-keep'}`}>{row.hire ? 'Hire' : 'Yours to keep'}</span>
+                      </span>
+                      <span className="oe-receipt-price">
+                        {row.amount < row.raw && <span className="oe-price-old">£{row.raw}</span>}
+                        £{row.amount}
+                      </span>
+                    </div>
+                    {row.notes.map(note => <p key={note} className="oe-receipt-note">{note}</p>)}
+                    {row.upgrades.map(up => (
+                      <button key={up.text} type="button" className="oe-receipt-upgrade" onClick={up.take}>{up.text}</button>
+                    ))}
+                  </li>
+                ))}
+                {bundleDeal.applied && (
+                  <li className="oe-receipt-line is-saving" role="status">
+                    <span>{bundleDeal.applied.bundle.title} bundle saving</span>
+                    <span>-£{bundleDeal.applied.saving}</span>
+                  </li>
+                )}
+                {eventConfirmed && (
+                  <li className="oe-receipt-line is-delivery">
+                    <span>Estimated delivery, setup and collection{miles != null ? ` (about ${Math.max(1, Math.round(miles))} miles)` : ''}</span>
+                    <span>{deliveryText}</span>
+                  </li>
+                )}
+              </ul>
+            )}
+
+            {bundleDeal.nearly && (
+              <button type="button" className="oe-bundle-deal is-nearly" onClick={() => addMissingBundleItem(bundleDeal.nearly.missing)}>
+                Add {missingName(bundleDeal.nearly.missing)} to save £{bundleDeal.nearly.saving}
+              </button>
+            )}
+
+            <div className="oe-simple-total">
+              <span>Guide price</span>
+              {recipeCalc.originalTotal > finalTotal && (
+                <span className="oe-price-old">£{recipeCalc.originalTotal}</span>
+              )}
+              <strong>£{finalTotal}</strong>
             </div>
-
-            {selection.backdrop?.hasSizeTier && (
-              <div className="oe-wall-size-pill-group" role="group" aria-label="Shimmer Wall Size">
-                <button
-                  type="button"
-                  onClick={() => setShimmerSize('small')}
-                  className={`oe-size-btn ${shimmerSize === 'small' ? 'active' : ''}`}
-                >
-                  Small Wall (£{selection.backdrop.packageBasePrice || 150})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShimmerSize('large')}
-                  className={`oe-size-btn ${shimmerSize === 'large' ? 'active' : ''}`}
-                >
-                  Large Wall (£{selection.backdrop.packageLargePrice || 180})
-                </button>
-              </div>
-            )}
-
-            {lineItems.length > 0 && (
-              <p className="oe-simple-items-line">
-                {lineItems.map(l => `${l.label} (£${l.amount})`).join('  ·  ')}
-              </p>
-            )}
 
             {isEditMode && (
               <button
@@ -556,7 +712,7 @@ export function ProductBuilder({
                 onClick={() => onSaveCurrentSetupAsLook(currentRecipe, finalTotal)}
                 className="oe-save-builder-as-look-btn"
               >
-                ✨ Save Current 3D Builder Setup as a Lookbook Card (£{finalTotal})
+                Save this as a new bundle (£{finalTotal})
               </button>
             )}
           </div>
@@ -689,7 +845,7 @@ export function ProductBuilder({
                                     }}
                                     className={`oe-mini-admin-btn ${colour.inStock ? 'in-stock' : 'out-stock'}`}
                                   >
-                                    {colour.inStock ? '✓ In Stock' : '✕ Out of Stock'}
+                                    {colour.inStock ? 'In stock' : 'Out of stock'}
                                   </button>
                                   <button
                                     type="button"
@@ -700,7 +856,7 @@ export function ProductBuilder({
                                     className="oe-mini-admin-btn"
                                     style={{ background: '#F0F9FF', color: '#0284C7', border: '1px solid #BAE6FD' }}
                                   >
-                                    🎨 Change Shade
+                                    Change shade
                                   </button>
                                 </div>
                               )}
@@ -783,12 +939,21 @@ export function ProductBuilder({
                     const hasDiscount = discountedBase < rawBase;
                     const displayPrefix = item.packageBasePrice ? 'From ' : '+';
 
+                    // Shimmer walls list their sizes as the choices; other cards are one choice
+                    const sized = currentStep.id === 'backdrop' && item.hasSizeTier;
+                    const pickSize = (size) => {
+                      if (!available) return;
+                      if (isSelected && shimmerSize === size) { handleSelectOrDropItem('backdrop', item); return; }
+                      setShimmerSize(size);
+                      if (!isSelected) handleSelectOrDropItem('backdrop', item);
+                    };
                     return (
                       <div
                         key={item.id}
-                        role="button"
-                        tabIndex={available || isEditMode ? 0 : -1}
-                        aria-pressed={isSelected}
+                        role={sized ? 'group' : 'button'}
+                        aria-label={sized ? item.name : undefined}
+                        tabIndex={sized ? undefined : available || isEditMode ? 0 : -1}
+                        aria-pressed={sized ? undefined : isSelected}
                         aria-disabled={!available && !isEditMode}
                         draggable={available}
                         onDragStart={(e) => {
@@ -798,8 +963,8 @@ export function ProductBuilder({
                             JSON.stringify({ stepId: currentStep.id, item })
                           );
                         }}
-                        onClick={() => handleSelectOrDropItem(currentStep.id, item)}
-                        onKeyDown={(e) => {
+                        onClick={sized ? undefined : () => handleSelectOrDropItem(currentStep.id, item)}
+                        onKeyDown={sized ? undefined : (e) => {
                           if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault();
                             handleSelectOrDropItem(currentStep.id, item);
@@ -824,9 +989,9 @@ export function ProductBuilder({
                               />
                               <span className="oe-option-card-price">
                                 {bookedOut ? (
-                                  'BOOKED'
+                                  'Booked that day'
                                 ) : !item.inStock && !isEditMode ? (
-                                  'OUT OF STOCK'
+                                  'Not available right now'
                                 ) : isEditMode ? (
                                   <EditablePrice
                                     isEditMode={true}
@@ -858,9 +1023,26 @@ export function ProductBuilder({
                             />
                           </div>
                         </div>
+                        {sized && (
+                          <div className="oe-size-options">
+                            {[['small', 'Small', item.packageBasePrice || 150], ['large', 'Large', item.packageLargePrice || 180]].map(([size, label, price]) => (
+                              <button
+                                key={size}
+                                type="button"
+                                className="oe-size-option"
+                                aria-pressed={isSelected && shimmerSize === size}
+                                disabled={!available}
+                                onClick={() => pickSize(size)}
+                              >
+                                <span>{label}</span>
+                                <span>£{applyCornerBannerDiscount(price, item.cornerBanner)}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
                         <div className="oe-option-card-footer">
-                          <span className="oe-option-badge">
-                            {item.hireOnly ? 'Hire Prop' : 'Yours to Keep'}
+                          <span className={`oe-own-badge ${item.hireOnly ? 'is-hire' : 'is-keep'}`}>
+                            {item.hireOnly ? 'Hire: we collect it after' : 'Yours to keep'}
                           </span>
                           {isPick(item.id) && available && <span className="oe-pick-tag">Perfect for {picks.label}</span>}
                           {isStylePick(item.id) && available && <span className="oe-pick-tag">A {clientForm.style} touch</span>}
@@ -882,10 +1064,10 @@ export function ProductBuilder({
                               onClick={() => onToggleBuilderItemStock(currentStep.id, item.id)}
                               className={`oe-mini-admin-btn ${item.inStock ? 'in-stock' : 'out-stock'}`}
                             >
-                              {item.inStock ? '✓ In Stock' : '✕ Out of Stock'}
+                              {item.inStock ? 'In stock' : 'Out of stock'}
                             </button>
                             <label className="oe-mini-admin-btn">
-                              📷 Photo
+                              Photo
                               <input
                                 type="file"
                                 accept="image/*"
@@ -904,7 +1086,7 @@ export function ProductBuilder({
                               onClick={() => setOpenRibbonItemId(openRibbonItemId === item.id ? null : item.id)}
                               className="oe-mini-admin-btn"
                             >
-                              🎀 Corner Banner
+                              Label and offer
                             </button>
                           </div>
                         )}
@@ -923,98 +1105,108 @@ export function ProductBuilder({
                   })}
                 </div>
 
-                {currentStep.id === 'backdrop' && selection.backdrop?.id === 'wooden-board' && (
-                  <div className="oe-board-personalisation-deck">
-                    <div className="oe-deck-header">
-                      <h4 className="oe-deck-title">Your board</h4>
-                      <p className="oe-deck-subtitle">Choose the paint colour and your wording.</p>
+                {currentStep.id === 'backdrop' && PERSONALISED_BASES[selection.backdrop?.id] && (() => {
+                  const opts = PERSONALISED_BASES[selection.backdrop.id];
+                  return (
+                    <div className="oe-board-personalisation-deck">
+                      <div className="oe-deck-header">
+                        <h4 className="oe-deck-title">{opts.title}</h4>
+                        <p className="oe-deck-subtitle">Choose the colours and add your own words. You'll see it on the preview.</p>
+                      </div>
+                      <div className="oe-deck-grid">
+                        <div>
+                          <label className="oe-field-label">Board colour</label>
+                          <div className="oe-paint-swatches">
+                            {opts.paints.map(p => (
+                              <button
+                                key={p.name}
+                                type="button"
+                                onClick={() => setBoardCustomization(prev => ({ ...prev, color: p.hex, colorName: p.name }))}
+                                className={`oe-paint-swatch-btn ${boardCustomization.colorName === p.name ? 'active' : ''}`}
+                                aria-pressed={boardCustomization.colorName === p.name}
+                              >
+                                <span className="oe-swatch-circle" style={{ backgroundColor: p.hex }} />
+                                <span className="oe-swatch-text">{p.name}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <label className="oe-field-label">Lettering colour</label>
+                          <div className="oe-vinyl-options">
+                            {opts.vinyls.map(v => (
+                              <button
+                                key={v.id}
+                                type="button"
+                                onClick={() => setBoardCustomization(prev => ({ ...prev, vinylColor: v.id }))}
+                                className={`oe-vinyl-btn ${boardCustomization.vinylColor === v.id ? 'active' : ''}`}
+                                aria-pressed={boardCustomization.vinylColor === v.id}
+                              >
+                                {v.name}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div style={{ gridColumn: '1 / -1' }}>
+                          <label className="oe-field-label" htmlFor="oe-board-words">Your words</label>
+                          <input
+                            id="oe-board-words"
+                            type="text"
+                            maxLength={40}
+                            placeholder={opts.placeholder}
+                            value={boardCustomization.text}
+                            onChange={(e) => setBoardCustomization(prev => ({ ...prev, text: e.target.value }))}
+                            className="oe-form-input"
+                            style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '1.05rem', fontStyle: 'italic', fontWeight: 600 }}
+                          />
+                        </div>
+                      </div>
                     </div>
+                  );
+                })()}
 
-                    <div className="oe-deck-grid">
-                      <div>
-                        <label className="oe-field-label">1. Board Paint Finish</label>
-                        <div className="oe-paint-swatches">
-                          {[
-                            { name: 'Warm Ivory', hex: '#F5EFEB' },
-                            { name: 'Organic Sage', hex: '#8A9A7B' },
-                            { name: 'Soft Blush', hex: '#E8D3CE' },
-                            { name: 'Warm Taupe', hex: '#C8B098' },
-                            { name: 'Matte White', hex: '#FDFDFD' },
-                            { name: 'Obsidian Black', hex: '#242623' }
-                          ].map(p => (
-                            <button
-                              key={p.name}
-                              type="button"
-                              onClick={() => setBoardCustomization(prev => ({ ...prev, color: p.hex, colorName: p.name }))}
-                              className={`oe-paint-swatch-btn ${boardCustomization.colorName === p.name ? 'active' : ''}`}
-                              title={p.name}
-                            >
-                              <span className="oe-swatch-circle" style={{ backgroundColor: p.hex }} />
-                              <span className="oe-swatch-text">{p.name}</span>
+                {currentStep.id === 'extras' && selection.extras.some(e => e.id === 'neon-sign') && (() => {
+                  // The signs Laura owns, set in the Studio's Inventory
+                  const phrases = neonOptions;
+                  return (
+                    <div className="oe-extra-bespoke-card">
+                      <label className="oe-field-label">{phrases.length > 1 ? 'Which sign would you like?' : 'Your neon sign reads'}</label>
+                      {phrases.length > 1 ? (
+                        <div className="oe-neon-phrase-chips">
+                          {phrases.map(phrase => (
+                            <button key={phrase} type="button" aria-pressed={activeNeon === phrase} onClick={() => setNeonPhrase(phrase)} className={`oe-recipe-chip ${activeNeon === phrase ? 'selected' : ''}`}>
+                              {phrase}
                             </button>
                           ))}
                         </div>
-                      </div>
-
-                      <div>
-                        <label className="oe-field-label">2. Vinyl Lettering Colour</label>
-                        <div className="oe-vinyl-options">
-                          {[
-                            { id: 'gold', name: '✦ Metallic Gold' },
-                            { id: 'white', name: '⚪ Matte White' },
-                            { id: 'black', name: '⚫ Gloss Black' },
-                            { id: 'rose-gold', name: '✨ Rose Gold' }
-                          ].map(v => (
-                            <button
-                              key={v.id}
-                              type="button"
-                              onClick={() => setBoardCustomization(prev => ({ ...prev, vinylColor: v.id }))}
-                              className={`oe-vinyl-btn ${boardCustomization.vinylColor === v.id ? 'active' : ''}`}
-                            >
-                              {v.name}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div style={{ gridColumn: '1 / -1' }}>
-                        <label className="oe-field-label">3. Custom Vinyl Lettering / Message</label>
-                        <input
-                          type="text"
-                          maxLength={40}
-                          placeholder="e.g. Welcome to Sophie's 30th / Oh Baby / Happy Birthday"
-                          value={boardCustomization.text}
-                          onChange={(e) => setBoardCustomization(prev => ({ ...prev, text: e.target.value }))}
-                          className="oe-form-input"
-                          style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '1.05rem', fontStyle: 'italic', fontWeight: 600 }}
-                        />
-                      </div>
+                      ) : (
+                        <p className="oe-neon-only">{phrases[0]}</p>
+                      )}
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
-                {currentStep.id === 'extras' && selection.extras.some(e => e.id === 'neon-sign') && (
+                {currentStep.id === 'extras' && selection.extras.some(e => e.id === 'cut-outs') && (
                   <div className="oe-extra-bespoke-card">
-                    <label className="oe-field-label">Neon Sign Phrase (Warm White Glow)</label>
-                    <div className="oe-neon-phrase-chips">
-                      {['Happy Birthday', "Let's Party", 'Oh Baby', 'Better Together', 'Twenty One'].map(phrase => (
-                        <button
-                          key={phrase}
-                          type="button"
-                          onClick={() => setNeonPhrase(phrase)}
-                          className={`oe-recipe-chip ${neonPhrase === phrase ? 'selected' : ''}`}
-                        >
-                          {neonPhrase === phrase ? '✓ ' : ''}{phrase}
-                        </button>
-                      ))}
-                    </div>
+                    <label className="oe-field-label" htmlFor="oe-cutout-theme">Which character or theme?</label>
+                    <input
+                      id="oe-cutout-theme"
+                      type="text"
+                      maxLength={40}
+                      placeholder="e.g. Peppa Pig, unicorns, football"
+                      value={cutoutTheme}
+                      onChange={(e) => setCutoutTheme(e.target.value)}
+                      className="oe-form-input"
+                      style={{ marginTop: '0.4rem' }}
+                    />
                   </div>
                 )}
 
                 {currentStep.id === 'extras' && selection.extras.some(e => e.id === 'bubble-balloon') && (
                   <div className="oe-extra-bespoke-card">
-                    <label className="oe-field-label">Personalised Bubble Balloon Lettering</label>
+                    <label className="oe-field-label" htmlFor="oe-bubble-words">Your words in the bubble</label>
                     <input
+                      id="oe-bubble-words"
                       type="text"
                       maxLength={30}
                       placeholder="e.g. Happy 30th Sophie"
@@ -1099,6 +1291,7 @@ export function ProductBuilder({
                             </div>
                           </div>
                           <div className="oe-option-card-footer">
+                            {opt.type !== 'none' && <span className="oe-own-badge is-keep">Yours to keep</span>}
                             {isPick(opt.id) && <span className="oe-pick-tag">Perfect for {picks.label}</span>}
                             {isStylePick(opt.id) && <span className="oe-pick-tag">A {clientForm.style} touch</span>}
                             <span className="oe-option-action-text">
@@ -1113,14 +1306,14 @@ export function ProductBuilder({
                                 onClick={() => onUpdateDigitOption(opt.id, { inStock: !opt.inStock })}
                                 className={`oe-mini-admin-btn ${opt.inStock ? 'in-stock' : 'out-stock'}`}
                               >
-                                {opt.inStock ? '✓ In Stock' : '✕ Out of Stock'}
+                                {opt.inStock ? 'In stock' : 'Out of stock'}
                               </button>
                               <button
                                 type="button"
                                 onClick={() => setOpenRibbonItemId(openRibbonItemId === opt.id ? null : opt.id)}
                                 className="oe-mini-admin-btn"
                               >
-                                🎀 Corner Banner
+                                Label and offer
                               </button>
                             </div>
                           )}
@@ -1345,14 +1538,14 @@ export function ProductBuilder({
                           onClick={() => setClientForm({ ...clientForm, setting: 'indoor' })}
                           className={`oe-setting-pill-btn ${(clientForm.setting || 'indoor') === 'indoor' ? 'active' : ''}`}
                         >
-                          🏢 Indoor Display
+                          Indoors
                         </button>
                         <button
                           type="button"
                           onClick={() => setClientForm({ ...clientForm, setting: 'outdoor' })}
                           className={`oe-setting-pill-btn ${clientForm.setting === 'outdoor' ? 'active' : ''}`}
                         >
-                          🌳 Outdoor Setup
+                          Outdoors
                         </button>
                       </div>
                     </div>
