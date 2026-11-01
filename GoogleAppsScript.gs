@@ -18,7 +18,7 @@
  *  1. Open a new Google Sheet and name it: "THE Occasion Edit — Studio Master Sheet"
  *  2. Click Extensions > Apps Script, paste this entire file, and click Save.
  *  3. Select `setUpMyDrive` in the top toolbar dropdown and click Run. It builds the
- *     sheet's tabs, the Money In & Out record and the business folders in Drive.
+ *     sheet's tabs, the Income & Expenses record and the business folders in Drive.
  *     (Copy the ADMIN_SYNC_SECRET shown in the Execution Log.)
  *  4. Click Deploy > New deployment > Select type: Web app
  *     - Execute as: Me
@@ -30,7 +30,8 @@ var TAB_ENQUIRIES = 'Enquiries & Orders';
 var TAB_PRICES    = 'Prices, Stock & Ribbons';
 var TAB_PALETTES  = 'Balloon Colours & Palettes';
 var TAB_SETTINGS  = 'Offers, Lookbook & Settings';
-var TAB_MONEY     = 'Money In & Out';
+var TAB_MONEY     = 'Income & Expenses';
+var TAB_DOCUMENTS = 'Quotes & Invoices';
 
 // Groups that match the expense boxes on HMRC's self-employment pages, so the
 // totals copy straight into a tax return or Making Tax Digital software
@@ -56,7 +57,7 @@ function onOpen() {
 }
 
 /**
- * One click: builds every tab, the Money In & Out record and the business
+ * One click: builds every tab, the Income & Expenses record and the business
  * folders, moves this sheet into them, and remembers the links so the Studio
  * can open each one.
  */
@@ -66,8 +67,9 @@ function setUpMyDrive() {
   var taxYear = getUkTaxYearString_();
   var folders = ensureStudioDriveFolders_();
   var root = getOrCreateDrivePath_(['THE Occasion Edit']);
-  var taxRecords = getOrCreateDrivePath_(['THE Occasion Edit', 'Tax records', taxYear]);
-  var receipts = getOrCreateDrivePath_(['THE Occasion Edit', 'Tax records', taxYear, 'Receipts']);
+  var taxRecords = getOrCreateDrivePath_(['THE Occasion Edit', taxYear]);
+  var receipts = getOrCreateDrivePath_(['THE Occasion Edit', taxYear, 'Receipts']);
+  ensureDocumentsSheet_(ss);
   var eventPhotos = getOrCreateDrivePath_(['THE Occasion Edit', 'Photos', 'Finished events']);
   var money = ensureMoneySheet_(ss);
 
@@ -126,7 +128,7 @@ function ensureMoneySheet_(ss) {
 }
 
 /**
- * Writes a payment into Money In & Out, once per order and purpose.
+ * Writes a payment into Income & Expenses, once per order and purpose.
  */
 function recordPayment_(ss, orderId, customer, whatFor, amount) {
   if (!(amount > 0)) return;
@@ -515,6 +517,10 @@ function doPost(e) {
       return jsonResponse_({ ok: true });
     }
 
+    if (action === 'save_document') {
+      return jsonResponse_(handleSaveDocument_(ss, body));
+    }
+
     if (action === 'archive_pdf_document') {
       var res = handleArchivePdfDocument_(ss, body);
       return jsonResponse_(res);
@@ -772,8 +778,9 @@ function getOrCreateDrivePath_(pathArray) {
  */
 function ensureStudioDriveFolders_() {
   var taxYear = getUkTaxYearString_();
-  var invoiceFolder = getOrCreateDrivePath_(['THE Occasion Edit', 'Invoices', taxYear]);
-  var quoteFolder = getOrCreateDrivePath_(['THE Occasion Edit', 'Quotes', taxYear]);
+  // Each tax year keeps its own Quotes, Invoices and Receipts together
+  var invoiceFolder = getOrCreateDrivePath_(['THE Occasion Edit', taxYear, 'Invoices']);
+  var quoteFolder = getOrCreateDrivePath_(['THE Occasion Edit', taxYear, 'Quotes']);
   var curatedFolder = getOrCreateDrivePath_(['THE Occasion Edit', 'Assets', 'Curated Looks']);
   var stockFolder = getOrCreateDrivePath_(['THE Occasion Edit', 'Assets', 'Stock Products']);
   return {
@@ -836,4 +843,49 @@ function handleArchivePdfDocument_(ss, body) {
     taxYear: taxYear,
     updatedSheetRow: updatedRow
   };
+}
+
+
+/**
+ * Quotes & Invoices tab: one row per document issued, with its PDF.
+ */
+function ensureDocumentsSheet_(ss) {
+  var sheet = getOrCreateSheet_(ss, TAB_DOCUMENTS, '#4A5840');
+  if (sheet.getLastRow() === 0) {
+    styleHeaderRow_(sheet, ['Issued', 'Order ID', 'Document', 'Type', 'Total (£)', 'PDF'], '#4A5840', '#FFFFFF');
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+/**
+ * Turns a quote or invoice page from the Studio into a PDF in
+ * THE Occasion Edit / Tax Year 2026-27 / Quotes (or Invoices), named
+ * "QUOTE ID_2026-27_1001.pdf", and records it in the master sheet.
+ */
+function handleSaveDocument_(ss, body) {
+  var isInvoice = body.docType === 'invoice';
+  var year = body.taxYear ? 'Tax Year ' + String(body.taxYear) : getUkTaxYearString_();
+  var folder = getOrCreateDrivePath_(['THE Occasion Edit', year, isInvoice ? 'Invoices' : 'Quotes']);
+  var pdf = HtmlService.createHtmlOutput(String(body.html || '')).getBlob().getAs(MimeType.PDF).setName(String(body.filename || 'Document.pdf'));
+  var file = folder.createFile(pdf);
+  var url = file.getUrl();
+
+  // On the order's own row, and in the Quotes & Invoices log
+  var s1 = ss.getSheetByName(TAB_ENQUIRIES);
+  var bookingId = String(body.bookingId || '');
+  if (s1 && bookingId && s1.getLastRow() >= 2) {
+    var ids = s1.getRange(2, 2, s1.getLastRow() - 1, 1).getValues();
+    for (var r = 0; r < ids.length; r++) {
+      if (String(ids[r][0]).trim() === bookingId) {
+        s1.getRange(r + 2, isInvoice ? 19 : 18).setValue('=HYPERLINK("' + url + '", "' + sanitizeCell(body.number) + '")');
+        break;
+      }
+    }
+  }
+  ensureDocumentsSheet_(ss).appendRow([
+    new Date(), sanitizeCell(bookingId), sanitizeCell(body.number), isInvoice ? 'Invoice' : 'Quote',
+    Number(body.total) || 0, '=HYPERLINK("' + url + '", "Open PDF")'
+  ]);
+  return { ok: true, fileId: file.getId(), fileUrl: url, folder: folder.getName() };
 }

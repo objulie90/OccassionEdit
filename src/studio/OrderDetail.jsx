@@ -5,7 +5,9 @@ import { BOOKING_TERMS, depositFor } from '../lib/terms';
 import { BalloonGraphic } from '../components/ui';
 import { DossierVisualArtwork, WorkshopBalloonPullList, buildDossierOrderLines } from './OrderDossierParts';
 import { DateTicket } from './DateTicket';
+import { ZoneMap } from '../components/DeliveryMaps';
 import { SendMessage } from './SendMessage';
+import { DocumentsPanel } from './DocumentsPanel';
 import { balanceDueDate } from './messages';
 import {
   ORDER_STATUSES,
@@ -33,6 +35,10 @@ export function OrderDetail({
   onBack,
   onSelectOrder,
   onUpdateOrder,
+  onIssueDocument,
+  onDocumentAction,
+  documentSource,
+  curatedPalettes = [],
   onDeleteQuote,
   studioSettings = {},
   steps,
@@ -116,7 +122,9 @@ export function OrderDetail({
     'Balance recorded. Paid in full'
   );
   const markDone = () => act({ status: 'Completed' }, 'Marked as done', 'Marked as done');
-  const cancel = () => act({ status: 'Cancelled' }, 'Booking cancelled', 'Booking cancelled and the date freed up');
+  const cancel = () => (status.tone === 'new' || status.tone === 'quoted'
+    ? act({ status: 'Cancelled' }, 'Enquiry closed', 'Enquiry closed and the date freed up')
+    : act({ status: 'Cancelled' }, 'Booking cancelled', 'Booking cancelled and the date freed up'));
   const reopen = () => act({ status: 'New Enquiry' }, 'Reopened as a new enquiry', 'Reopened');
 
   const saveNotes = async (e) => {
@@ -143,7 +151,7 @@ export function OrderDetail({
           <p className="st-detail-when">
             {date ? `${formatLongDate(date)}, ${describeDaysUntil(date).toLowerCase()}` : 'No event date given'}
           </p>
-          <p className="st-detail-ref">Payment reference {order.id}</p>
+          <p className="st-detail-ref">Order {order.id}</p>
         </div>
         <div className="st-contact">
           {c.phone && <a className="st-btn" href={`tel:${c.phone.replace(/\s+/g, '')}`}>Call</a>}
@@ -241,7 +249,9 @@ export function OrderDetail({
                   </form>
                 )}
                 {status.tone !== 'done' && (
-                  <button type="button" className="st-link st-link-quiet st-cancel-link" onClick={cancel}>Cancel booking</button>
+                  <button type="button" className="st-link st-link-quiet st-cancel-link" onClick={cancel}>
+                    {status.tone === 'new' || status.tone === 'quoted' ? 'Close this enquiry' : 'Cancel booking'}
+                  </button>
                 )}
               </div>
             )}
@@ -314,6 +324,18 @@ export function OrderDetail({
               <div><dt>Collect props</dt><dd>{formatLongDate(collectDate)}</dd></div>
             )}
           </dl>
+          {/* Where the venue is. The preview can't embed Google, so it pins it on the delivery map */}
+          {mapsQuery && (import.meta.env.VITE_PREVIEW === '1'
+            ? <div className="st-map"><ZoneMap zones={deliveryConfig.zones} pinPlace={c.postcode || c.area} /></div>
+            : (
+              <iframe
+                className="st-map"
+                title={`Map of ${mapsQuery}`}
+                src={`https://www.google.com/maps?q=${encodeURIComponent(mapsQuery)}&output=embed`}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+            ))}
           {mapsQuery && (
             <a className="st-link" href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(mapsQuery)}`} target="_blank" rel="noopener noreferrer">
               Directions in Google Maps
@@ -337,17 +359,31 @@ export function OrderDetail({
         </section>
 
         <section className="st-panel" aria-labelledby="st-money">
-          <h4 id="st-money" className="st-panel-title">Money</h4>
+          <h4 id="st-money" className="st-panel-title">Payments</h4>
           <dl className="st-facts">
             <div><dt>{cfg.quotedPrice != null && cfg.quotedPrice !== '' ? 'Price quoted' : 'Guide price'}</dt><dd className="st-strong">{money(total)}</dd></div>
             {Number(c.budget) > 0 && <div><dt>Their budget</dt><dd>{money(c.budget)}</dd></div>}
             {Number(cfg.bundleDiscount) > 0 && <div><dt>Discount included</dt><dd>{money(cfg.bundleDiscount)}{cfg.promoCode ? ` (code ${cfg.promoCode})` : ''}</dd></div>}
-            <div><dt>Deposit ({BOOKING_TERMS.depositPercent}%)</dt><dd>{deposit > 0 ? `${money(deposit)} received` : `${money(depositAsk)} to ask for`}</dd></div>
+            <div><dt>Deposit ({BOOKING_TERMS.depositPercent}%)</dt><dd>{deposit > 0 ? `${money(deposit)} received` : `${money(depositAsk)} due`}</dd></div>
             {balancePaid > 0 && <div><dt>Balance</dt><dd>{money(balancePaid)} received</dd></div>}
-            <div><dt>Still to pay</dt><dd className="st-strong">{money(Math.max(0, total - paid))}</dd></div>
+            <div><dt>Outstanding</dt><dd className="st-strong">{money(Math.max(0, total - paid))}</dd></div>
             {balanceDue && total - paid > 0 && <div><dt>Balance due by</dt><dd>{formatLongDate(balanceDue)}</dd></div>}
           </dl>
         </section>
+
+        {onIssueDocument && (
+          <DocumentsPanel
+            order={order}
+            steps={steps}
+            digitOptions={digitOptions}
+            balloonColours={balloonColours}
+            curatedPalettes={curatedPalettes}
+            settings={studioSettings}
+            onIssue={onIssueDocument}
+            onAction={onDocumentAction}
+            documentSource={documentSource}
+          />
+        )}
 
         <section className="st-panel" aria-labelledby="st-notes">
           <h4 id="st-notes" className="st-panel-title">Your notes</h4>
@@ -393,7 +429,7 @@ export function OrderDetail({
       {onDeleteQuote && (
         <footer className="st-detail-foot">
           <button type="button" className="st-link st-link-danger" onClick={() => onDeleteQuote(order.id, c.name || 'this customer')}>
-            Delete this enquiry and the customer's details
+            Delete the customer's details (invoices are kept for HMRC)
           </button>
         </footer>
       )}

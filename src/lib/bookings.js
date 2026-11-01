@@ -2,7 +2,22 @@
 // server.py builds the same record in POST /api/admin/bookings; the preview has no
 // server, so it builds it here.
 
+import { getUkTaxYear } from '../data/catalogData.js';
+
 export const BOOKING_SOURCES = ['Facebook', 'Instagram', 'Phone', 'WhatsApp', 'Email', 'Other'];
+
+// One reference per enquiry, kept through quote and invoice: ID_2026/27_1001.
+// server.py makes the same numbers (generate_tax_year_order_id).
+export function nextOrderId(existing = [], now = new Date()) {
+  const prefix = `ID_${getUkTaxYear(now).slash}_`;
+  const highest = existing
+    .map(q => String(q.id || ''))
+    .filter(id => id.startsWith(prefix))
+    .map(id => parseInt(id.slice(prefix.length), 10))
+    .filter(n => !Number.isNaN(n))
+    .reduce((a, b) => Math.max(a, b), 1000);
+  return `${prefix}${highest + 1}`;
+}
 
 export function buildLocalBooking(booking, existing = []) {
   const c = booking.client || {};
@@ -13,7 +28,7 @@ export function buildLocalBooking(booking, existing = []) {
   const history = [{ at, text: `Added by you, booked through ${source}` }];
   if (deposit > 0) history.push({ at, text: `Deposit £${deposit} received` });
   return {
-    id: `ADDED-${String(existing.length + 1).padStart(3, '0')}`,
+    id: nextOrderId(existing),
     createdAt: at,
     status: deposit > 0 ? 'Deposit Paid' : 'Quote Sent',
     seenByAdmin: true,

@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { INITIAL_DELIVERY_CONFIG } from '../data/catalogData.js';
 import { OrdersTab } from './OrdersTab';
+import { TodayTab } from './TodayTab';
 import { CalendarTab } from './CalendarTab';
 import { InventoryTab } from './InventoryTab';
 import { BundlesTab } from './BundlesTab';
@@ -14,6 +15,7 @@ import './studio.css';
 
 // Daily jobs first; on a phone the last three sit under "More"
 const TABS = [
+  { id: 'today', label: 'Today' },
   { id: 'orders', label: 'Orders' },
   { id: 'calendar', label: 'Calendar' },
   { id: 'inventory', label: 'Inventory' },
@@ -31,6 +33,9 @@ export function MasterOrdersDashboard({
   quotes = [],
   onUpdateOrder,
   onAddBooking,
+  onIssueDocument,
+  onDocumentAction,
+  documentSource,
   onDeleteQuote,
   catalog = [],
   steps = [],
@@ -55,7 +60,8 @@ export function MasterOrdersDashboard({
   onFetchDriveLinks,
   flashToast
 }) {
-  const [activeTab, setActiveTab] = useState('orders');
+  const [activeTab, setActiveTab] = useState('today');
+  const [startAdding, setStartAdding] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [moreOpen, setMoreOpen] = useState(false);
 
@@ -129,6 +135,19 @@ export function MasterOrdersDashboard({
       </header>
 
       <main className="st-body">
+        {activeTab === 'today' && (
+          <TodayTab
+            quotes={quotes}
+            steps={steps}
+            digitOptions={digitOptions}
+            balloonColours={balloonColours}
+            studioSettings={studioSettings}
+            sale={sale}
+            onOpenOrder={openOrder}
+            onGo={setActiveTab}
+            onAddBooking={onAddBooking ? () => { setSelectedOrderId(null); setStartAdding(true); setActiveTab('orders'); } : null}
+          />
+        )}
         {activeTab === 'orders' && (
           <OrdersTab
             quotes={quotes}
@@ -136,6 +155,12 @@ export function MasterOrdersDashboard({
             onSelectOrder={setSelectedOrderId}
             onUpdateOrder={onUpdateOrder}
             onAddBooking={onAddBooking}
+            onIssueDocument={onIssueDocument}
+            onDocumentAction={onDocumentAction}
+            documentSource={documentSource}
+            curatedPalettes={curatedPalettes}
+            startAdding={startAdding}
+            onStartedAdding={() => setStartAdding(false)}
             onDeleteQuote={onDeleteQuote}
             studioSettings={studioSettings}
             steps={steps}

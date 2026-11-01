@@ -78,6 +78,8 @@ export function buildProductTree(steps = [], digitOptions = [], catalog = []) {
 // The prices a product has, labelled the way the builder charges them
 export function priceFields(leafItem) {
   const { ref, item } = leafItem;
+  // Bases are priced per display in their own table
+  if (Array.isArray(item.displays)) return [];
   if (ref.kind === 'digit') {
     if (item.perLetter) return [{ key: 'basePrice', label: 'Per letter (£)' }];
     return [
@@ -105,8 +107,20 @@ export function priceFields(leafItem) {
 
 // The headline price shown in the list
 export function headlinePrice(leafItem) {
+  if (Array.isArray(leafItem.item.displays)) {
+    const known = leafItem.item.displays.filter(d => d.offered !== false && d.price != null && d.price !== '').map(d => Number(d.price));
+    return known.length ? Math.min(...known) : null;
+  }
   const first = priceFields(leafItem)[0];
   return Number(leafItem.item[first.key] ?? 0);
+}
+
+// Prices Laura still has to fill in for a base's displays
+export function pricesToConfirm(item) {
+  if (!Array.isArray(item.displays)) return 0;
+  return item.displays.filter(d => d.offered !== false).reduce((n, d) => n
+    + (d.price == null || d.price === '' ? 1 : 0)
+    + (item.hasSizeTier && (d.priceLarge == null || d.priceLarge === '') ? 1 : 0), 0);
 }
 
 // The words for the builder card

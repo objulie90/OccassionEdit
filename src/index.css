@@ -4652,26 +4652,8 @@ input:focus-visible,
   color: #FAF6F0;
 }
 
-.oe-preview-banner {
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-  height: 2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 1rem;
-  background: #1E211C;
-  color: #F2DF74;
-  font-family: var(--font-sans);
-  font-size: 0.75rem;
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 /* In the preview the staff bar sits just under the preview banner */
-.is-preview .oe-studio-topbar { top: 2rem; }
+
 
 /* Phone widths: grid and flex children may shrink below their content,
    so long builder content wraps instead of widening the whole page */
@@ -5018,11 +5000,6 @@ input:focus-visible,
   .oe-stages { width: 100%; }
 }
 
-/* The preview's notice bar sits above everything; keep the builder clear of it */
-.is-preview .oe-builder-section { scroll-margin-top: 2rem; }
-@media (min-width: 981px) {
-  .is-preview .oe-builder-section { height: calc(100svh - 2rem); }
-}
 
 .oe-zone-map-figure { margin: 0; }
 .oe-map-credit { padding: 0.35rem 0.75rem; font-size: 0.72rem; color: var(--color-ink-secondary); text-align: right; }
@@ -5300,3 +5277,23 @@ input:focus-visible,
 /* Leave room for a corner ribbon so it never covers the price */
 .oe-option-card.oe-has-corner-ribbon .oe-option-card-top { padding-right: 3.4rem; }
 .oe-neon-only { margin: 0.35rem 0 0; font-family: 'Mrs Saint Delafield', cursive; font-size: 2rem; color: #C2389F; }
+
+/* A base's complete displays, listed in its card */
+.oe-display-options { display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.75rem; }
+.oe-display-options .oe-size-option { width: 100%; }
+.oe-size-toggle { display: inline-flex; align-self: flex-start; padding: 3px; border-radius: 999px; background: #EFE9DE; }
+.oe-size-toggle button { padding: 0.35rem 0.9rem; border: 0; border-radius: 999px; background: transparent; font-family: var(--font-sans); font-size: 0.82rem; font-weight: 600; color: #4A4843; cursor: pointer; }
+.oe-size-toggle button[aria-pressed="true"] { background: #FFFDF8; color: var(--color-ink-charcoal); box-shadow: 0 1px 3px rgba(30, 33, 28, 0.15); }
+.oe-base-balloons { display: flex; flex-direction: column; gap: 0.5rem; padding: 1rem; border: 1px solid #E3DDD2; border-radius: 14px; background: #FFFDF8; margin-bottom: 1rem; }
+.oe-base-balloons-title { margin: 0; font-family: var(--font-serif); font-size: 1.3rem; font-weight: 600; }
+.oe-link-btn { align-self: flex-start; padding: 0; border: 0; background: none; font-family: var(--font-sans); font-size: 0.85rem; color: #4A5840; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+
+/* Accessibility pass: text at WCAG AA contrast, targets at least 24px */
+.oe-hero-nav-link { padding: 0.45rem 0.95rem; border-radius: 999px; background: rgba(28, 30, 27, 0.6); letter-spacing: 0.02em; font-size: 0.85rem; text-shadow: none; }
+.oe-hero-nav-link:hover { color: #F2DF74; }
+.oe-hero-offers-pill { background-color: #A8433A; letter-spacing: 0.02em; font-size: 0.85rem; padding: 0.5rem 1.05rem; }
+.oe-stage { color: rgba(250, 246, 240, 0.95); }
+.oe-stage:disabled { opacity: 0.8; }
+.oe-stage.is-done .oe-stage-mark { background: #FAF6F0; color: #3E4D33; }
+.oe-footer-location { color: #5E5A52; }
+.oe-pricelist-build-link { display: inline-flex; align-items: center; min-height: 32px; padding: 0.25rem 0.1rem; }

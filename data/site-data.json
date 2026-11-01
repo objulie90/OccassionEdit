@@ -35,7 +35,29 @@
           "suggestFor": [
             "Baby Shower"
           ],
-          "code": "BASE_Board_1"
+          "code": "BASE_Board_1",
+          "displays": [
+            {
+              "id": "none",
+              "price": null,
+              "offered": true
+            },
+            {
+              "id": "clusters",
+              "price": null,
+              "offered": true
+            },
+            {
+              "id": "garland",
+              "price": 155,
+              "offered": true
+            },
+            {
+              "id": "arch",
+              "price": 190,
+              "offered": true
+            }
+          ]
         },
         {
           "id": "gold-shimmer",
@@ -61,7 +83,33 @@
           "styleFor": [
             "Luxury"
           ],
-          "code": "BASE_Wall_Gold"
+          "code": "BASE_Wall_Gold",
+          "displays": [
+            {
+              "id": "none",
+              "price": null,
+              "offered": true,
+              "priceLarge": null
+            },
+            {
+              "id": "clusters",
+              "price": null,
+              "offered": true,
+              "priceLarge": null
+            },
+            {
+              "id": "garland",
+              "price": 150,
+              "offered": true,
+              "priceLarge": 180
+            },
+            {
+              "id": "arch",
+              "price": 175,
+              "offered": true,
+              "priceLarge": 205
+            }
+          ]
         },
         {
           "id": "silver-shimmer",
@@ -80,7 +128,33 @@
           "ownedCount": 2,
           "heightIn": 72,
           "heightInLarge": 96,
-          "code": "BASE_Wall_Silver"
+          "code": "BASE_Wall_Silver",
+          "displays": [
+            {
+              "id": "none",
+              "price": null,
+              "offered": true,
+              "priceLarge": null
+            },
+            {
+              "id": "clusters",
+              "price": null,
+              "offered": true,
+              "priceLarge": null
+            },
+            {
+              "id": "garland",
+              "price": 150,
+              "offered": true,
+              "priceLarge": 180
+            },
+            {
+              "id": "arch",
+              "price": 175,
+              "offered": true,
+              "priceLarge": 205
+            }
+          ]
         },
         {
           "id": "black-shimmer",
@@ -102,7 +176,33 @@
           "suggestFor": [
             "Prom"
           ],
-          "code": "BASE_Wall_Black"
+          "code": "BASE_Wall_Black",
+          "displays": [
+            {
+              "id": "none",
+              "price": null,
+              "offered": true,
+              "priceLarge": null
+            },
+            {
+              "id": "clusters",
+              "price": null,
+              "offered": true,
+              "priceLarge": null
+            },
+            {
+              "id": "garland",
+              "price": 150,
+              "offered": true,
+              "priceLarge": 180
+            },
+            {
+              "id": "arch",
+              "price": 175,
+              "offered": true,
+              "priceLarge": 205
+            }
+          ]
         },
         {
           "id": "pink-shimmer",
@@ -121,7 +221,33 @@
           "ownedCount": 2,
           "heightIn": 72,
           "heightInLarge": 96,
-          "code": "BASE_Wall_Blush"
+          "code": "BASE_Wall_Blush",
+          "displays": [
+            {
+              "id": "none",
+              "price": null,
+              "offered": true,
+              "priceLarge": null
+            },
+            {
+              "id": "clusters",
+              "price": null,
+              "offered": true,
+              "priceLarge": null
+            },
+            {
+              "id": "garland",
+              "price": 150,
+              "offered": true,
+              "priceLarge": 180
+            },
+            {
+              "id": "arch",
+              "price": 175,
+              "offered": true,
+              "priceLarge": 205
+            }
+          ]
         },
         {
           "id": "balloon-hoop",
@@ -141,7 +267,29 @@
             "Wedding / Engagement",
             "Anniversary"
           ],
-          "code": "BASE_Hoop_1"
+          "code": "BASE_Hoop_1",
+          "displays": [
+            {
+              "id": "none",
+              "price": null,
+              "offered": true
+            },
+            {
+              "id": "clusters",
+              "price": null,
+              "offered": true
+            },
+            {
+              "id": "garland",
+              "price": 140,
+              "offered": true
+            },
+            {
+              "id": "arch",
+              "price": 175,
+              "offered": true
+            }
+          ]
         },
         {
           "id": "easel-sign",
@@ -159,7 +307,30 @@
           "suggestFor": [
             "Wedding / Engagement"
           ],
-          "code": "BASE_Sign_1"
+          "code": "BASE_Sign_1",
+          "displays": [
+            {
+              "id": "none",
+              "price": 85,
+              "offered": true,
+              "label": "With its mini garland"
+            },
+            {
+              "id": "clusters",
+              "price": null,
+              "offered": true
+            },
+            {
+              "id": "garland",
+              "price": null,
+              "offered": true
+            },
+            {
+              "id": "arch",
+              "price": null,
+              "offered": true
+            }
+          ]
         }
       ]
     },

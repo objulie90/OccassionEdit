@@ -4,7 +4,7 @@ import { statusInfo, parseEventDate, money, orderTotal } from './studioFormat';
 
 const DRIVE_LINKS = [
   ['businessFolder', 'Business folder', 'Everything below lives here'],
-  ['moneyInOut', 'Money in and out', 'Every payment and cost, ready for your tax return'],
+  ['moneyInOut', 'Income and expenses', 'Every payment and cost, ready for your tax return'],
   ['quotes', 'Quotes', 'Filed by tax year'],
   ['invoices', 'Invoices', 'Filed by tax year'],
   ['receipts', 'Receipts', 'Photos of receipts for balloons, helium and supplies'],
@@ -120,7 +120,7 @@ export function PaperworkTab({ quotes, studioSettings, onSaveStudioSettings, onF
         {(drive.state === 'not-connected' || drive.state === 'not-set-up' || drive.state === 'error') && (
           <>
             <p className="st-cat-note">
-              Do this once. It builds your business folders and a Money In &amp; Out record in your own Google Drive,
+              Do this once. It builds your business folders and an Income &amp; Expenses record in your own Google Drive,
               then links them here so every quote, invoice, receipt and photo has a home.
             </p>
             <ol className="st-setup-steps">

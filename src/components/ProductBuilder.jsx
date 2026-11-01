@@ -2,7 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   calculateLookRecipePrice,
   applyCornerBannerDiscount,
-  getDeliveryZoneForMileage
+  getDeliveryZoneForMileage,
+  BASE_DISPLAYS,
+  displayIdFor
 } from '../data/catalogData.js';
 import { milesFromBase } from '../lib/places';
 import { ProductPreview } from './ProductPreview';
@@ -114,6 +116,7 @@ export function ProductBuilder({
   const [neonPhrase, setNeonPhrase] = useState('Happy Birthday');
   const [bubbleText, setBubbleText] = useState('');
   const [cutoutTheme, setCutoutTheme] = useState('');
+  const [orderRef, setOrderRef] = useState('');
   // Only the neon signs Laura owns can be chosen
   const neonItem = steps.flatMap(st => st.items || []).find(it => it.extraType === 'neon');
   const neonOptions = neonItem?.phrases?.length ? neonItem.phrases : ['Happy Birthday'];
@@ -263,7 +266,10 @@ export function ProductBuilder({
     const target = stepId === 'digits' ? digitOptions.find(d => d.id === toId) : steps.find(st => st.id === stepId)?.items?.find(it => it.id === toId);
     if (!target || target.inStock === false || isBookedOut(target)) return null;
     const patch = stepId === 'digits' ? { digitOptionId: toId } : { balloonId: toId };
-    const more = Math.round(totalWith(patch) - recipeCalc.finalTotal);
+    // Never compare against a price Laura hasn't set yet
+    const next = calculateLookRecipePrice({ ...currentRecipe, ...patch }, steps, digitOptions, balloonColours, curatedPalettes);
+    if (next.lines.some(l => l.tbc) || recipeCalc.lines.some(l => l.tbc)) return null;
+    const more = Math.round(next.finalTotal - recipeCalc.finalTotal);
     if (more <= 0) return null;
     return {
       text: `Upgrade to ${target.name} for just £${more}`,
@@ -275,13 +281,13 @@ export function ProductBuilder({
     const b = selection.backdrop;
     const isBase = b && i === 0 && line.label.startsWith(b.shortName);
     const extra = extrasByLabel[line.label];
-    const row = { key: `${i}-${line.label}`, label: line.label, raw: line.rawAmount, amount: line.amount, hire: isBase ? !!b.hireOnly : extra ? !!extra.hireOnly : false, notes: [], upgrades: [] };
+    const row = { key: `${i}-${line.label}`, label: line.label, raw: line.rawAmount, amount: line.amount, tbc: !!line.tbc, hire: isBase ? !!b.hireOnly : extra ? !!extra.hireOnly : false, notes: [], upgrades: [] };
     if (isBase && b.hasSizeTier && shimmerSize === 'small') {
-      const more = (b.packageLargePrice || 180) - (b.packageBasePrice || 150);
+      // The same display, large: worked out from her prices for this display
+      const d = (b.displays || []).find(x => x.id === displayIdFor(selection.balloons));
+      const more = d && d.price != null && d.priceLarge != null ? Number(d.priceLarge) - Number(d.price) : 0;
       if (more > 0) row.upgrades.push({ text: `Upgrade to a large ${(b.shortName || b.name).replace(/ Wall$/, ' wall')} for just £${more}`, take: () => setShimmerSize('large') });
     }
-    // A board, hoop or wall price includes its garland
-    if (isBase && selection.balloons && (line.label.includes('&') || b.hasSizeTier)) row.notes.push(`${selection.balloons.name}, included`);
     // A garland inside a package has no line of its own, so its upgrade goes under the package
     if (selection.balloons && (isBase || line.label === selection.balloons.shortName)) row.upgrades.push(upgradeOffer(selection.balloons.id, 'balloons'));
     if (digitSelection && line.label.startsWith(digitSelection.name)) row.upgrades.push(upgradeOffer(digitSelection.id, 'digits'));
@@ -395,6 +401,44 @@ export function ProductBuilder({
       });
     }
   };
+
+  // A base is chosen as a complete display: the base and its balloons together
+  const structureById = id => steps.find(st => st.id === 'balloons')?.items?.find(it => it.id === id) || null;
+  const displayPrice = (item, d) => {
+    const raw = item.hasSizeTier && shimmerSize === 'large' ? d.priceLarge : d.price;
+    return raw == null || raw === '' ? null : applyCornerBannerDiscount(Number(raw), item.cornerBanner);
+  };
+  const DISPLAY_NAMES = { none: 'On its own', clusters: 'Corner clusters', garland: 'Garland', arch: 'Full archway' };
+  const chooseDisplay = (item, d) => {
+    const meta = BASE_DISPLAYS.find(x => x.id === d.id);
+    const already = selection.backdrop?.id === item.id && displayIdFor(selection.balloons) === d.id;
+    setSelection(prev => (already
+      ? { ...prev, backdrop: null, balloons: null }
+      : { ...prev, backdrop: item, balloons: meta?.structureId ? structureById(meta.structureId) : null }));
+  };
+  const renderDisplays = (item, available) => (
+    <div className="oe-display-options">
+      {item.hasSizeTier && (
+        <div className="oe-size-toggle" role="group" aria-label={`${item.name} size`}>
+          {['small', 'large'].map(size => (
+            <button key={size} type="button" aria-pressed={shimmerSize === size} onClick={() => setShimmerSize(size)}>
+              {size === 'small' ? 'Small' : 'Large'}
+            </button>
+          ))}
+        </div>
+      )}
+      {(item.displays || []).filter(d => d.offered !== false).map(d => {
+        const price = displayPrice(item, d);
+        const chosen = selection.backdrop?.id === item.id && displayIdFor(selection.balloons) === d.id;
+        return (
+          <button key={d.id} type="button" className="oe-size-option" aria-pressed={chosen} disabled={!available} onClick={() => chooseDisplay(item, d)}>
+            <span>{d.label || DISPLAY_NAMES[d.id]}</span>
+            <span>{price == null ? 'Price to confirm' : `£${price}`}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
 
   // "Add Neon Sign to save £20": puts the one missing bundle item into their build
   const addMissingBundleItem = (missing) => {
@@ -545,7 +589,8 @@ export function ProductBuilder({
 
     setQuoteSubmitError('');
     try {
-      await onSubmitQuote(quotePayload);
+      const saved = await onSubmitQuote(quotePayload);
+      setOrderRef(saved?.quoteId || '');
       setSubmittedSuccess(true);
     } catch (err) {
       setQuoteSubmitError(err?.customerMessage || "Sorry, your edit didn't send. Your design is still here, so please try again in a minute, or message us on Facebook.");
@@ -667,8 +712,12 @@ export function ProductBuilder({
                         <span className={`oe-own-badge ${row.hire ? 'is-hire' : 'is-keep'}`}>{row.hire ? 'Hire' : 'Yours to keep'}</span>
                       </span>
                       <span className="oe-receipt-price">
-                        {row.amount < row.raw && <span className="oe-price-old">£{row.raw}</span>}
-                        £{row.amount}
+                        {row.tbc ? 'Price to confirm' : (
+                          <>
+                            {row.amount < row.raw && <span className="oe-price-old">£{row.raw}</span>}
+                            £{row.amount}
+                          </>
+                        )}
                       </span>
                     </div>
                     {row.notes.map(note => <p key={note} className="oe-receipt-note">{note}</p>)}
@@ -705,6 +754,7 @@ export function ProductBuilder({
               )}
               <strong>£{finalTotal}</strong>
             </div>
+            {receipt.some(r => r.tbc) && <p className="oe-receipt-note">Plus anything marked "Price to confirm", which we'll price in your quote.</p>}
 
             {isEditMode && (
               <button
@@ -925,8 +975,18 @@ export function ProductBuilder({
                     </div>
                   </div>
                 )}
+                {/* With a base chosen, its balloons are part of the same display */}
+                {currentStep.id === 'balloons' && selection.backdrop?.displays && (
+                  <div className="oe-base-balloons">
+                    <p className="oe-base-balloons-title">Balloons for your {selection.backdrop.shortName || selection.backdrop.name}</p>
+                    {renderDisplays(selection.backdrop, true)}
+                    <button type="button" className="oe-link-btn" onClick={() => setSelection(prev => ({ ...prev, backdrop: null, balloons: null }))}>
+                      Or have balloons on their own, without a base
+                    </button>
+                  </div>
+                )}
                 <div className="oe-accessible-options-grid">
-                  {currentStep.items.map(item => {
+                  {(currentStep.id === 'balloons' && selection.backdrop?.displays ? [] : currentStep.items).map(item => {
                     const bookedOut = !isEditMode && isBookedOut(item);
                     const available = item.inStock && !bookedOut;
                     const isSelected =
@@ -939,14 +999,9 @@ export function ProductBuilder({
                     const hasDiscount = discountedBase < rawBase;
                     const displayPrefix = item.packageBasePrice ? 'From ' : '+';
 
-                    // Shimmer walls list their sizes as the choices; other cards are one choice
-                    const sized = currentStep.id === 'backdrop' && item.hasSizeTier;
-                    const pickSize = (size) => {
-                      if (!available) return;
-                      if (isSelected && shimmerSize === size) { handleSelectOrDropItem('backdrop', item); return; }
-                      setShimmerSize(size);
-                      if (!isSelected) handleSelectOrDropItem('backdrop', item);
-                    };
+                    // A base lists its complete displays as the choices; other cards are one choice
+                    const sized = currentStep.id === 'backdrop' && Array.isArray(item.displays);
+                    const known = sized ? item.displays.filter(d => d.offered !== false).map(d => displayPrice(item, d)).filter(p => p != null) : [];
                     return (
                       <div
                         key={item.id}
@@ -1004,6 +1059,8 @@ export function ProductBuilder({
                                       })
                                     }
                                   />
+                                ) : sized ? (
+                                  known.length ? `From £${Math.min(...known)}` : ''
                                 ) : hasDiscount ? (
                                   <>
                                     <span className="oe-price-old">£{rawBase}</span>
@@ -1023,23 +1080,7 @@ export function ProductBuilder({
                             />
                           </div>
                         </div>
-                        {sized && (
-                          <div className="oe-size-options">
-                            {[['small', 'Small', item.packageBasePrice || 150], ['large', 'Large', item.packageLargePrice || 180]].map(([size, label, price]) => (
-                              <button
-                                key={size}
-                                type="button"
-                                className="oe-size-option"
-                                aria-pressed={isSelected && shimmerSize === size}
-                                disabled={!available}
-                                onClick={() => pickSize(size)}
-                              >
-                                <span>{label}</span>
-                                <span>£{applyCornerBannerDiscount(price, item.cornerBanner)}</span>
-                              </button>
-                            ))}
-                          </div>
-                        )}
+                        {sized && renderDisplays(item, available)}
                         <div className="oe-option-card-footer">
                           <span className={`oe-own-badge ${item.hireOnly ? 'is-hire' : 'is-keep'}`}>
                             {item.hireOnly ? 'Hire: we collect it after' : 'Yours to keep'}
@@ -1397,10 +1438,11 @@ export function ProductBuilder({
             <div className="oe-step-card-surface">
               {submittedSuccess ? (
                 <div className="oe-quote-confirmation">
-                  <h3 className="oe-active-step-heading">Your Edit Has Been Sent!</h3>
+                  <h3 className="oe-active-step-heading">Thank you, {clientForm.name.split(' ')[0] || 'lovely'}!</h3>
                   <p className="oe-active-step-desc">
-                    Thank you, <strong>{clientForm.name}</strong>. We have received your custom 3D display snapshot and estimated quote (<strong>£{finalTotal}</strong>) and will be in touch shortly to confirm availability for your date.
+                    Your edit is with us, guide price <strong>£{finalTotal}</strong>. We'll be in touch very soon with your quote and to confirm your date.
                   </p>
+                  {orderRef && <p className="oe-active-step-desc">Your reference is <strong>{orderRef}</strong>. It's on your quote and invoice too.</p>}
                   <button
                     type="button"
                     onClick={() => {

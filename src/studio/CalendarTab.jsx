@@ -52,16 +52,22 @@ export function CalendarTab({ quotes, onSelectOrder, steps = [], studioSettings 
     }
   };
 
-  const chip = q => (
-    <button
-      key={q.id}
-      type="button"
-      className={`st-cal-chip st-status-${statusInfo(q.status).tone}`}
-      onClick={() => onSelectOrder(q.id)}
-    >
-      {q.client?.name || 'Name not given'}
-    </button>
-  );
+  // Enquiries and bookings both show; each says which it is in words, not colour alone
+  const chip = q => {
+    const st = statusInfo(q.status);
+    return (
+      <button
+        key={q.id}
+        type="button"
+        className={`st-cal-chip st-status-${st.tone}`}
+        onClick={() => onSelectOrder(q.id)}
+      >
+        <span className="st-cal-chip-name">{q.client?.name || 'Name not given'}</span>
+        <span className="st-cal-chip-status">{st.label}</span>
+      </button>
+    );
+  };
+  const isEnquiry = q => ['new', 'quoted'].includes(statusInfo(q.status).tone);
 
   return (
     <div className="st-calendar">
@@ -97,7 +103,7 @@ export function CalendarTab({ quotes, onSelectOrder, steps = [], studioSettings 
 
       {/* On phones the grid is too small to read, so the month is shown as a list */}
       <ul className="st-cal-agenda">
-        {busyDays.length === 0 && <li className="st-empty">Nothing booked this month.</li>}
+        {busyDays.length === 0 && <li className="st-empty">No enquiries or bookings this month.</li>}
         {busyDays.map(day => (
           <li key={day.getDate()}>
             <span className="st-agenda-date">
@@ -139,11 +145,16 @@ export function CalendarTab({ quotes, onSelectOrder, steps = [], studioSettings 
             <>
               <h3 id="st-day-title" className="st-section-title">{formatLongDate(pickedDate)}</h3>
               <p className="st-cat-note">
-                {pickedBlocked
-                  ? "Blocked. Customers can't book this day."
-                  : pickedOrders.length === 0
-                    ? 'Nothing booked yet.'
-                    : `${pickedOrders.length} booking${pickedOrders.length === 1 ? '' : 's'}.`}
+                {(() => {
+                  if (pickedBlocked) return "Blocked. Customers can't book this day.";
+                  const enquiries = pickedOrders.filter(isEnquiry).length;
+                  const bookings = pickedOrders.length - enquiries;
+                  if (!pickedOrders.length) return 'No enquiries or bookings yet.';
+                  return [
+                    enquiries && `${enquiries} enquir${enquiries === 1 ? 'y' : 'ies'}`,
+                    bookings && `${bookings} booking${bookings === 1 ? '' : 's'}`
+                  ].filter(Boolean).join(' and ') + '.';
+                })()}
               </p>
               {pickedOrders.length > 0 && <div className="st-agenda-orders">{pickedOrders.map(chip)}</div>}
               <div className="st-business-actions">

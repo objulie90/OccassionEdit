@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { buildProductTree, priceFields, headlinePrice, builderLineKey, refKey } from './inventoryModel';
+import { buildProductTree, priceFields, headlinePrice, builderLineKey, refKey, pricesToConfirm } from './inventoryModel';
 import { LABELS, bannerFromForm } from './CatalogueTabs';
 import { BalloonStock } from './BalloonStock';
 import { SaleEditor } from './SaleEditor';
@@ -89,7 +89,16 @@ function ProductTree({ steps = [], digitOptions = [], catalog = [], onSaveInvent
               <h3 id={`st-sec-${section.id}`} className="st-section-title">{section.title}</h3>
               {onAddInventoryItem && <button type="button" className="st-btn" onClick={() => { setAdding(section.id); setOpenKey(null); }}>Add to {section.title.toLowerCase()}</button>}
             </div>
-            {section.note && <p className="st-cat-note">{section.note}</p>}
+            {section.note && !(section.id === 'backdrop' && section.groups.some(g => g.items.some(l => pricesToConfirm(l.item) > 0))) && <p className="st-cat-note">{section.note}</p>}
+            {section.id === 'backdrop' && (() => {
+              const missing = section.groups.flatMap(g => g.items).reduce((n, l) => n + pricesToConfirm(l.item), 0);
+              return missing > 0 && (
+                <p className="st-callout">
+                  <strong>Laura, your price list goes here.</strong> Each base is sold as a complete display: on its own, with corner clusters, a garland or a full archway.
+                  {` ${missing} price${missing === 1 ? '' : 's'} still to fill in`}, marked "To fill in" below. Until then customers see "Price to confirm".
+                </p>
+              );
+            })()}
             {adding === section.id && (
               <AddProduct
                 section={section}
@@ -121,8 +130,11 @@ function ProductTree({ steps = [], digitOptions = [], catalog = [], onSaveInvent
                           </span>
                         </span>
                         <span className="st-tag">{l.item.hireOnly ? 'Hire' : 'Yours to keep'}</span>
-                        <span className="st-product-price">{money(headlinePrice(l))}</span>
-                        <span className={`st-stock ${l.item.inStock === false ? 'is-out' : 'is-in'}`}>{l.item.inStock === false ? 'Not available' : 'Available'}</span>
+                        <span className="st-product-price">
+                          {headlinePrice(l) == null ? '' : `${Array.isArray(l.item.displays) ? 'From ' : ''}${money(headlinePrice(l))}`}
+                          {pricesToConfirm(l.item) > 0 && <span className="st-tbc">{pricesToConfirm(l.item)} to fill in</span>}
+                        </span>
+                        <span className={`st-stock ${l.item.inStock === false ? 'is-out' : 'is-in'}`}>{l.item.inStock === false ? 'Not available' : ''}</span>
                       </button>
                       {openKey === l.key && (
                         <ItemEditor
@@ -163,6 +175,7 @@ function ItemEditor({ leafItem, onSave, onRemove, onUploadPhoto, onClose }) {
     style: card ? card.style || '' : '',
     prices: Object.fromEntries(fields.map(p => [p.key, item[p.key] ?? p.fallback ?? ''])),
     ownedCount: item.ownedCount ?? 1,
+    displays: Array.isArray(item.displays) ? item.displays.map(d => ({ ...d, price: d.price ?? '', priceLarge: d.priceLarge ?? '' })) : null,
     heights: Object.fromEntries(['heightIn', 'heightInLarge'].map(k => [k, { ft: item[k] ? Math.floor(item[k] / 12) : '', in: item[k] ? item[k] % 12 : '' }])),
     code: leafItem.code || '',
     image: item.image || card?.image || '',
@@ -206,6 +219,15 @@ function ItemEditor({ leafItem, onSave, onRemove, onUploadPhoto, onClose }) {
         itemPatch[k] = total > 0 ? total : undefined;
       });
     }
+    if (f.displays) {
+      const num = v => (v === '' || v == null ? null : Math.max(0, Number(v) || 0));
+      itemPatch.displays = f.displays.map(d => {
+        const out = { id: d.id, offered: d.offered !== false, price: num(d.price) };
+        if (item.hasSizeTier) out.priceLarge = num(d.priceLarge);
+        if (d.label) out.label = d.label;
+        return out;
+      });
+    }
     if (tracksOwned) itemPatch.ownedCount = Math.max(0, parseInt(f.ownedCount, 10) || 0);
     if (ref.kind === 'card') {
       itemPatch.style = f.style.trim();
@@ -218,7 +240,7 @@ function ItemEditor({ leafItem, onSave, onRemove, onUploadPhoto, onClose }) {
   };
 
   const banner = bannerFromForm(f);
-  const firstPrice = Number(f.prices[fields[0].key]) || 0;
+  const firstPrice = fields.length ? Number(f.prices[fields[0].key]) || 0 : Number(headlinePrice(leafItem)) || 0;
   const offerPrice = banner && banner.discountType !== 'none'
     ? (banner.discountType === 'percent' ? Math.round(firstPrice * (1 - banner.discountValue / 100)) : Math.max(0, firstPrice - banner.discountValue))
     : null;
@@ -258,6 +280,36 @@ function ItemEditor({ leafItem, onSave, onRemove, onUploadPhoto, onClose }) {
             <textarea id={`ie-style-${id}`} rows={3} value={f.style} onChange={e => set({ style: e.target.value })} />
             <span className="st-hint">Sell it: say why they'll love it, not what's in it.</span>
           </div>
+        )}
+        {f.displays && (
+          <fieldset className="st-prop-pick st-display-prices">
+            <legend className="st-field-label">Your prices for this base</legend>
+            <p className="st-hint">Tick the displays you offer. Leave a price blank if you're not sure yet: customers see "Price to confirm" and you set it in the quote.</p>
+            <div className="st-display-table" role="table" aria-label="Prices by display">
+              <div role="row" className="st-display-row is-head">
+                <span role="columnheader">Display</span>
+                <span role="columnheader">{item.hasSizeTier ? 'Small (£)' : 'Price (£)'}</span>
+                {item.hasSizeTier && <span role="columnheader">Large (£)</span>}
+              </div>
+              {f.displays.map((d, i) => {
+                const name = d.label || { none: 'On its own', clusters: 'With corner clusters', garland: 'With a garland', arch: 'With a full archway' }[d.id];
+                const setD = patch => set({ displays: f.displays.map((x, j) => (j === i ? { ...x, ...patch } : x)) });
+                return (
+                  <div role="row" key={d.id} className={`st-display-row ${d.offered === false ? 'is-off' : ''}`}>
+                    <label role="cell" className="st-check"><input type="checkbox" checked={d.offered !== false} onChange={e => setD({ offered: e.target.checked })} /><span>{name}</span></label>
+                    <span role="cell">
+                      <input type="number" inputMode="decimal" min="0" aria-label={`${name}, ${item.hasSizeTier ? 'small ' : ''}price`} placeholder="To fill in" value={d.price} disabled={d.offered === false} onChange={e => setD({ price: e.target.value })} className={d.price === '' && d.offered !== false ? 'is-missing' : ''} />
+                    </span>
+                    {item.hasSizeTier && (
+                      <span role="cell">
+                        <input type="number" inputMode="decimal" min="0" aria-label={`${name}, large price`} placeholder="To fill in" value={d.priceLarge} disabled={d.offered === false} onChange={e => setD({ priceLarge: e.target.value })} className={d.priceLarge === '' && d.offered !== false ? 'is-missing' : ''} />
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </fieldset>
         )}
         <div className="st-form-grid">
           {fields.map(p => (

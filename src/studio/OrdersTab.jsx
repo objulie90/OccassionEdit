@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { buildDossierOrderLines } from './OrderDossierParts';
 import { OrderDetail } from './OrderDetail';
 import { DateTicket } from './DateTicket';
@@ -50,6 +50,12 @@ export function OrdersTab({
   onSelectOrder,
   onUpdateOrder,
   onAddBooking,
+  onIssueDocument,
+  onDocumentAction,
+  documentSource,
+  curatedPalettes,
+  startAdding = false,
+  onStartedAdding,
   onDeleteQuote,
   studioSettings,
   steps,
@@ -59,7 +65,11 @@ export function OrdersTab({
   flashToast
 }) {
   const [search, setSearch] = useState('');
-  const [adding, setAdding] = useState(false);
+  const [adding, setAdding] = useState(startAdding);
+  // "Add a booking" from the Today screen opens the form straight away
+  useEffect(() => {
+    if (startAdding) { setAdding(true); if (onStartedAdding) onStartedAdding(); }
+  }, [startAdding]);
   const term = search.trim().toLowerCase();
 
   const groups = useMemo(
@@ -136,6 +146,10 @@ export function OrdersTab({
             onBack={() => onSelectOrder(null)}
             onSelectOrder={onSelectOrder}
             onUpdateOrder={onUpdateOrder}
+            onIssueDocument={onIssueDocument}
+            onDocumentAction={onDocumentAction}
+            documentSource={documentSource}
+            curatedPalettes={curatedPalettes}
             onDeleteQuote={onDeleteQuote}
             studioSettings={studioSettings}
             steps={steps}
@@ -183,6 +197,7 @@ function OrderCard({ order, isSelected, onSelect, steps, digitOptions }) {
       <DateTicket value={c.eventDate} size="small" markPast />
       <span className="st-card-main">
         <span className="st-card-name">{c.name || 'Name not given'}</span>
+        <span className="st-code">{order.id}</span>
         <span className="st-card-summary">{summary}</span>
         {missedDate && <span className="st-card-warning">The date has passed</span>}
         {!missedDate && status.tone === 'new' && order.createdAt && <span className="st-card-waiting">{waitingFor(order.createdAt)}</span>}

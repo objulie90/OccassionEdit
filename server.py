@@ -54,6 +54,10 @@ SITE_DATA_PATH = os.path.join(DATA_DIR, "site-data.json")
 SITE_DATA_BACKUP_PATH = os.path.join(DATA_DIR, "site-data.backup.json")
 QUOTES_PATH = os.path.join(DATA_DIR, "quotes.json")
 STUDIO_SETTINGS_PATH = os.path.join(DATA_DIR, "studio-settings.json")
+# Every quote and invoice as issued, kept for HMRC (encrypted, never overwritten)
+DOCUMENTS_DIR = os.path.join(DATA_DIR, "documents")
+LOGO_PATH = os.path.join(ROOT_DIR, "public", "assets", "logo.jpg")
+DOCUMENT_KINDS = ("quote", "invoice")
 
 DEFAULT_STUDIO_SETTINGS = {
     "businessTradingName": "THE Occasion Edit",
@@ -108,6 +112,7 @@ QUOTE_RATE_LIMIT = {}
 def ensure_directories():
     os.makedirs(DATA_DIR, exist_ok=True)
     os.makedirs(UPLOADS_DIR, exist_ok=True)
+    os.makedirs(DOCUMENTS_DIR, mode=0o700, exist_ok=True)
     if not os.path.exists(QUOTES_PATH):
         atomic_write_json(QUOTES_PATH, [], mode=0o600)
     else:
@@ -560,17 +565,80 @@ def add_history(order, text):
     order["history"] = history[-100:]
 
 
+# ---------------------------------------------------------------------------
+# Quotes and invoices: the record of what was issued
+# ---------------------------------------------------------------------------
+def logo_data_uri():
+    try:
+        with open(LOGO_PATH, "rb") as f:
+            return "data:image/jpeg;base64," + base64.b64encode(f.read()).decode("ascii")
+    except OSError:
+        return ""
+
+
+def document_path(doc_id):
+    safe = re.sub(r"[^a-zA-Z0-9_-]", "", str(doc_id))[:64]
+    return os.path.join(DOCUMENTS_DIR, f"{safe}.doc")
+
+
+def store_document_html(doc_id, html_text):
+    """Writes the issued document once. It is never overwritten."""
+    path = document_path(doc_id)
+    if os.path.exists(path):
+        raise ValueError("A document with this id already exists.")
+    with DATA_LOCK:
+        payload = encrypt_client_pii({"html": html_text})
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, "w", encoding="ascii") as f:
+            f.write(payload)
+
+
+def read_document_html(doc_id):
+    try:
+        with open(document_path(doc_id), "r", encoding="ascii") as f:
+            html_text = (decrypt_client_pii(f.read()) or {}).get("html", "")
+    except OSError:
+        return ""
+    return html_text.replace("{{LOGO}}", logo_data_uri())
+
+
+def sheet_connection():
+    site_data = get_default_site_data()
+    studio_cfg = load_studio_settings().get("sheetConfig") or {}
+    return studio_cfg if studio_cfg.get("webAppUrl") else (site_data.get("sheetConfig") or {})
+
+
+def file_document_in_drive(order, doc):
+    """Turns the document into a PDF in Laura's Drive: <tax year>/Quotes or Invoices,
+    named QUOTE ID_... or INVOICE ID_..., and logs it in the master sheet."""
+    cfg = sheet_connection()
+    if not (cfg.get("webAppUrl") and cfg.get("adminSecret")):
+        return {"ok": False, "error": "Google Drive isn't connected yet."}
+    tax_year = (re.match(r"^ID_(\d{4}/\d{2})_", str(order.get("id", ""))) or [None, get_uk_tax_year_str()])[1]
+    return call_google_sheets_webhook(cfg["webAppUrl"], {
+        "action": "save_document",
+        "adminSecret": cfg["adminSecret"],
+        "bookingId": order.get("id"),
+        "docType": doc["kind"],
+        "number": doc["number"],
+        "filename": doc["number"].replace("/", "-") + ".pdf",
+        "taxYear": tax_year.replace("/", "-"),
+        "total": doc.get("total", 0),
+        "html": read_document_html(doc["id"])
+    }, timeout=45.0)
+
+
 def generate_tax_year_order_id(existing_quotes):
+    """One reference per enquiry, kept through quote and invoice: ID_2026/27_1001.
+    Numbers restart each UK tax year."""
     tax_year = get_uk_tax_year_str()
-    prefix = f"Order_{tax_year}_"
-    highest = 100
+    prefix = f"ID_{tax_year}_"
+    highest = 1000
     for q in existing_quotes:
         qid = str(q.get("id", ""))
         if qid.startswith(prefix):
             try:
-                seq = int(qid[len(prefix):])
-                if seq > highest:
-                    highest = seq
+                highest = max(highest, int(qid[len(prefix):]))
             except ValueError:
                 pass
     return f"{prefix}{highest + 1}"
@@ -707,7 +775,9 @@ def write_seo_files_to_disk(site_data):
 # 5. Google Sheets Webhook Helper (Background & On-Demand Sync)
 # ---------------------------------------------------------------------------
 def call_google_sheets_webhook(url, payload, timeout=8.0):
-    if not url or not url.startswith("https://script.google.com/"):
+    # A local stand-in for Laura's Google script is allowed only when testing
+    local_test = os.environ.get("OE_ALLOW_LOCAL_SHEET") == "1" and str(url).startswith("http://127.0.0.1:")
+    if not url or not (url.startswith("https://script.google.com/") or local_test):
         return {"ok": False, "error": "No valid Google Apps Script Web App URL configured."}
     try:
         data_bytes = json.dumps(payload).encode("utf-8")
@@ -773,7 +843,9 @@ class OccasionEditHandler(BaseHTTPRequestHandler):
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; "
             "font-src 'self' https://fonts.gstatic.com data:; "
             "img-src 'self' data: blob: https:; "
-            "connect-src 'self' https://script.google.com https://script.googleusercontent.com https://*.googleapis.com;"
+            "connect-src 'self' https://script.google.com https://script.googleusercontent.com https://*.googleapis.com; "
+            # The Studio shows each venue on an embedded Google map
+            "frame-src 'self' https://www.google.com https://maps.google.com https://drive.google.com;"
         )
 
     def send_json(self, status_code, payload, extra_headers=None):
@@ -944,6 +1016,27 @@ class OccasionEditHandler(BaseHTTPRequestHandler):
             return
 
         # 4. Protected Admin Studio Settings API (Bank Details & Sheet Config)
+        m_doc = re.match(r"^/api/admin/documents/([a-f0-9]{16})$", route)
+        if m_doc:
+            if not self.get_active_session(require_csrf=False):
+                self.send_json(HTTPStatus.UNAUTHORIZED, {"ok": False, "error": "Studio Admin unlock required."})
+                return
+            html_text = read_document_html(m_doc.group(1))
+            if not html_text:
+                self.send_json(HTTPStatus.NOT_FOUND, {"ok": False, "error": "Document not found."})
+                return
+            raw = html_text.encode("utf-8")
+            self.send_response(HTTPStatus.OK)
+            # Shown inside the Studio's preview panel, so this page alone may be framed by the site itself
+            self.send_header("X-Frame-Options", "SAMEORIGIN")
+            self.send_header("Content-Security-Policy", "default-src 'none'; img-src data:; style-src 'unsafe-inline'; frame-ancestors 'self'")
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", str(len(raw)))
+            self.end_headers()
+            self.wfile.write(raw)
+            return
+
         if route == "/api/admin/settings":
             sess = self.get_active_session(require_csrf=False)
             if not sess:
@@ -1331,6 +1424,98 @@ class OccasionEditHandler(BaseHTTPRequestHandler):
 
             # 6. Pull Latest Catalog & Stock from Google Sheet (doGet)
             # Links to Laura's Drive folders and records, as set up by the sheet script
+            # Issue a quote or invoice: kept for good on the server, then filed in Drive
+            if route == "/api/admin/documents":
+                body = self.read_json_body(max_bytes=600000)
+                kind = body.get("kind")
+                html_text = body.get("html")
+                if kind not in DOCUMENT_KINDS or not isinstance(html_text, str) or not html_text.strip():
+                    self.send_json(HTTPStatus.BAD_REQUEST, {"ok": False, "error": "Send a quote or invoice."})
+                    return
+                quotes = load_quotes()
+                order = next((q for q in quotes if q.get("id") == body.get("orderId")), None)
+                if not order:
+                    self.send_json(HTTPStatus.NOT_FOUND, {"ok": False, "error": "Order not found."})
+                    return
+                docs = order.get("documents") if isinstance(order.get("documents"), list) else []
+                same_kind = [d for d in docs if d.get("kind") == kind]
+                if kind == "invoice" and any(d.get("status") != "void" for d in same_kind):
+                    self.send_json(HTTPStatus.CONFLICT, {"ok": False, "error": "This order already has an invoice. Void it first if it needs changing."})
+                    return
+                version = len(same_kind) + 1
+                number = ("INVOICE " if kind == "invoice" else "QUOTE ") + order["id"] + (f" v{version}" if version > 1 else "")
+                try:
+                    total = round(max(0.0, min(100000.0, float(body.get("total") or 0))), 2)
+                except (ValueError, TypeError):
+                    total = 0.0
+                doc = {
+                    "id": uuid.uuid4().hex[:16],
+                    "kind": kind,
+                    "number": number,
+                    "version": version,
+                    "total": total,
+                    "issuedAt": datetime.now(timezone.utc).isoformat(),
+                    "status": "issued",
+                    "lines": [
+                        {"description": sanitize_formula_cell(str(l.get("description", "")))[:200], "amount": l.get("amount") if isinstance(l.get("amount"), (int, float)) else None}
+                        for l in (body.get("lines") or [])[:40] if isinstance(l, dict)
+                    ],
+                    "notes": sanitize_formula_cell(str(body.get("notes") or ""))[:1000]
+                }
+                # The logo is the same on every page, so it's stored once and added back when shown
+                logo = logo_data_uri()
+                store_document_html(doc["id"], html_text.replace(logo, "{{LOGO}}") if logo else html_text)
+                for d in same_kind:
+                    if kind == "quote" and d.get("status") == "issued":
+                        d["status"] = "replaced"
+                docs.append(doc)
+                order["documents"] = docs
+                if kind == "quote":
+                    order.setdefault("configuration", {})["quotedPrice"] = total
+                add_history(order, f"{number} issued, £{total:g}")
+                filed = file_document_in_drive(order, doc)
+                if filed and filed.get("ok"):
+                    doc["driveFileId"] = str(filed.get("fileId") or "")[:120]
+                    doc["driveUrl"] = str(filed.get("fileUrl") or "")[:300]
+                    add_history(order, f"{number} filed in Google Drive")
+                save_quotes(quotes)
+                self.send_json(HTTPStatus.CREATED, {"ok": True, "document": doc, "order": order, "drive": filed})
+                return
+
+            m_doc = re.match(r"^/api/admin/documents/([a-f0-9]{16})/(void|file|paid)$", route)
+            if m_doc:
+                doc_id, what = m_doc.group(1), m_doc.group(2)
+                body = self.read_json_body(max_bytes=4096) if what == "void" else {}
+                quotes = load_quotes()
+                order = next((q for q in quotes if any(d.get("id") == doc_id for d in (q.get("documents") or []))), None)
+                if not order:
+                    self.send_json(HTTPStatus.NOT_FOUND, {"ok": False, "error": "Document not found."})
+                    return
+                doc = next(d for d in order["documents"] if d.get("id") == doc_id)
+                drive = None
+                if what == "void":
+                    reason = sanitize_formula_cell(str(body.get("reason") or "")).strip()[:300]
+                    if not reason:
+                        self.send_json(HTTPStatus.BAD_REQUEST, {"ok": False, "error": "Say why it's being voided."})
+                        return
+                    doc["status"] = "void"
+                    doc["voidedAt"] = datetime.now(timezone.utc).isoformat()
+                    doc["voidReason"] = reason
+                    add_history(order, f"{doc['number']} voided: {reason}")
+                elif what == "paid":
+                    doc["status"] = "paid"
+                    doc["paidAt"] = datetime.now(timezone.utc).isoformat()
+                    add_history(order, f"{doc['number']} paid")
+                else:
+                    drive = file_document_in_drive(order, doc)
+                    if drive and drive.get("ok"):
+                        doc["driveFileId"] = str(drive.get("fileId") or "")[:120]
+                        doc["driveUrl"] = str(drive.get("fileUrl") or "")[:300]
+                        add_history(order, f"{doc['number']} filed in Google Drive")
+                save_quotes(quotes)
+                self.send_json(HTTPStatus.OK, {"ok": True, "document": doc, "order": order, "drive": drive})
+                return
+
             # A booking agreed outside the website (Facebook, Instagram, phone), so the diary knows
             if route == "/api/admin/bookings":
                 body = self.read_json_body(max_bytes=16384)
@@ -1553,7 +1738,19 @@ class OccasionEditHandler(BaseHTTPRequestHandler):
         if route.startswith("/api/quotes/"):
             quote_id = urllib.parse.unquote(route.split("/api/quotes/", 1)[1]).strip("/")
             quotes = load_quotes()
-            filtered = [q for q in quotes if q.get("id") != quote_id]
+            target = next((q for q in quotes if q.get("id") == quote_id), None)
+            kept_for_tax = bool(target and any(d.get("kind") == "invoice" for d in (target.get("documents") or [])))
+            if kept_for_tax:
+                # Invoices are tax records (kept 5 years after the 31 January filing deadline),
+                # so the order keeps only what its invoices show; contact details and notes go
+                client = target.get("client") or {}
+                target["client"] = {"name": client.get("name", ""), "eventDate": client.get("eventDate", "")}
+                target["gdprErasedAt"] = datetime.now(timezone.utc).isoformat()
+                target.pop("previewSnapshotDataUrl", None)
+                add_history(target, "Contact details erased on request; invoices kept for tax")
+                filtered = quotes
+            else:
+                filtered = [q for q in quotes if q.get("id") != quote_id]
             save_quotes(filtered)
 
             # Cascade UK GDPR erasure to Google Sheets Tab 1
@@ -1571,6 +1768,7 @@ class OccasionEditHandler(BaseHTTPRequestHandler):
             self.send_json(HTTPStatus.OK, {
                 "ok": True,
                 "deletedId": quote_id,
+                "keptForTax": kept_for_tax,
                 "sheetGdprDelete": sheet_res,
                 "unreadEnquiriesCount": count_unread_enquiries(filtered)
             })

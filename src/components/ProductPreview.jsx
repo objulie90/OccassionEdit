@@ -409,13 +409,13 @@ export function ProductPreview({
             <path d="M 225 425 L 225 225 A 75 75 0 0 1 375 225 L 375 425 Z" fill="#EFECE6" stroke="#D5CEC2" strokeWidth="1.5" />
             {boardCustomization?.text && (
               <text
-                x="250"
-                y="272"
+                x="300"
+                y="300"
                 textAnchor="middle"
                 fontFamily="'Cormorant Garamond', Georgia, serif"
                 fontStyle="italic"
                 fontWeight="700"
-                fontSize={boardCustomization.text.length > 22 ? 14 : boardCustomization.text.length > 14 ? 17 : 21}
+                fontSize={boardCustomization.text.length > 18 ? 13 : boardCustomization.text.length > 12 ? 16 : 20}
                 fill={
                   boardCustomization.vinylColor === 'white'
                     ? '#FFFFFF'

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { computeAvailability, hireItemsFromSteps } from './lib/availability';
 import { buildLocalBooking } from './lib/bookings';
 import { applySale, saleBannerText } from './lib/sale';
+import { documentNumber } from './studio/documents';
 import {
   INITIAL_BALLOON_COLOURS,
   INITIAL_CURATED_PALETTES,
@@ -60,6 +61,8 @@ export function App() {
   const [faqs, setFaqs] = useState(INITIAL_FAQS);
   const [deliveryConfig, setDeliveryConfig] = useState(INITIAL_DELIVERY_CONFIG);
   const [sale, setSale] = useState(null);
+  // The preview has no server, so issued documents are held here for viewing
+  const [previewDocs, setPreviewDocs] = useState({});
   const [studioSettings, setStudioSettings] = useState({});
   const [showMasterDashboard, setShowMasterDashboard] = useState(false);
   const [sheetConfig, setSheetConfig] = useState({
@@ -174,7 +177,12 @@ export function App() {
   // What customers see right now: the saved shop with any running sale applied on top,
   // every list cheapest first so a smaller budget always sees something it can have
   const saleShop = applySale({ steps, digitOptions, catalog, inspirationSlides }, sale);
-  const entryPrice = (it) => applyCornerBannerDiscount(it.packageBasePrice || it.price || it.basePrice || 0, it.cornerBanner);
+  const entryPrice = (it) => {
+    // A base's entry price is its cheapest display with a price set
+    const known = (it.displays || []).filter(d => d.offered !== false && d.price != null && d.price !== '').map(d => Number(d.price));
+    const raw = known.length ? Math.min(...known) : it.packageBasePrice || it.price || it.basePrice || 0;
+    return applyCornerBannerDiscount(raw, it.cornerBanner);
+  };
   const cheapestFirst = (list, priceOf) => list
     .map((item, i) => ({ item, i, p: priceOf(item) }))
     .sort((a, b) => a.p - b.p || a.i - b.i)
@@ -608,6 +616,65 @@ export function App() {
     }
   };
 
+  // Quotes and invoices: issued once, kept on the server as a tax record, filed in Drive
+  const postAdmin = async (url, body) => {
+    const res = await fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken || '' },
+      body: JSON.stringify(body || {})
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) throw new Error(data.error || "That wasn't saved. Check your connection and try again.");
+    if (data.order) setQuotes(prev => prev.map(q => (q.id === data.order.id ? data.order : q)));
+    return data;
+  };
+
+  const handleIssueDocument = async (orderId, payload) => {
+    if (!IS_PREVIEW_BUILD) return postAdmin('/api/admin/documents', { orderId, ...payload });
+    const order = quotes.find(q => q.id === orderId);
+    const docs = order?.documents || [];
+    const version = docs.filter(d => d.kind === payload.kind).length + 1;
+    const doc = {
+      id: Math.random().toString(16).slice(2, 10) + Date.now().toString(16).slice(-8),
+      kind: payload.kind,
+      number: documentNumber(payload.kind, orderId, version),
+      version,
+      total: payload.total,
+      issuedAt: new Date().toISOString(),
+      status: 'issued',
+      lines: payload.lines,
+      notes: payload.notes
+    };
+    setPreviewDocs(prev => ({ ...prev, [doc.id]: payload.html }));
+    setQuotes(prev => prev.map(q => (q.id !== orderId ? q : {
+      ...q,
+      documents: [...(q.documents || []).map(d => (payload.kind === 'quote' && d.kind === 'quote' && d.status === 'issued' ? { ...d, status: 'replaced' } : d)), doc],
+      configuration: payload.kind === 'quote' ? { ...(q.configuration || {}), quotedPrice: payload.total } : q.configuration,
+      history: [...(q.history || []), { at: doc.issuedAt, text: `${doc.number} issued, £${payload.total}` }]
+    })));
+    return { ok: true, document: doc, drive: { ok: false, error: "the preview can't reach Google Drive." } };
+  };
+
+  const handleDocumentAction = async (docId, what, body) => {
+    if (!IS_PREVIEW_BUILD) return postAdmin(`/api/admin/documents/${docId}/${what}`, body);
+    if (what === 'file') return { ok: true, drive: { ok: false, error: "the preview can't reach Google Drive." } };
+    const at = new Date().toISOString();
+    setQuotes(prev => prev.map(q => {
+      const doc = (q.documents || []).find(d => d.id === docId);
+      if (!doc) return q;
+      const patch = what === 'void' ? { status: 'void', voidReason: body.reason, voidedAt: at } : { status: 'paid', paidAt: at };
+      return {
+        ...q,
+        documents: q.documents.map(d => (d.id === docId ? { ...d, ...patch } : d)),
+        history: [...(q.history || []), { at, text: what === 'void' ? `${doc.number} voided: ${body.reason}` : `${doc.number} paid` }]
+      };
+    }));
+    return { ok: true };
+  };
+
+  const documentSource = (doc) => (IS_PREVIEW_BUILD ? { html: previewDocs[doc.id] || '' } : { src: `/api/admin/documents/${doc.id}` });
+
   // A booking agreed on Facebook, Instagram or the phone, added so the diary knows about it
   const handleAddBooking = async (booking) => {
     if (IS_PREVIEW_BUILD) {
@@ -628,17 +695,23 @@ export function App() {
   };
 
   const handleDeleteQuoteGdpr = async (quoteId, clientName) => {
-    if (!window.confirm(`Permanently erase enquiry ${quoteId} (${clientName}) from the website and Google Sheets for UK GDPR compliance?`)) {
+    if (!window.confirm(`Delete ${clientName}'s details (${quoteId})? Any invoice stays on record, as HMRC requires.`)) {
       return;
     }
     setQuotes(prev => prev.filter(q => q.id !== quoteId));
     if (IS_PREVIEW_BUILD) return;
     try {
-      await fetch(`/api/quotes/${encodeURIComponent(quoteId)}`, {
+      const res = await fetch(`/api/quotes/${encodeURIComponent(quoteId)}`, {
         method: 'DELETE',
         credentials: 'same-origin',
         headers: { 'X-CSRF-Token': csrfToken || '' }
       });
+      const data = await res.json().catch(() => ({}));
+      if (data.keptForTax) {
+        fetchAdminQuotes();
+        flashToast("Contact details deleted. The invoice stays on record for HMRC.");
+        return;
+      }
       flashToast(`Enquiry ${quoteId} and the customer's details deleted.`);
     } catch (_e) {}
   };
@@ -888,19 +961,18 @@ export function App() {
     if (el) el.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const priceSections = ['All', 'Backdrops, Walls & Garlands', 'Numbers, Helium & Gifts', 'Hire Props & Finishing Extras'];
-  const filteredCatalog = shopCatalog.filter(item => {
-    const matchesSection = priceSectionFilter === 'All' || item.section === priceSectionFilter;
-    return matchesSection;
-  });
+  // The price list uses the builder's own groups, so customers see the same choices in both
+  const sectionOf = (card) => {
+    const l = card.builderLink;
+    if (!l) return 'Packages and more';
+    if (l.type === 'digit') return 'Numbers and letters';
+    return { backdrop: 'Bases', balloons: 'Balloon displays', extras: 'Finishing touches' }[l.stepId] || 'Packages and more';
+  };
+  const priceSections = ['All', ...['Bases', 'Balloon displays', 'Numbers and letters', 'Finishing touches', 'Packages and more'].filter(sec => shopCatalog.some(c => sectionOf(c) === sec))];
+  const filteredCatalog = shopCatalog.filter(item => priceSectionFilter === 'All' || sectionOf(item) === priceSectionFilter);
 
   return (
-    <div className={`oe-site-wrapper ${IS_PREVIEW_BUILD ? 'is-preview' : ''}`}>
-      {IS_PREVIEW_BUILD && (
-        <div className="oe-preview-banner" role="note">
-          Preview: orders aren't sent, and the Studio shows a demo order
-        </div>
-      )}
+    <div className="oe-site-wrapper">
       {/* Staff bar: one switch between the customer's view, editing the page and the Studio */}
       {isAdminUnlocked && (
         <div className="oe-studio-topbar" role="region" aria-label="Staff controls">
@@ -955,27 +1027,27 @@ export function App() {
               <span className="oe-wordmark-edit" aria-hidden="true">Edit</span>
             </h1>
             <a href="#build-your-edit" className="oe-hero-primary-btn">
-              BUILD YOURS NOW
+              Build yours now
             </a>
           </div>
         </div>
 
         <nav className="oe-hero-floating-nav" aria-label="Primary Navigation">
           <a href="#be-inspired" className="oe-hero-nav-link">
-            BE INSPIRED
+            Be inspired
           </a>
           <a href="#price-guide" className="oe-hero-nav-link">
-            PRICE GUIDE
+            Prices
           </a>
           <a href="#delivery-rates" className="oe-hero-nav-link">
-            DELIVERY &amp; RATES
+            Delivery
           </a>
           <button
             type="button"
             onClick={() => setShowOffersModal(true)}
             className="oe-hero-offers-pill"
           >
-            OFFERS
+            Offers
           </button>
         </nav>
       </header>
@@ -1052,9 +1124,7 @@ export function App() {
                           <option value="Corporate">Corporate</option>
                           <option value="Parties">Parties</option>
                         </select>
-                      ) : (
-                        <span className="oe-carousel-category-badge">{activeSlide.category}</span>
-                      )}
+                      ) : null}
                     </div>
 
                     <div className={isEditMode ? 'oe-editable-box-blue' : ''}>
@@ -1248,7 +1318,7 @@ export function App() {
                     onClick={() => handleLoadInspirationIntoBuilder(activeSlide.preset)}
                     className="oe-btn-sage-solid"
                   >
-                    Customise This Look →
+                    Start from this look
                   </button>
 
                   <div className="oe-carousel-arrows">
@@ -1603,9 +1673,6 @@ export function App() {
                 >
                   <div className="oe-thumb-img-box">
                     <img src={slide.image} alt={slide.title} loading="lazy" />
-                    {slide.isExampleWatermark && (
-                      <span className="oe-thumb-watermark">EXAMPLE</span>
-                    )}
                   </div>
                   <div className="oe-thumb-meta">
                     <strong>{slide.title}</strong>
@@ -1683,7 +1750,7 @@ export function App() {
                         <span className="oe-example-photo-tag">Example image</span>
                       )}
                       <span className={`oe-hire-badge oe-hire-badge-float ${item.hireOnly ? 'hire' : 'keep'}`}>
-                        {item.hireOnly ? 'Hire Only' : 'Yours to Keep'}
+                        {item.hireOnly ? 'Hire' : 'Yours to keep'}
                       </span>
                     </div>
                   )}
@@ -1705,7 +1772,15 @@ export function App() {
 
                     {/* Dedicated Detail Chips Row for Package Pricing */}
                     <div className="oe-pricelist-chips-row" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', margin: '0.4rem 0 0.2rem' }}>
-                      {item.secondPrice ? (
+                      {item.displayPrices ? item.displayPrices.map(d => {
+                        const name = d.label || { none: 'On its own', clusters: 'With corner clusters', garland: 'With a garland', arch: 'With a full archway' }[d.id];
+                        const fmt = v => (v == null || v === '' ? 'price to confirm' : `£${v}`);
+                        return (
+                          <span key={d.id} className="oe-pricelist-detail-chip">
+                            {name}: {d.priceLarge !== undefined ? `${fmt(d.price)} small, ${fmt(d.priceLarge)} large` : fmt(d.price)}
+                          </span>
+                        );
+                      }) : item.secondPrice ? (
                         <>
                           <span className="oe-pricelist-detail-chip">
                             {item.name?.toLowerCase().includes('number') || item.name?.toLowerCase().includes('digit') ? '1 digit' : 'Small / Solo'}: £{item.basePrice}
@@ -1725,7 +1800,7 @@ export function App() {
                   <div className="oe-pricelist-card-bottom">
                     <span className="oe-pricelist-price">
                       {!item.inStock && !isEditMode ? (
-                        'Currently Unavailable'
+                        'Not available right now'
                       ) : isEditMode ? (
                         <EditablePrice
                           isEditMode={true}
@@ -1738,6 +1813,8 @@ export function App() {
                           <span className="oe-price-old">£{item.basePrice}</span>
                           <span className="oe-price-new">From £{discPrice}</span>
                         </>
+                      ) : item.secondPrice || item.displayPrices ? (
+                        item.basePrice ? `From £${item.basePrice}` : ''
                       ) : (
                         item.pricingText
                       )}
@@ -1748,7 +1825,7 @@ export function App() {
                       className="oe-pricelist-build-link"
                       style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit' }}
                     >
-                      + Add to Edit
+                      Add to my edit
                     </button>
                   </div>
 
@@ -1818,7 +1895,7 @@ export function App() {
           <div className="oe-footer-brand">
             <img src="public/assets/logo.jpg" alt="The Occasion Edit Logo" className="oe-footer-logo" loading="lazy" />
             <div>
-              <p className="oe-footer-title">THE OCCASION EDIT</p>
+              <p className="oe-footer-title">The Occasion Edit</p>
               <p className="oe-footer-sub">Bespoke Balloon Styling &amp; Prop Hire</p>
               <p className="oe-footer-location">Bottesford, Leicestershire · Serving the Vale of Belvoir &amp; East Midlands</p>
             </div>
@@ -1837,21 +1914,9 @@ export function App() {
             <button type="button" onClick={() => openLegalModal('booking-agreement')} className="oe-footer-btn">
               Hire Agreement
             </button>
-            <button type="button" onClick={() => setShowOffersModal(true)} className="oe-footer-btn">
-              Current Offers
-            </button>
             <button
               type="button"
-              onClick={() => {
-                if (IS_PREVIEW_BUILD) {
-                  openStudio();
-                } else if (isAdminUnlocked) {
-                  setIsEditMode(true);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                } else {
-                  setShowPinModal(true);
-                }
-              }}
+              onClick={openStudio}
               className="oe-footer-staff-link"
             >
               {isAdminUnlocked ? 'Studio' : 'Staff login'}
@@ -1860,8 +1925,8 @@ export function App() {
         </div>
 
         <div className="oe-footer-bottom-bar" style={{ justifyContent: 'center' }}>
-          <span style={{ fontSize: '0.78rem', color: '#7A756D' }}>
-            &copy; {new Date().getFullYear()} THE Occasion Edit · Bespoke Balloon Styling &amp; Prop Hire · Bottesford, Leicestershire
+          <span style={{ fontSize: '0.78rem', color: '#5E5A52' }}>
+            &copy; {new Date().getFullYear()} The Occasion Edit
           </span>
         </div>
       </footer>
@@ -1933,6 +1998,9 @@ export function App() {
         quotes={quotes}
         onUpdateOrder={handleUpdateOrder}
         onAddBooking={handleAddBooking}
+        onIssueDocument={handleIssueDocument}
+        onDocumentAction={handleDocumentAction}
+        documentSource={documentSource}
         onDeleteQuote={handleDeleteQuoteGdpr}
         catalog={catalog}
         steps={steps}

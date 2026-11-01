@@ -793,6 +793,22 @@ export function generateLookDescription(recipe, steps = CONFIGURATOR_STEPS, digi
  * Shared Single-Source Recipe Pricing Engine:
  * Powers BOTH the Lookbook cards ("Compile a Look from Stock") AND the 3D Builder (getLineItems).
  */
+// The balloon displays a base can come with, and the builder option each one uses
+export const BASE_DISPLAYS = [
+  { id: 'none', structureId: null, label: 'on its own' },
+  { id: 'clusters', structureId: 'clusters-top-bottom', label: 'with corner clusters' },
+  { id: 'garland', structureId: 'garland-7ft', label: 'with a garland' },
+  { id: 'arch', structureId: 'garland-full', label: 'with a full archway' }
+];
+
+export function displayIdFor(balloons) {
+  return BASE_DISPLAYS.find(d => d.structureId === (balloons?.id || null))?.id || 'none';
+}
+
+export function displayLabel(display) {
+  return (display.label || BASE_DISPLAYS.find(d => d.id === display.id)?.label || '').toLowerCase();
+}
+
 export function calculateLookRecipePrice(recipe, steps = CONFIGURATOR_STEPS, digitOptions = INITIAL_DIGIT_LETTER_OPTIONS, balloonColours = INITIAL_BALLOON_COLOURS, curatedPalettes = INITIAL_CURATED_PALETTES, cardCornerBanner = null) {
   if (!recipe) {
     return { lines: [], originalTotal: 0, finalTotal: 0, hasDiscount: false, outOfStockItems: [] };
@@ -826,8 +842,18 @@ export function calculateLookRecipePrice(recipe, steps = CONFIGURATOR_STEPS, dig
     if (!ex.inStock) outOfStockItems.push(ex.shortName || ex.name);
   });
 
-  // 1. Backdrop + Garland Package Rules
-  if (backdrop && balloons) {
+  // 1. A base is sold as a complete display: on its own, with corner clusters,
+  // a garland or a full archway, each with Laura's own price (or still to confirm)
+  if (backdrop && Array.isArray(backdrop.displays)) {
+    const displayId = displayIdFor(balloons);
+    const display = backdrop.displays.find(d => d.id === displayId && d.offered !== false);
+    const isLarge = backdrop.backdropType === 'shimmer-wall' && shimmerSize === 'large';
+    const raw = display ? (isLarge ? display.priceLarge : display.price) : null;
+    const size = backdrop.backdropType === 'shimmer-wall' ? ` (${isLarge ? 'Large' : 'Small'})` : '';
+    const label = `${backdrop.shortName}${size} ${displayLabel(display || { id: displayId })}`;
+    if (raw == null || raw === '') lines.push({ label, rawAmount: 0, amount: 0, tbc: true });
+    else lines.push({ label, rawAmount: Number(raw), amount: applyCornerBannerDiscount(Number(raw), backdrop.cornerBanner) });
+  } else if (backdrop && balloons) {
     if (backdrop.id === 'wooden-board' || backdrop.backdropType === 'hoop') {
       const rawPkg = backdrop.packageBasePrice || (backdrop.price + balloons.price);
       const finalPkg = applyCornerBannerDiscount(rawPkg, backdrop.cornerBanner);
@@ -945,6 +971,22 @@ export function deriveUnifiedCatalog(catalog = FULL_CSV_CATALOG, steps = CONFIGU
       const st = steps.find(s => s.id === link.stepId);
       const item = st?.items?.find(i => i.id === link.id);
       if (!item) return card;
+      // A base on the price list shows each complete display and its price
+      if (Array.isArray(item.displays)) {
+        const offered = item.displays.filter(d => d.offered !== false);
+        const known = offered.flatMap(d => [d.price, item.hasSizeTier ? d.priceLarge : null]).filter(v => v != null && v !== '').map(Number);
+        const from = known.length ? Math.min(...known) : null;
+        return {
+          ...card,
+          basePrice: from || 0,
+          secondPrice: null,
+          pricingText: from ? `From £${from}` : 'Price to confirm',
+          displayPrices: offered.map(d => ({ id: d.id, label: d.label, price: d.price, priceLarge: item.hasSizeTier ? d.priceLarge : undefined })),
+          inStock: item.inStock,
+          hireOnly: item.hireOnly,
+          cornerBanner: card.cornerBanner?.enabled ? card.cornerBanner : item.cornerBanner
+        };
+      }
       const base = link.usePackagePrice ? (item.packageBasePrice || item.price) : item.price;
       const pricingText = item.hasSizeTier
         ? `From £${item.packageBasePrice || 150} (Small) / £${item.packageLargePrice || 180} (Large)`

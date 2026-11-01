@@ -69,22 +69,20 @@ export function DeliveryRadiusMap({ deliveryConfig, onUpdateDeliveryConfig, isEd
         <div className="oe-delivery-info-col">
           {/* Postcode Distance Calculator Card */}
           <div className="oe-postcode-card">
-            <h4 style={{ margin: '0 0 0.4rem', fontSize: '0.95rem', letterSpacing: '0.06em', textTransform: 'uppercase', color: '#1C1E1B', fontWeight: 800 }}>
-              Check Delivery To Your Venue
+            <h4 style={{ margin: '0 0 0.6rem', fontSize: '1.05rem', color: '#1C1E1B', fontWeight: 700 }}>
+              <label htmlFor="oe-delivery-postcode">Pop in your venue's postcode</label>
             </h4>
-            <p style={{ margin: '0 0 0.75rem', fontSize: '0.82rem', color: '#5C5852', lineHeight: 1.4 }}>
-              Enter your event postcode to calculate straight-line mileage from our Bottesford studio and check your delivery rate:
-            </p>
             <form onSubmit={handleCheckPostcode} className="oe-postcode-form">
               <input
+                id="oe-delivery-postcode"
                 type="text"
-                placeholder="e.g. NG13, NG31, LE13..."
+                placeholder="e.g. NG31 6AA"
                 value={testPostcode}
                 onChange={(e) => setTestPostcode(e.target.value.toUpperCase())}
                 className="oe-postcode-input"
               />
               <button type="submit" className="oe-btn-primary" style={{ padding: '0.65rem 1.15rem', fontSize: '0.84rem', whiteSpace: 'nowrap' }}>
-                Check Rate →
+                Check
               </button>
             </form>
 
@@ -170,14 +168,6 @@ export function DeliveryRadiusMap({ deliveryConfig, onUpdateDeliveryConfig, isEd
         {/* Right column: the zones drawn to scale, with no outside map service */}
         <div className="oe-real-leaflet-map-wrap">
           <ZoneMap zones={zones} pinPlace={calcResult && !calcResult.error ? testPostcode : null} />
-          <div className="oe-map-legend-bar">
-            <div style={{ display: 'flex', gap: '0.85rem', alignItems: 'center', flexWrap: 'wrap' }}>
-              <span style={{ fontWeight: 700, color: '#1C1E1B' }}>Bottesford base</span>
-              {zones.map(z => (
-                <span key={z.id} style={{ color: z.color, fontWeight: 700 }}>● {z.name.replace(/\s*\(.*\)/, '')}: up to {z.miles} miles</span>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -202,7 +192,7 @@ function toMapPixels(lat, lon) {
   return { x: x - MAP.originX, y: y - MAP.originY };
 }
 
-function ZoneMap({ zones, pinPlace }) {
+export function ZoneMap({ zones, pinPlace }) {
   const centre = MAP.size / 2;
   const radius = miles => (miles * 1609.344) / MAP.metresPerPixel;
   const place = pinPlace ? locate(pinPlace) : null;

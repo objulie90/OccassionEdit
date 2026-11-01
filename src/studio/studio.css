@@ -112,7 +112,7 @@
     left: 0; right: 0; bottom: 0;
     z-index: 5;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 0;
     padding: 0.35rem max(0.5rem, env(safe-area-inset-right, 0px)) calc(0.35rem + env(safe-area-inset-bottom, 0px)) max(0.5rem, env(safe-area-inset-left, 0px));
     background: var(--st-olive);
@@ -675,3 +675,72 @@
 .st-sale-preview { font-size: 0.92rem; }
 .st-delivery-zone { display: flex; flex-direction: column; gap: 0.7rem; padding-bottom: 0.9rem; border-bottom: 1px solid var(--st-line); }
 .st-delivery-zone:last-of-type { border-bottom: 0; padding-bottom: 0; }
+
+/* --- Today: the Studio's home --------------------------------------------- */
+.st-today { display: flex; flex-direction: column; gap: 1.2rem; padding: 1.2rem max(1rem, env(safe-area-inset-right, 0px)) 2rem max(1rem, env(safe-area-inset-left, 0px)); max-width: 72rem; }
+.st-today-head { display: flex; flex-direction: column; gap: 0.5rem; }
+.st-today-title { font-family: var(--st-serif); font-size: clamp(2rem, 4vw, 2.6rem); font-weight: 600; line-height: 1.1; }
+.st-today-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 21rem), 1fr)); gap: 1rem; align-items: start; }
+.st-today-card { display: flex; flex-direction: column; gap: 0.6rem; padding: 1rem 1.1rem; border: 1px solid var(--st-line); border-radius: 16px; background: var(--st-card); }
+.st-today-card.is-urgent { border-left: 4px solid #B07A12; }
+.st-today-card-title { font-family: var(--st-serif); font-size: 1.3rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
+.st-today-card ul { display: flex; flex-direction: column; }
+.st-today-row { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; width: 100%; padding: 0.6rem 0; border: 0; border-top: 1px solid var(--st-line); background: none; text-align: left; cursor: pointer; }
+.st-today-card li:first-child .st-today-row { border-top: 0; }
+.st-today-row:hover .st-product-name { text-decoration: underline; text-underline-offset: 3px; }
+.st-today-main { display: flex; flex-direction: column; min-width: 0; }
+.st-today-sub { color: var(--st-ink-soft); font-size: 0.85rem; }
+.st-today-tag { flex-shrink: 0; padding: 0.15rem 0.6rem; border-radius: 999px; background: var(--st-olive-wash); color: var(--st-olive); font-size: 0.78rem; font-weight: 600; white-space: nowrap; }
+.st-today-tag.is-late { background: #F6E3E0; color: var(--st-danger); }
+.st-today-numbers { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+.st-today-numbers div { display: flex; flex-direction: column-reverse; gap: 0.1rem; }
+.st-today-numbers dt { font-size: 0.8rem; color: var(--st-ink-soft); }
+.st-today-numbers dd { font-family: var(--st-serif); font-size: 1.7rem; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
+
+/* Buttons keep their own text colour (the general ".st-root button" rule made primary buttons dark on dark) */
+.st-root .st-btn-primary, .st-root a.st-btn-primary { color: var(--st-paper); }
+.st-root .st-btn { color: var(--st-ink); }
+.st-root .st-btn.st-btn-primary { color: var(--st-paper); }
+.st-business-actions { flex-wrap: wrap; row-gap: 0.6rem; }
+.st-callout { padding: 0.8rem 1rem; border-radius: 12px; background: var(--st-gold-wash); color: #5C430F; font-size: 0.92rem; line-height: 1.5; }
+.st-tbc { display: block; margin-top: 0.15rem; font-size: 0.72rem; font-weight: 700; color: #8A5A00; }
+.st-display-table { display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.4rem; }
+.st-display-row { display: grid; grid-template-columns: minmax(0, 1fr) 7rem 7rem; align-items: center; gap: 0.6rem; }
+.st-display-row:not(:has(> :nth-child(3))) { grid-template-columns: minmax(0, 1fr) 7rem; }
+.st-display-row.is-head { font-size: 0.78rem; font-weight: 600; color: var(--st-ink-soft); }
+.st-display-row.is-off .st-check span { color: var(--st-ink-soft); text-decoration: line-through; }
+.st-root .st-display-row input[type="number"].is-missing { border-color: #B07A12; background: #FFF8EA; }
+.st-cal-chip { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 0; text-align: left; }
+.st-cal-chip-name { font-weight: 600; }
+.st-cal-chip-status { font-size: 0.7rem; font-weight: 500; opacity: 0.85; }
+.st-cal-key .st-cal-chip { flex-direction: row; }
+.st-map { display: block; width: 100%; aspect-ratio: 4 / 3; border: 0; border-radius: 12px; overflow: hidden; background: var(--st-olive-wash); }
+.st-map figure { margin: 0; }
+
+/* Accessibility pass: text at WCAG AA contrast, targets at least 24px */
+.st-switch-option { color: #FAF6F0; }
+.st-ticket { color: #6E5212; }
+.st-tab-count { color: #6E5212; }
+.st-root .st-link { display: inline-block; padding-block: 0.3rem; }
+.st-root p .st-link, .st-root li > .st-link + * { padding-block: 0; }
+.st-cal-date { min-width: 28px; min-height: 28px; }
+.st-tag-offer { color: #6E5212; }
+.st-back { min-height: 32px; }
+
+/* --- Quotes and invoices ---------------------------------------------------- */
+.st-docs { display: flex; flex-direction: column; border: 1px solid var(--st-line); border-radius: 12px; }
+.st-doc { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1rem; padding: 0.7rem 0.9rem; border-bottom: 1px solid var(--st-line); }
+.st-doc:last-child { border-bottom: 0; }
+.st-doc.is-void .st-doc-main strong, .st-doc.is-replaced .st-doc-main strong { color: var(--st-ink-soft); text-decoration: line-through; }
+.st-doc-main { display: flex; flex-direction: column; min-width: 0; }
+.st-doc-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.6rem; }
+.st-void { flex-basis: 100%; }
+.st-doc-writer { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+@media (min-width: 1100px) { .st-doc-writer { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.st-doc-fields { display: flex; flex-direction: column; gap: 0.7rem; min-width: 0; }
+.st-doc-lines { display: flex; flex-direction: column; gap: 0.4rem; }
+.st-doc-line { display: grid; grid-template-columns: minmax(0, 1fr) 6.5rem auto; gap: 0.5rem; align-items: center; }
+.st-a4 { position: relative; width: 100%; overflow: hidden; border: 1px solid var(--st-line); border-radius: 8px; background: #FFFFFF; box-shadow: 0 6px 18px rgba(30, 33, 28, 0.08); }
+.st-a4-frame { border: 0; transform-origin: top left; display: block; background: #FFFFFF; }
+.st-doc-view { display: flex; flex-direction: column; gap: 0.8rem; max-width: 46rem; }
+.st-a4-drive { width: 100%; aspect-ratio: 210 / 297; border: 1px solid var(--st-line); border-radius: 8px; }
