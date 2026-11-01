@@ -47,7 +47,8 @@ ROOT_DIR = os.path.realpath(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(ROOT_DIR, "data")
 PUBLIC_DIR = os.path.join(ROOT_DIR, "public")
 UPLOADS_DIR = os.path.join(PUBLIC_DIR, "assets", "uploads")
-SRC_DIR = os.path.join(ROOT_DIR, "src")
+# Output of `npm run build`; the server hosts this compiled site
+DIST_DIR = os.path.join(ROOT_DIR, "dist")
 
 SITE_DATA_PATH = os.path.join(DATA_DIR, "site-data.json")
 SITE_DATA_BACKUP_PATH = os.path.join(DATA_DIR, "site-data.backup.json")
@@ -56,17 +57,20 @@ STUDIO_SETTINGS_PATH = os.path.join(DATA_DIR, "studio-settings.json")
 
 DEFAULT_STUDIO_SETTINGS = {
     "businessTradingName": "THE Occasion Edit",
-    "studioAddress": "Bottesford, Leicestershire, NG13",
-    "studioEmail": "hello@theoccasionedit.co.uk",
-    "studioPhone": "07498 223594",
-    "taxYear": "2025/26",
-    "bankName": "Barclays Business",
-    "accountName": "THE Occasion Edit",
-    "sortCode": "20-00-00",
-    "accountNumber": "12345678",
+    "studioAddress": "",
+    "studioEmail": "",
+    "studioPhone": "",
+    "taxYear": "",
+    "bankName": "",
+    "accountName": "",
+    "sortCode": "",
+    "accountNumber": "",
     "paymentRefFormat": "{orderId}-{clientSurname}",
     "sheetConfig": {"webAppUrl": "", "adminSecret": ""}
 }
+
+# The order stages the studio and the Google Sheet both understand
+ORDER_STATUSES = ("New Enquiry", "Deposit Paid", "Confirmed", "Completed", "Cancelled")
 
 PORT = int(os.environ.get("PORT", "5173"))
 
@@ -813,9 +817,9 @@ class OccasionEditHandler(BaseHTTPRequestHandler):
 
         # 5. Serve index.html with Dynamic JSON-LD & OpenGraph Origin Injection
         if route in ("/", "/index.html"):
-            index_file = os.path.join(ROOT_DIR, "index.html")
+            index_file = os.path.join(DIST_DIR, "index.html")
             if not os.path.isfile(index_file):
-                self.send_error(HTTPStatus.NOT_FOUND, "index.html not found")
+                self.send_error(HTTPStatus.NOT_FOUND, "Site not built yet: run `npm run build` first")
                 return
             with open(index_file, "r", encoding="utf-8") as f:
                 raw_html = f.read()
@@ -843,12 +847,13 @@ class OccasionEditHandler(BaseHTTPRequestHandler):
         clean_rel = urllib.parse.unquote(route).lstrip("/")
         # Block any hidden/dot segments or non-whitelisted folders
         parts = clean_rel.split("/")
-        if any(p.startswith(".") for p in parts) or parts[0] not in ("src", "public"):
+        if any(p.startswith(".") for p in parts) or parts[0] not in ("build", "public"):
             self.send_json(HTTPStatus.FORBIDDEN, {"ok": False, "error": "403 Forbidden"})
             return
 
-        candidate = os.path.realpath(os.path.join(ROOT_DIR, clean_rel))
-        allowed_roots = (os.path.realpath(SRC_DIR) + os.sep, os.path.realpath(PUBLIC_DIR) + os.sep)
+        base_dir = DIST_DIR if parts[0] == "build" else ROOT_DIR
+        candidate = os.path.realpath(os.path.join(base_dir, clean_rel))
+        allowed_roots = (os.path.realpath(os.path.join(DIST_DIR, "build")) + os.sep, os.path.realpath(PUBLIC_DIR) + os.sep)
         if not candidate.startswith(allowed_roots) or not os.path.isfile(candidate):
             self.send_json(HTTPStatus.NOT_FOUND, {"ok": False, "error": "404 Not Found"})
             return
@@ -1007,8 +1012,9 @@ class OccasionEditHandler(BaseHTTPRequestHandler):
                         "eventDate": event_date,
                         "postcode": postcode,
                         "notes": notes,
-                        "venueAccessTime": sanitize_formula_cell(client.get("venueAccessTime", ""))[:30],
-                        "partyStartTime": sanitize_formula_cell(client.get("partyStartTime", ""))[:30]
+                        "accessTime": sanitize_formula_cell(client.get("accessTime", client.get("venueAccessTime", "")))[:30],
+                        "venueName": sanitize_formula_cell(client.get("venueName", ""))[:120],
+                        "setting": "outdoor" if client.get("setting") == "outdoor" else "indoor"
                     },
                     "configuration": {
                         "palette": [sanitize_formula_cell(c)[:60] for c in (cfg.get("palette") or [])[:8]],
@@ -1021,7 +1027,19 @@ class OccasionEditHandler(BaseHTTPRequestHandler):
                         "bundleDiscount": max(0, min(1000, float(cfg.get("bundleDiscount", 0)))),
                         "estimatedTotal": max(0, min(10000, float(cfg.get("estimatedTotal", 0)))),
                         "stockIds": [sanitize_formula_cell(s)[:80] for s in (cfg.get("stockIds") or [])[:30]],
-                        "balloonPullList": sanitize_formula_cell(cfg.get("balloonPullList", ""))[:300]
+                        "balloonPullList": sanitize_formula_cell(cfg.get("balloonPullList", ""))[:300],
+                        "backdropId": sanitize_formula_cell(cfg.get("backdropId") or "")[:60],
+                        "balloonId": sanitize_formula_cell(cfg.get("balloonId") or "")[:60],
+                        "digitId": sanitize_formula_cell(cfg.get("digitId") or "")[:60],
+                        "digitText": sanitize_formula_cell(cfg.get("digitText") or "")[:12],
+                        "extraIds": [sanitize_formula_cell(e)[:60] for e in (cfg.get("extraIds") or [])[:12]],
+                        "shimmerSize": sanitize_formula_cell(cfg.get("shimmerSize") or "")[:20],
+                        "boardCustomization": {
+                            str(k)[:40]: sanitize_formula_cell(str(v))[:200]
+                            for k, v in list((cfg.get("boardCustomization") or {}).items())[:10]
+                        } if isinstance(cfg.get("boardCustomization"), dict) else None,
+                        "neonPhrase": sanitize_formula_cell(cfg.get("neonPhrase") or "")[:80],
+                        "bubbleText": sanitize_formula_cell(cfg.get("bubbleText") or "")[:80]
                     },
                     "previewSnapshotDataUrl": str(body.get("previewSnapshotDataUrl", ""))[:45000]
                 }
@@ -1189,7 +1207,10 @@ class OccasionEditHandler(BaseHTTPRequestHandler):
         if route.startswith("/api/quotes/"):
             quote_id = urllib.parse.unquote(route.split("/api/quotes/", 1)[1]).strip("/")
             body = self.read_json_body(max_bytes=4096)
-            new_status = sanitize_formula_cell(body.get("status", "New Enquiry"))
+            new_status = str(body.get("status", "New Enquiry"))
+            if new_status not in ORDER_STATUSES:
+                self.send_json(HTTPStatus.BAD_REQUEST, {"ok": False, "error": "Unknown order status."})
+                return
             quotes = load_quotes()
             found = False
             updated_quote = None

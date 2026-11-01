@@ -340,7 +340,7 @@ function doPost(e) {
         totalNum,
         0,
         '=MAX(0, T2-U2)',
-        sanitizeCell(client.notes || ''),
+        sanitizeCell(describeEventAndPersonalisation_(client, cfg)),
         ''
       ];
       s1.getRange(2, 1, 1, newRow.length).setValues([newRow]);
@@ -564,6 +564,21 @@ function writeAdminCatalogToSheet_(ss, siteData) {
     }
     range2.setValues(vals2);
   }
+}
+
+// Folds the venue details and personalised wording into the order's notes cell until
+// the order sheet gets dedicated columns for them.
+function describeEventAndPersonalisation_(client, cfg) {
+  var parts = [];
+  if (client.venueName) parts.push('Venue: ' + client.venueName + (client.setting ? ' (' + client.setting + ')' : ''));
+  if (client.accessTime) parts.push('Access from: ' + client.accessTime);
+  var board = cfg.boardCustomization;
+  if (board && board.text) parts.push('Board wording: "' + board.text + '"' + (board.color ? ' on ' + board.color : '') + (board.vinylColor ? ', ' + board.vinylColor + ' vinyl' : ''));
+  if (cfg.shimmerSize && cfg.shimmerSize !== 'N/A') parts.push('Shimmer wall size: ' + cfg.shimmerSize);
+  if (cfg.neonPhrase) parts.push('Neon: "' + cfg.neonPhrase + '"');
+  if (cfg.bubbleText) parts.push('Bubble text: "' + cfg.bubbleText + '"');
+  if (client.notes) parts.push('Customer notes: ' + client.notes);
+  return parts.join(' | ');
 }
 
 function getOrCreateSheet_(ss, name, tabColorHex) {

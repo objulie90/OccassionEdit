@@ -21,35 +21,35 @@ export const INITIAL_BALLOON_COLOURS = [
 export const INITIAL_CURATED_PALETTES = [
   {
     id: 'palette-sage-gold',
-    name: '01. Signature Sage & Champagne',
+    name: 'Sage & Gold',
     description: 'Our signature botanical look — matte sage, pearl ivory & warm chrome gold.',
     colourIds: ['sage', 'pearl-white', 'champagne-gold', 'nude-stone', 'blush-pink'],
     inStock: true
   },
   {
     id: 'palette-blush-romance',
-    name: '02. Soft Blush & Pearl Romance',
+    name: 'Blush & Pearl',
     description: 'Soft blush pinks, warm taupe and luminous pearl ivory.',
     colourIds: ['blush-pink', 'pearl-white', 'champagne-gold', 'nude-stone', 'lilac-mist'],
     inStock: true
   },
   {
     id: 'palette-teddy-neutrals',
-    name: '03. Teddy & Warm Neutrals',
+    name: 'Warm Neutrals',
     description: 'Calm tones of warm taupe, pearl ivory, champagne gold & sage.',
     colourIds: ['nude-stone', 'pearl-white', 'champagne-gold', 'sage', 'butter-yellow'],
     inStock: true
   },
   {
     id: 'palette-pastel-celebration',
-    name: '04. Pastel Sky & Lemon Edit',
+    name: 'Pastel Sky',
     description: 'Fresh spring tones of sky blue, lemon butter, soft lilac & pearl.',
     colourIds: ['pastel-blue', 'butter-yellow', 'lilac-mist', 'pearl-white', 'blush-pink'],
     inStock: true
   },
   {
     id: 'palette-black-gold-luxe',
-    name: '05. After-Dark Black & Gold Luxe',
+    name: 'Black & Gold',
     description: 'Statement styling with obsidian black, chrome gold, silver & pearl.',
     colourIds: ['matte-black', 'champagne-gold', 'chrome-silver', 'pearl-white', 'nude-stone'],
     inStock: true
@@ -75,9 +75,11 @@ export const INITIAL_DIGIT_LETTER_OPTIONS = [
     basePrice: 36,
     secondDigitPrice: 52,
     extraCharPrice: 16,
+    // Laura's price list offers two numbers for £52, so the saving is shown to customers
+    showTwoNumberSaving: true,
     maxChars: 4,
     defaultText: '30',
-    image: '/public/assets/pl-bubble-helium.jpg',
+    image: 'public/assets/pl-bubble-helium.jpg',
     inStock: true
   },
   {
@@ -90,7 +92,7 @@ export const INITIAL_DIGIT_LETTER_OPTIONS = [
     extraCharPrice: 20,
     maxChars: 2,
     defaultText: '3',
-    image: '/public/assets/pl-stack-30.jpg',
+    image: 'public/assets/pl-stack-30.jpg',
     inStock: true
   },
   {
@@ -103,7 +105,7 @@ export const INITIAL_DIGIT_LETTER_OPTIONS = [
     extraCharPrice: 20,
     maxChars: 2,
     defaultText: '13',
-    image: '/public/assets/pl-stack-30.jpg',
+    image: 'public/assets/pl-stack-30.jpg',
     inStock: true
   },
   {
@@ -116,7 +118,7 @@ export const INITIAL_DIGIT_LETTER_OPTIONS = [
     extraCharPrice: 20,
     maxChars: 2,
     defaultText: '30',
-    image: '/public/assets/pl-stack-30.jpg',
+    image: 'public/assets/pl-stack-30.jpg',
     inStock: true
   },
   {
@@ -128,7 +130,7 @@ export const INITIAL_DIGIT_LETTER_OPTIONS = [
     perLetter: true,
     maxChars: 8,
     defaultText: 'BABY',
-    image: '/public/assets/inspire-baby.jpg',
+    image: 'public/assets/examples/letter-balloons.jpg',
     inStock: true
   }
 ];
@@ -163,7 +165,7 @@ export const CONFIGURATOR_STEPS = [
         inStock: true,
         backdropType: 'arch-board',
         surfaceColor: '#E5D5C3',
-        image: '/public/assets/pl-board-sixty.jpg'
+        image: 'public/assets/pl-board-sixty.jpg'
       },
       {
         id: 'gold-shimmer',
@@ -178,7 +180,7 @@ export const CONFIGURATOR_STEPS = [
         inStock: true,
         backdropType: 'shimmer-wall',
         surfaceColor: '#D4AF37',
-        image: '/public/assets/pl-shimmer-lilac.jpg'
+        image: 'public/assets/pl-shimmer-lilac.jpg'
       },
       {
         id: 'silver-shimmer',
@@ -193,7 +195,7 @@ export const CONFIGURATOR_STEPS = [
         inStock: true,
         backdropType: 'shimmer-wall',
         surfaceColor: '#C4C9CE',
-        image: '/public/assets/pl-shimmer-lilac.jpg'
+        image: 'public/assets/examples/silver-shimmer-wall.jpg'
       },
       {
         id: 'black-shimmer',
@@ -208,7 +210,7 @@ export const CONFIGURATOR_STEPS = [
         inStock: true,
         backdropType: 'shimmer-wall',
         surfaceColor: '#242623',
-        image: '/public/assets/inspire-birthday.jpg'
+        image: 'public/assets/examples/black-shimmer-wall.jpg'
       },
       {
         id: 'pink-shimmer',
@@ -223,7 +225,7 @@ export const CONFIGURATOR_STEPS = [
         inStock: false,
         backdropType: 'shimmer-wall',
         surfaceColor: '#E2B4BD',
-        image: '/public/assets/pl-shimmer-lilac.jpg'
+        image: 'public/assets/examples/pink-shimmer-wall.jpg'
       },
       {
         id: 'balloon-hoop',
@@ -236,7 +238,7 @@ export const CONFIGURATOR_STEPS = [
         inStock: true,
         backdropType: 'hoop',
         surfaceColor: '#C5A059',
-        image: '/public/assets/inspire-anniversary.jpg'
+        image: 'public/assets/hero-arch.jpg'
       },
       {
         id: 'easel-sign',
@@ -249,7 +251,7 @@ export const CONFIGURATOR_STEPS = [
         inStock: true,
         backdropType: 'easel',
         surfaceColor: '#FAF8F5',
-        image: '/public/assets/pl-board-sixty.jpg'
+        image: 'public/assets/examples/easel-welcome-sign.jpg'
       }
     ]
   },
@@ -273,7 +275,7 @@ export const CONFIGURATOR_STEPS = [
         inStock: true,
         layoutType: 'side-7ft',
         recipe: { defaultTotal: 70, defaultSmall: 20, defaultMed: 38, defaultLarge: 12 },
-        image: '/public/assets/pl-board-sixty.jpg'
+        image: 'public/assets/pl-board-sixty.jpg'
       },
       {
         id: 'clusters-top-bottom',
@@ -286,7 +288,7 @@ export const CONFIGURATOR_STEPS = [
         inStock: true,
         layoutType: 'clusters',
         recipe: { defaultTotal: 50, defaultSmall: 15, defaultMed: 28, defaultLarge: 7 },
-        image: '/public/assets/inspire-anniversary.jpg'
+        image: 'public/assets/examples/corner-clusters.jpg'
       },
       {
         id: 'garland-full',
@@ -300,7 +302,7 @@ export const CONFIGURATOR_STEPS = [
         inStock: true,
         layoutType: 'full-surround',
         recipe: { defaultTotal: 120, defaultSmall: 35, defaultMed: 65, defaultLarge: 20 },
-        image: '/public/assets/hero-arch.jpg'
+        image: 'public/assets/hero-arch.jpg'
       }
     ]
   },
@@ -332,7 +334,7 @@ export const CONFIGURATOR_STEPS = [
         hireOnly: true,
         inStock: true,
         extraType: 'neon',
-        image: '/public/assets/inspire-birthday.jpg'
+        image: 'public/assets/inspire-birthday.jpg'
       },
       {
         id: 'add-on-flowers',
@@ -343,7 +345,7 @@ export const CONFIGURATOR_STEPS = [
         hireOnly: true,
         inStock: true,
         extraType: 'flowers',
-        image: '/public/assets/inspire-baby.jpg'
+        image: 'public/assets/inspire-baby.jpg'
       },
       {
         id: 'baby-boxes',
@@ -354,7 +356,7 @@ export const CONFIGURATOR_STEPS = [
         hireOnly: true,
         inStock: true,
         extraType: 'boxes',
-        image: '/public/assets/inspire-baby.jpg'
+        image: 'public/assets/inspire-baby.jpg'
       },
       {
         id: 'bubble-balloon',
@@ -365,7 +367,7 @@ export const CONFIGURATOR_STEPS = [
         hireOnly: false,
         inStock: true,
         extraType: 'bubble',
-        image: '/public/assets/pl-bubble-helium.jpg'
+        image: 'public/assets/pl-bubble-helium.jpg'
       },
       {
         id: 'cut-outs',
@@ -376,7 +378,7 @@ export const CONFIGURATOR_STEPS = [
         hireOnly: true,
         inStock: true,
         extraType: 'cutouts',
-        image: '/public/assets/pl-board-sixty.jpg'
+        image: 'public/assets/examples/character-cut-outs.jpg'
       },
       {
         id: 'centerpieces',
@@ -387,7 +389,7 @@ export const CONFIGURATOR_STEPS = [
         hireOnly: false,
         inStock: true,
         extraType: 'centerpiece',
-        image: '/public/assets/pl-bubble-helium.jpg'
+        image: 'public/assets/examples/table-centrepiece.jpg'
       },
       {
         id: 'cake-stand',
@@ -398,7 +400,7 @@ export const CONFIGURATOR_STEPS = [
         hireOnly: true,
         inStock: false,
         extraType: 'plinth',
-        image: '/public/assets/inspire-anniversary.jpg'
+        image: 'public/assets/examples/cake-plinth.jpg'
       }
     ]
   }
@@ -411,7 +413,7 @@ export const INITIAL_INSPIRATION_SLIDES = [
     title: 'The 21st Gold Shimmer & Sage Edit',
     description: 'Gold Sequin Shimmer Wall dressed with a 7ft Organic Sage, Pearl & Chrome Gold garland, warm LED "Happy Birthday" neon sign, and double-digit "21" foil numbers.',
     guidePrice: 237,
-    image: '/public/assets/inspire-birthday.jpg',
+    image: 'public/assets/inspire-birthday.jpg',
     isExampleWatermark: true,
     cornerBanner: {
       enabled: true,
@@ -437,7 +439,7 @@ export const INITIAL_INSPIRATION_SLIDES = [
     title: 'Botanical Oak Arch & BABY Block Package',
     description: 'Bespoke arched wooden backdrop board with Teddy & Sage organic garland, pampas floral accents, and our 4 white "BABY" hire blocks.',
     guidePrice: 231,
-    image: '/public/assets/inspire-baby.jpg',
+    image: 'public/assets/inspire-baby.jpg',
     isExampleWatermark: true,
     cornerBanner: {
       enabled: false,
@@ -463,7 +465,7 @@ export const INITIAL_INSPIRATION_SLIDES = [
     title: 'Blush & Champagne Circular Hoop Statement',
     description: 'Gold circular statement hoop dressed in Soft Blush, Pearl Ivory & Champagne Gold balloons with cascading white florals.',
     guidePrice: 176,
-    image: '/public/assets/inspire-anniversary.jpg',
+    image: 'public/assets/inspire-anniversary.jpg',
     isExampleWatermark: true,
     cornerBanner: {
       enabled: false,
@@ -489,7 +491,7 @@ export const INITIAL_INSPIRATION_SLIDES = [
     title: 'Lilac & Gold Butterfly Shimmer Wall',
     description: 'Large Shimmer Wall dressed with Lilac, Plum, Pearl & Chrome Gold balloons and delicate butterfly accents.',
     guidePrice: 180,
-    image: '/public/assets/pl-shimmer-lilac.jpg',
+    image: 'public/assets/pl-shimmer-lilac.jpg',
     isExampleWatermark: true,
     cornerBanner: {
       enabled: false,
@@ -513,34 +515,34 @@ export const INITIAL_INSPIRATION_SLIDES = [
 
 export const FULL_CSV_CATALOG = [
   // 1. Backdrops & Frames (Hire Only)
-  { id: 'PROP-WALL-GLD-SM', sku: 'PROP-WALL-GLD-SM', department: 'Backdrops & Frames', section: 'Backdrops & Frames', name: 'Gold Sequin Shimmer Wall (Small)', tier: 'luxury', category: 'Parties', style: 'Small 6x6ft gold sequin wall with 7ft organic garland', pricingText: '£150 Package', basePrice: 150, secondPrice: 180, hireOnly: true, inStock: true, image: '/public/assets/pl-shimmer-lilac.jpg', builderLink: { type: 'step', stepId: 'backdrop', id: 'gold-shimmer', usePackagePrice: true }, builderPreset: { backdropId: 'gold-shimmer', shimmerSize: 'small', balloonId: 'garland-7ft' } },
-  { id: 'PROP-WALL-GLD-LG', sku: 'PROP-WALL-GLD-LG', department: 'Backdrops & Frames', section: 'Backdrops & Frames', name: 'Gold Sequin Shimmer Wall (Large)', tier: 'luxury', category: 'Parties', style: 'Large 8x8ft gold sequin wall with 7ft organic garland', pricingText: '£180 Package', basePrice: 180, hireOnly: true, inStock: true, image: '/public/assets/pl-shimmer-lilac.jpg', builderLink: { type: 'step', stepId: 'backdrop', id: 'gold-shimmer', usePackagePrice: true }, builderPreset: { backdropId: 'gold-shimmer', shimmerSize: 'large', balloonId: 'garland-7ft' } },
-  { id: 'PROP-HOOP-GLD', sku: 'PROP-HOOP-GLD', department: 'Backdrops & Frames', section: 'Backdrops & Frames', name: 'Circular Gold Balloon Hoop Frame', tier: 'fancy', category: 'Anniversaries', style: 'Circular gold statement frame with organic garland', pricingText: 'From £140 Package', basePrice: 140, hireOnly: true, inStock: true, image: '/public/assets/inspire-anniversary.jpg', builderLink: { type: 'step', stepId: 'backdrop', id: 'balloon-hoop', usePackagePrice: true }, builderPreset: { backdropId: 'balloon-hoop', balloonId: 'garland-7ft' } },
-  { id: 'PROP-BRD-ARCH', sku: 'PROP-BRD-ARCH', department: 'Backdrops & Frames', section: 'Backdrops & Frames', name: 'Personalised Wooden Arch Board', tier: 'fancy', category: 'Anniversaries', style: 'Painted arched board with custom vinyl text & garland', pricingText: 'From £155 Package', basePrice: 155, hireOnly: true, inStock: true, image: '/public/assets/pl-board-sixty.jpg', builderLink: { type: 'step', stepId: 'backdrop', id: 'wooden-board', usePackagePrice: true }, builderPreset: { backdropId: 'wooden-board', balloonId: 'garland-7ft' } },
-  { id: 'PROP-EASEL-SGN', sku: 'PROP-EASEL-SGN', department: 'Backdrops & Frames', section: 'Backdrops & Frames', name: 'Easel Welcome Sign & Garland', tier: 'classic', category: 'Anniversaries', style: 'Personalised welcome board on easel with mini garland', pricingText: '£85 Package', basePrice: 85, hireOnly: true, inStock: true, image: '/public/assets/pl-board-sixty.jpg', builderLink: { type: 'step', stepId: 'backdrop', id: 'easel-sign' }, builderPreset: { backdropId: 'easel-sign', balloonId: 'clusters-top-bottom' } },
-  { id: 'PROP-WALL-PKG-PLN', sku: 'PROP-WALL-PKG-PLN', department: 'Backdrops & Frames', section: 'Backdrops & Frames', name: 'Shimmer Wall & Display Plinths Package', tier: 'luxury', category: 'Parties', style: 'Sequin wall paired with balloon garland & cylinder plinth', pricingText: 'From £185 Package', basePrice: 185, hireOnly: true, inStock: true, image: '/public/assets/inspire-birthday.jpg', builderPreset: { backdropId: 'gold-shimmer', shimmerSize: 'small', balloonId: 'garland-7ft', extraIds: ['cake-stand'] } },
+  { id: 'PROP-WALL-GLD-SM', sku: 'PROP-WALL-GLD-SM', department: 'Backdrops & Frames', section: 'Backdrops & Frames', name: 'Gold Sequin Shimmer Wall (Small)', tier: 'luxury', category: 'Parties', style: 'Small 6x6ft gold sequin wall with 7ft organic garland', pricingText: '£150 Package', basePrice: 150, secondPrice: 180, hireOnly: true, inStock: true, image: 'public/assets/pl-shimmer-lilac.jpg', builderLink: { type: 'step', stepId: 'backdrop', id: 'gold-shimmer', usePackagePrice: true }, builderPreset: { backdropId: 'gold-shimmer', shimmerSize: 'small', balloonId: 'garland-7ft' } },
+  { id: 'PROP-WALL-GLD-LG', sku: 'PROP-WALL-GLD-LG', department: 'Backdrops & Frames', section: 'Backdrops & Frames', name: 'Gold Sequin Shimmer Wall (Large)', tier: 'luxury', category: 'Parties', style: 'Large 8x8ft gold sequin wall with 7ft organic garland', pricingText: '£180 Package', basePrice: 180, hireOnly: true, inStock: true, image: 'public/assets/pl-shimmer-lilac.jpg', builderLink: { type: 'step', stepId: 'backdrop', id: 'gold-shimmer', usePackagePrice: true }, builderPreset: { backdropId: 'gold-shimmer', shimmerSize: 'large', balloonId: 'garland-7ft' } },
+  { id: 'PROP-HOOP-GLD', sku: 'PROP-HOOP-GLD', department: 'Backdrops & Frames', section: 'Backdrops & Frames', name: 'Circular Gold Balloon Hoop Frame', tier: 'fancy', category: 'Anniversaries', style: 'Circular gold statement frame with organic garland', pricingText: 'From £140 Package', basePrice: 140, hireOnly: true, inStock: true, image: 'public/assets/hero-arch.jpg', builderLink: { type: 'step', stepId: 'backdrop', id: 'balloon-hoop', usePackagePrice: true }, builderPreset: { backdropId: 'balloon-hoop', balloonId: 'garland-7ft' } },
+  { id: 'PROP-BRD-ARCH', sku: 'PROP-BRD-ARCH', department: 'Backdrops & Frames', section: 'Backdrops & Frames', name: 'Personalised Wooden Arch Board', tier: 'fancy', category: 'Anniversaries', style: 'Painted arched board with custom vinyl text & garland', pricingText: 'From £155 Package', basePrice: 155, hireOnly: true, inStock: true, image: 'public/assets/pl-board-sixty.jpg', builderLink: { type: 'step', stepId: 'backdrop', id: 'wooden-board', usePackagePrice: true }, builderPreset: { backdropId: 'wooden-board', balloonId: 'garland-7ft' } },
+  { id: 'PROP-EASEL-SGN', sku: 'PROP-EASEL-SGN', department: 'Backdrops & Frames', section: 'Backdrops & Frames', name: 'Easel Welcome Sign & Garland', tier: 'classic', category: 'Anniversaries', style: 'Personalised welcome board on easel with mini garland', pricingText: '£85 Package', basePrice: 85, hireOnly: true, inStock: true, image: 'public/assets/examples/easel-welcome-sign.jpg', builderLink: { type: 'step', stepId: 'backdrop', id: 'easel-sign' }, builderPreset: { backdropId: 'easel-sign', balloonId: 'clusters-top-bottom' } },
+  { id: 'PROP-WALL-PKG-PLN', sku: 'PROP-WALL-PKG-PLN', department: 'Backdrops & Frames', section: 'Backdrops & Frames', name: 'Shimmer Wall & Display Plinths Package', tier: 'luxury', category: 'Parties', style: 'Sequin wall paired with balloon garland & cylinder plinth', pricingText: 'From £185 Package', basePrice: 185, hireOnly: true, inStock: true, image: 'public/assets/inspire-birthday.jpg', builderPreset: { backdropId: 'gold-shimmer', shimmerSize: 'small', balloonId: 'garland-7ft', extraIds: ['cake-stand'] } },
 
   // 2. Garlands & Arches (Yours to Keep)
-  { id: 'GARL-SIDE-7FT', sku: 'GARL-SIDE-7FT', department: 'Garlands & Arches', section: 'Garlands & Arches', name: '7ft Organic Balloon Garland (One Side)', tier: 'classic', category: 'Parties', style: '7ft organic balloon cascade installed at your venue', pricingText: '£105 Solo', basePrice: 105, hireOnly: false, inStock: true, image: '/public/assets/hero-arch.jpg', builderLink: { type: 'step', stepId: 'balloons', id: 'garland-7ft' }, builderPreset: { backdropId: null, balloonId: 'garland-7ft' } },
-  { id: 'GARL-CLUST-OPP', sku: 'GARL-CLUST-OPP', department: 'Garlands & Arches', section: 'Garlands & Arches', name: 'Top & Bottom Corner Balloon Clusters', tier: 'classic', category: 'Parties', style: 'Two organic clusters framing opposite corners', pricingText: '£85 Solo', basePrice: 85, hireOnly: false, inStock: true, image: '/public/assets/inspire-anniversary.jpg', builderLink: { type: 'step', stepId: 'balloons', id: 'clusters-top-bottom' }, builderPreset: { backdropId: null, balloonId: 'clusters-top-bottom' } },
-  { id: 'GARL-ARCH-FULL', sku: 'GARL-ARCH-FULL', department: 'Garlands & Arches', section: 'Garlands & Arches', name: 'Full Surround Statement Balloon Arch', tier: 'luxury', category: 'Parties', style: 'Freestanding or frame wrap-around organic balloon arch (120 balloons)', pricingText: '£145 Solo / +£35 Upgrade', basePrice: 145, secondPrice: 35, hireOnly: false, inStock: true, image: '/public/assets/hero-arch.jpg', builderLink: { type: 'step', stepId: 'balloons', id: 'garland-full' }, builderPreset: { backdropId: null, balloonId: 'garland-full' } },
+  { id: 'GARL-SIDE-7FT', sku: 'GARL-SIDE-7FT', department: 'Garlands & Arches', section: 'Garlands & Arches', name: '7ft Organic Balloon Garland (One Side)', tier: 'classic', category: 'Parties', style: '7ft organic balloon cascade installed at your venue', pricingText: '£105 Solo', basePrice: 105, hireOnly: false, inStock: true, image: 'public/assets/hero-arch.jpg', builderLink: { type: 'step', stepId: 'balloons', id: 'garland-7ft' }, builderPreset: { backdropId: null, balloonId: 'garland-7ft' } },
+  { id: 'GARL-CLUST-OPP', sku: 'GARL-CLUST-OPP', department: 'Garlands & Arches', section: 'Garlands & Arches', name: 'Top & Bottom Corner Balloon Clusters', tier: 'classic', category: 'Parties', style: 'Two organic clusters framing opposite corners', pricingText: '£85 Solo', basePrice: 85, hireOnly: false, inStock: true, image: 'public/assets/examples/corner-clusters.jpg', builderLink: { type: 'step', stepId: 'balloons', id: 'clusters-top-bottom' }, builderPreset: { backdropId: null, balloonId: 'clusters-top-bottom' } },
+  { id: 'GARL-ARCH-FULL', sku: 'GARL-ARCH-FULL', department: 'Garlands & Arches', section: 'Garlands & Arches', name: 'Full Surround Statement Balloon Arch', tier: 'luxury', category: 'Parties', style: 'Freestanding or frame wrap-around organic balloon arch (120 balloons)', pricingText: '£145 Solo / +£35 Upgrade', basePrice: 145, secondPrice: 35, hireOnly: false, inStock: true, image: 'public/assets/hero-arch.jpg', builderLink: { type: 'step', stepId: 'balloons', id: 'garland-full' }, builderPreset: { backdropId: null, balloonId: 'garland-full' } },
 
   // 3. Numbers, Helium & Stacks (Yours to Keep)
-  { id: 'STK-NUM-BASIC', sku: 'STK-NUM-BASIC', department: 'Numbers, Helium & Stacks', section: 'Numbers, Helium & Stacks', name: 'Freestanding Number Stack (Classic)', tier: 'classic', category: 'Birthdays', style: 'Air-filled foil number on organic latex cluster base', pricingText: '£35 (1-Digit) / £55 (2-Digit)', basePrice: 35, secondPrice: 55, hireOnly: false, inStock: true, image: '/public/assets/pl-stack-30.jpg', builderLink: { type: 'digit', id: 'stack-basic' }, builderPreset: { digitOptionId: 'stack-basic', digitText: '3' } },
-  { id: 'STK-NUM-THEME', sku: 'STK-NUM-THEME', department: 'Numbers, Helium & Stacks', section: 'Numbers, Helium & Stacks', name: 'Freestanding Number Stack (Themed Accents)', tier: 'fancy', category: 'Birthdays', style: 'Custom character or themed foil accents & organic base', pricingText: '£60 (1-Digit) / £80 (2-Digit)', basePrice: 60, secondPrice: 80, hireOnly: false, inStock: true, image: '/public/assets/pl-stack-30.jpg', builderLink: { type: 'digit', id: 'stack-themed' }, builderPreset: { digitOptionId: 'stack-themed', digitText: '13' } },
-  { id: 'STK-NUM-LUX', sku: 'STK-NUM-LUX', department: 'Numbers, Helium & Stacks', section: 'Numbers, Helium & Stacks', name: 'Freestanding Number Stack (Luxury Bows & Orbs)', tier: 'luxury', category: 'Birthdays', style: 'Full luxury sculpture stack with satin bows, orbs & florals', pricingText: '£70 (1-Digit) / £90 (2-Digit)', basePrice: 70, secondPrice: 90, hireOnly: false, inStock: true, image: '/public/assets/pl-stack-30.jpg', builderLink: { type: 'digit', id: 'stack-luxury' }, builderPreset: { digitOptionId: 'stack-luxury', digitText: '30' } },
-  { id: 'HEL-NUM-1DIG', sku: 'HEL-NUM-1DIG', department: 'Numbers, Helium & Stacks', section: 'Numbers, Helium & Stacks', name: 'Helium Foil Number Single + 2 Weighted Clusters', tier: 'classic', category: 'Birthdays', style: 'Giant 34" helium foil number with 2 weighted latex clusters', pricingText: '£36', basePrice: 36, hireOnly: false, inStock: true, image: '/public/assets/pl-bubble-helium.jpg', builderLink: { type: 'digit', id: 'helium-foil-numbers' }, builderPreset: { digitOptionId: 'helium-foil-numbers', digitText: '7' } },
-  { id: 'HEL-NUM-2DIG', sku: 'HEL-NUM-2DIG', department: 'Numbers, Helium & Stacks', section: 'Numbers, Helium & Stacks', name: 'Helium Foil Numbers Double + 2 Weighted Clusters', tier: 'classic', category: 'Birthdays', style: 'Giant 34" helium foil numbers (pair) with 2 weighted latex clusters', pricingText: '£52', basePrice: 52, hireOnly: false, inStock: true, image: '/public/assets/pl-bubble-helium.jpg', builderLink: { type: 'digit', id: 'helium-foil-numbers' }, builderPreset: { digitOptionId: 'helium-foil-numbers', digitText: '30' } },
-  { id: 'HEL-BOUQUET', sku: 'HEL-BOUQUET', department: 'Numbers, Helium & Stacks', section: 'Numbers, Helium & Stacks', name: 'Luxury Helium Bouquet Clusters', tier: 'luxury', category: 'Parties', style: 'Weighted helium bouquet clusters for room dressing', pricingText: 'From £70', basePrice: 70, hireOnly: false, inStock: true, image: '/public/assets/pl-bubble-helium.jpg', builderPreset: { balloonId: 'clusters-top-bottom' } },
-  { id: 'GIFT-BUBBLE', sku: 'GIFT-BUBBLE', department: 'Numbers, Helium & Stacks', section: 'Numbers, Helium & Stacks', name: 'Personalised Deco Bubble Balloon', tier: 'classic', category: 'Baby Showers', style: 'Clear orb with internal mini balloons & custom vinyl text', pricingText: '£35', basePrice: 35, hireOnly: false, inStock: true, image: '/public/assets/pl-bubble-helium.jpg', builderLink: { type: 'step', stepId: 'extras', id: 'bubble-balloon' }, builderPreset: { extraIds: ['bubble-balloon'] } },
+  { id: 'STK-NUM-BASIC', sku: 'STK-NUM-BASIC', department: 'Numbers, Helium & Stacks', section: 'Numbers, Helium & Stacks', name: 'Freestanding Number Stack (Classic)', tier: 'classic', category: 'Birthdays', style: 'Air-filled foil number on organic latex cluster base', pricingText: '£35 (1-Digit) / £55 (2-Digit)', basePrice: 35, secondPrice: 55, hireOnly: false, inStock: true, image: 'public/assets/pl-stack-30.jpg', builderLink: { type: 'digit', id: 'stack-basic' }, builderPreset: { digitOptionId: 'stack-basic', digitText: '3' } },
+  { id: 'STK-NUM-THEME', sku: 'STK-NUM-THEME', department: 'Numbers, Helium & Stacks', section: 'Numbers, Helium & Stacks', name: 'Freestanding Number Stack (Themed Accents)', tier: 'fancy', category: 'Birthdays', style: 'Custom character or themed foil accents & organic base', pricingText: '£60 (1-Digit) / £80 (2-Digit)', basePrice: 60, secondPrice: 80, hireOnly: false, inStock: true, image: 'public/assets/pl-stack-30.jpg', builderLink: { type: 'digit', id: 'stack-themed' }, builderPreset: { digitOptionId: 'stack-themed', digitText: '13' } },
+  { id: 'STK-NUM-LUX', sku: 'STK-NUM-LUX', department: 'Numbers, Helium & Stacks', section: 'Numbers, Helium & Stacks', name: 'Freestanding Number Stack (Luxury Bows & Orbs)', tier: 'luxury', category: 'Birthdays', style: 'Full luxury sculpture stack with satin bows, orbs & florals', pricingText: '£70 (1-Digit) / £90 (2-Digit)', basePrice: 70, secondPrice: 90, hireOnly: false, inStock: true, image: 'public/assets/pl-stack-30.jpg', builderLink: { type: 'digit', id: 'stack-luxury' }, builderPreset: { digitOptionId: 'stack-luxury', digitText: '30' } },
+  { id: 'HEL-NUM-1DIG', sku: 'HEL-NUM-1DIG', department: 'Numbers, Helium & Stacks', section: 'Numbers, Helium & Stacks', name: 'Helium Foil Number Single + 2 Weighted Clusters', tier: 'classic', category: 'Birthdays', style: 'Giant 34" helium foil number with 2 weighted latex clusters', pricingText: '£36', basePrice: 36, hireOnly: false, inStock: true, image: 'public/assets/pl-bubble-helium.jpg', builderLink: { type: 'digit', id: 'helium-foil-numbers' }, builderPreset: { digitOptionId: 'helium-foil-numbers', digitText: '7' } },
+  { id: 'HEL-NUM-2DIG', sku: 'HEL-NUM-2DIG', department: 'Numbers, Helium & Stacks', section: 'Numbers, Helium & Stacks', name: 'Helium Foil Numbers Double + 2 Weighted Clusters', tier: 'classic', category: 'Birthdays', style: 'Giant 34" helium foil numbers (pair) with 2 weighted latex clusters', pricingText: '£52', basePrice: 52, hireOnly: false, inStock: true, image: 'public/assets/pl-bubble-helium.jpg', builderLink: { type: 'digit', id: 'helium-foil-numbers' }, builderPreset: { digitOptionId: 'helium-foil-numbers', digitText: '30' } },
+  { id: 'HEL-BOUQUET', sku: 'HEL-BOUQUET', department: 'Numbers, Helium & Stacks', section: 'Numbers, Helium & Stacks', name: 'Luxury Helium Bouquet Clusters', tier: 'luxury', category: 'Parties', style: 'Weighted helium bouquet clusters for room dressing', pricingText: 'From £70', basePrice: 70, hireOnly: false, inStock: true, image: 'public/assets/pl-bubble-helium.jpg', builderPreset: { balloonId: 'clusters-top-bottom' } },
+  { id: 'GIFT-BUBBLE', sku: 'GIFT-BUBBLE', department: 'Numbers, Helium & Stacks', section: 'Numbers, Helium & Stacks', name: 'Personalised Deco Bubble Balloon', tier: 'classic', category: 'Baby Showers', style: 'Clear orb with internal mini balloons & custom vinyl text', pricingText: '£35', basePrice: 35, hireOnly: false, inStock: true, image: 'public/assets/pl-bubble-helium.jpg', builderLink: { type: 'step', stepId: 'extras', id: 'bubble-balloon' }, builderPreset: { extraIds: ['bubble-balloon'] } },
 
   // 4. Finishing Props & Extras (Hire Only)
-  { id: 'PROP-NEON-HBD', sku: 'PROP-NEON-HBD', department: 'Finishing Props & Extras', section: 'Finishing Props & Extras', name: 'LED Neon Script Sign ("Happy Birthday")', tier: 'fancy', category: 'Birthdays', style: 'Warm white LED neon script sign for shimmer walls or hoop frames', pricingText: '£35 Hire', basePrice: 35, hireOnly: true, inStock: true, image: '/public/assets/inspire-birthday.jpg', builderLink: { type: 'step', stepId: 'extras', id: 'neon-sign' }, builderPreset: { extraIds: ['neon-sign'] } },
-  { id: 'PROP-FLORAL-SP', sku: 'PROP-FLORAL-SP', department: 'Finishing Props & Extras', section: 'Finishing Props & Extras', name: 'Add-On Faux Floral & Foliage Sprays', tier: 'fancy', category: 'Anniversaries', style: 'Faux florals, roses & eucalyptus woven into your balloon display', pricingText: '£36 Hire', basePrice: 36, hireOnly: true, inStock: true, image: '/public/assets/inspire-baby.jpg', builderLink: { type: 'step', stepId: 'extras', id: 'add-on-flowers' }, builderPreset: { extraIds: ['add-on-flowers'] } },
-  { id: 'PROP-BABY-BOX', sku: 'PROP-BABY-BOX', department: 'Finishing Props & Extras', section: 'Finishing Props & Extras', name: 'Baby Shower BABY Blocks (Set of 4)', tier: 'classic', category: 'Baby Showers', style: 'Set of 4 white lettered display cubes filled with palette balloons', pricingText: '£40 Hire', basePrice: 40, hireOnly: true, inStock: true, image: '/public/assets/inspire-baby.jpg', builderLink: { type: 'step', stepId: 'extras', id: 'baby-boxes' }, builderPreset: { extraIds: ['baby-boxes'] } },
-  { id: 'PROP-PLINTH-WH', sku: 'PROP-PLINTH-WH', department: 'Finishing Props & Extras', section: 'Finishing Props & Extras', name: 'White Cylinder Display Plinth', tier: 'classic', category: 'Birthdays', style: 'Luxury white cylinder cake display plinth with mini balloon collar', pricingText: '£60 Hire', basePrice: 60, hireOnly: true, inStock: true, image: '/public/assets/inspire-anniversary.jpg', builderLink: { type: 'step', stepId: 'extras', id: 'cake-stand' }, builderPreset: { extraIds: ['cake-stand'] } },
-  { id: 'PROP-CUTOUT-WD', sku: 'PROP-CUTOUT-WD', department: 'Finishing Props & Extras', section: 'Finishing Props & Extras', name: 'Themed Character Wood Cut-Outs', tier: 'fancy', category: 'Birthdays', style: 'Custom freestanding themed character or prop board cut-out', pricingText: 'From £36 Hire', basePrice: 36, secondPrice: 52, hireOnly: true, inStock: true, image: '/public/assets/pl-board-sixty.jpg', builderLink: { type: 'step', stepId: 'extras', id: 'cut-outs' }, builderPreset: { extraIds: ['cut-outs'] } },
-  { id: 'PROP-TABLE-CTR', sku: 'PROP-TABLE-CTR', department: 'Finishing Props & Extras', section: 'Finishing Props & Extras', name: 'Bespoke Table Centerpieces', tier: 'classic', category: 'Anniversaries', style: 'Bespoke table centerpiece balloon arrangements', pricingText: '£35', basePrice: 35, hireOnly: false, inStock: true, image: '/public/assets/pl-stack-30.jpg', builderLink: { type: 'step', stepId: 'extras', id: 'centerpieces' }, builderPreset: { extraIds: ['centerpieces'] } }
+  { id: 'PROP-NEON-HBD', sku: 'PROP-NEON-HBD', department: 'Finishing Props & Extras', section: 'Finishing Props & Extras', name: 'LED Neon Script Sign ("Happy Birthday")', tier: 'fancy', category: 'Birthdays', style: 'Warm white LED neon script sign for shimmer walls or hoop frames', pricingText: '£35 Hire', basePrice: 35, hireOnly: true, inStock: true, image: 'public/assets/inspire-birthday.jpg', builderLink: { type: 'step', stepId: 'extras', id: 'neon-sign' }, builderPreset: { extraIds: ['neon-sign'] } },
+  { id: 'PROP-FLORAL-SP', sku: 'PROP-FLORAL-SP', department: 'Finishing Props & Extras', section: 'Finishing Props & Extras', name: 'Add-On Faux Floral & Foliage Sprays', tier: 'fancy', category: 'Anniversaries', style: 'Faux florals, roses & eucalyptus woven into your balloon display', pricingText: '£36 Hire', basePrice: 36, hireOnly: true, inStock: true, image: 'public/assets/inspire-baby.jpg', builderLink: { type: 'step', stepId: 'extras', id: 'add-on-flowers' }, builderPreset: { extraIds: ['add-on-flowers'] } },
+  { id: 'PROP-BABY-BOX', sku: 'PROP-BABY-BOX', department: 'Finishing Props & Extras', section: 'Finishing Props & Extras', name: 'Baby Shower BABY Blocks (Set of 4)', tier: 'classic', category: 'Baby Showers', style: 'Set of 4 white lettered display cubes filled with palette balloons', pricingText: '£40 Hire', basePrice: 40, hireOnly: true, inStock: true, image: 'public/assets/inspire-baby.jpg', builderLink: { type: 'step', stepId: 'extras', id: 'baby-boxes' }, builderPreset: { extraIds: ['baby-boxes'] } },
+  { id: 'PROP-PLINTH-WH', sku: 'PROP-PLINTH-WH', department: 'Finishing Props & Extras', section: 'Finishing Props & Extras', name: 'White Cylinder Display Plinth', tier: 'classic', category: 'Birthdays', style: 'Luxury white cylinder cake display plinth with mini balloon collar', pricingText: '£60 Hire', basePrice: 60, hireOnly: true, inStock: true, image: 'public/assets/inspire-anniversary.jpg', builderLink: { type: 'step', stepId: 'extras', id: 'cake-stand' }, builderPreset: { extraIds: ['cake-stand'] } },
+  { id: 'PROP-CUTOUT-WD', sku: 'PROP-CUTOUT-WD', department: 'Finishing Props & Extras', section: 'Finishing Props & Extras', name: 'Themed Character Wood Cut-Outs', tier: 'fancy', category: 'Birthdays', style: 'Custom freestanding themed character or prop board cut-out', pricingText: 'From £36 Hire', basePrice: 36, secondPrice: 52, hireOnly: true, inStock: true, image: 'public/assets/examples/character-cut-outs.jpg', builderLink: { type: 'step', stepId: 'extras', id: 'cut-outs' }, builderPreset: { extraIds: ['cut-outs'] } },
+  { id: 'PROP-TABLE-CTR', sku: 'PROP-TABLE-CTR', department: 'Finishing Props & Extras', section: 'Finishing Props & Extras', name: 'Bespoke Table Centerpieces', tier: 'classic', category: 'Anniversaries', style: 'Bespoke table centerpiece balloon arrangements', pricingText: '£35', basePrice: 35, hireOnly: false, inStock: true, image: 'public/assets/examples/table-centrepiece.jpg', builderLink: { type: 'step', stepId: 'extras', id: 'centerpieces' }, builderPreset: { extraIds: ['centerpieces'] } }
 ];
 
 export const INITIAL_OFFERS = [

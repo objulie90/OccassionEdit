@@ -29,7 +29,7 @@
           "inStock": true,
           "backdropType": "arch-board",
           "surfaceColor": "#E5D5C3",
-          "image": "/public/assets/pl-board-sixty.jpg"
+          "image": "public/assets/pl-board-sixty.jpg"
         },
         {
           "id": "gold-shimmer",
@@ -44,7 +44,7 @@
           "inStock": true,
           "backdropType": "shimmer-wall",
           "surfaceColor": "#D4AF37",
-          "image": "/public/assets/pl-shimmer-lilac.jpg"
+          "image": "public/assets/pl-shimmer-lilac.jpg"
         },
         {
           "id": "silver-shimmer",
@@ -59,7 +59,7 @@
           "inStock": true,
           "backdropType": "shimmer-wall",
           "surfaceColor": "#C4C9CE",
-          "image": "/public/assets/pl-shimmer-lilac.jpg"
+          "image": "public/assets/examples/silver-shimmer-wall.jpg"
         },
         {
           "id": "black-shimmer",
@@ -74,7 +74,7 @@
           "inStock": true,
           "backdropType": "shimmer-wall",
           "surfaceColor": "#242623",
-          "image": "/public/assets/inspire-birthday.jpg"
+          "image": "public/assets/examples/black-shimmer-wall.jpg"
         },
         {
           "id": "pink-shimmer",
@@ -89,7 +89,7 @@
           "inStock": false,
           "backdropType": "shimmer-wall",
           "surfaceColor": "#E2B4BD",
-          "image": "/public/assets/pl-shimmer-lilac.jpg"
+          "image": "public/assets/examples/pink-shimmer-wall.jpg"
         },
         {
           "id": "balloon-hoop",
@@ -102,7 +102,7 @@
           "inStock": true,
           "backdropType": "hoop",
           "surfaceColor": "#C5A059",
-          "image": "/public/assets/inspire-anniversary.jpg"
+          "image": "public/assets/hero-arch.jpg"
         },
         {
           "id": "easel-sign",
@@ -115,7 +115,7 @@
           "inStock": true,
           "backdropType": "easel",
           "surfaceColor": "#FAF8F5",
-          "image": "/public/assets/pl-board-sixty.jpg"
+          "image": "public/assets/examples/easel-welcome-sign.jpg"
         }
       ]
     },
@@ -137,7 +137,7 @@
           "hireOnly": false,
           "inStock": true,
           "layoutType": "side-7ft",
-          "image": "/public/assets/pl-board-sixty.jpg"
+          "image": "public/assets/pl-board-sixty.jpg"
         },
         {
           "id": "clusters-top-bottom",
@@ -148,7 +148,7 @@
           "hireOnly": false,
           "inStock": true,
           "layoutType": "clusters",
-          "image": "/public/assets/inspire-anniversary.jpg"
+          "image": "public/assets/examples/corner-clusters.jpg"
         },
         {
           "id": "garland-full",
@@ -160,7 +160,7 @@
           "hireOnly": false,
           "inStock": true,
           "layoutType": "full-surround",
-          "image": "/public/assets/hero-arch.jpg"
+          "image": "public/assets/hero-arch.jpg"
         }
       ]
     },
@@ -192,7 +192,7 @@
           "hireOnly": true,
           "inStock": true,
           "extraType": "neon",
-          "image": "/public/assets/inspire-birthday.jpg"
+          "image": "public/assets/inspire-birthday.jpg"
         },
         {
           "id": "add-on-flowers",
@@ -203,7 +203,7 @@
           "hireOnly": true,
           "inStock": true,
           "extraType": "flowers",
-          "image": "/public/assets/inspire-baby.jpg"
+          "image": "public/assets/inspire-baby.jpg"
         },
         {
           "id": "baby-boxes",
@@ -214,7 +214,7 @@
           "hireOnly": true,
           "inStock": true,
           "extraType": "boxes",
-          "image": "/public/assets/inspire-baby.jpg"
+          "image": "public/assets/inspire-baby.jpg"
         },
         {
           "id": "bubble-balloon",
@@ -225,7 +225,7 @@
           "hireOnly": false,
           "inStock": true,
           "extraType": "bubble",
-          "image": "/public/assets/pl-bubble-helium.jpg"
+          "image": "public/assets/pl-bubble-helium.jpg"
         },
         {
           "id": "cut-outs",
@@ -236,7 +236,7 @@
           "hireOnly": true,
           "inStock": true,
           "extraType": "cutouts",
-          "image": "/public/assets/pl-board-sixty.jpg"
+          "image": "public/assets/examples/character-cut-outs.jpg"
         },
         {
           "id": "centerpieces",
@@ -247,7 +247,7 @@
           "hireOnly": false,
           "inStock": true,
           "extraType": "centerpiece",
-          "image": "/public/assets/pl-bubble-helium.jpg"
+          "image": "public/assets/examples/table-centrepiece.jpg"
         },
         {
           "id": "cake-stand",
@@ -258,7 +258,7 @@
           "hireOnly": true,
           "inStock": false,
           "extraType": "plinth",
-          "image": "/public/assets/inspire-anniversary.jpg"
+          "image": "public/assets/examples/cake-plinth.jpg"
         }
       ]
     }
@@ -352,7 +352,7 @@
   "curatedPalettes": [
     {
       "id": "palette-sage-gold",
-      "name": "01. Signature Sage & Champagne",
+      "name": "Sage & Gold",
       "description": "Our signature botanical look — matte sage, pearl ivory & warm chrome gold.",
       "colourIds": [
         "sage",
@@ -365,7 +365,7 @@
     },
     {
       "id": "palette-blush-romance",
-      "name": "02. Soft Blush & Pearl Romance",
+      "name": "Blush & Pearl",
       "description": "Soft blush pinks, warm taupe and luminous pearl ivory.",
       "colourIds": [
         "blush-pink",
@@ -378,7 +378,7 @@
     },
     {
       "id": "palette-teddy-neutrals",
-      "name": "03. Teddy & Warm Neutrals",
+      "name": "Warm Neutrals",
       "description": "Calm tones of warm taupe, pearl ivory, champagne gold & sage.",
       "colourIds": [
         "nude-stone",
@@ -391,7 +391,7 @@
     },
     {
       "id": "palette-pastel-celebration",
-      "name": "04. Pastel Sky & Lemon Edit",
+      "name": "Pastel Sky",
       "description": "Fresh spring tones of sky blue, lemon butter, soft lilac & pearl.",
       "colourIds": [
         "pastel-blue",
@@ -404,7 +404,7 @@
     },
     {
       "id": "palette-black-gold-luxe",
-      "name": "05. After-Dark Black & Gold Luxe",
+      "name": "Black & Gold",
       "description": "Statement styling with obsidian black, chrome gold, silver & pearl.",
       "colourIds": [
         "matte-black",
@@ -424,7 +424,7 @@
       "type": "none",
       "basePrice": 0,
       "extraCharPrice": 0,
-      "image": null,
+      "image": "",
       "inStock": true
     },
     {
@@ -437,7 +437,7 @@
       "extraCharPrice": 16,
       "maxChars": 4,
       "defaultText": "30",
-      "image": "/public/assets/pl-bubble-helium.jpg",
+      "image": "public/assets/pl-bubble-helium.jpg",
       "inStock": true
     },
     {
@@ -450,7 +450,7 @@
       "extraCharPrice": 20,
       "maxChars": 2,
       "defaultText": "3",
-      "image": "/public/assets/pl-stack-30.jpg",
+      "image": "public/assets/pl-stack-30.jpg",
       "inStock": true
     },
     {
@@ -463,7 +463,7 @@
       "extraCharPrice": 20,
       "maxChars": 2,
       "defaultText": "13",
-      "image": "/public/assets/pl-stack-30.jpg",
+      "image": "public/assets/pl-stack-30.jpg",
       "inStock": true
     },
     {
@@ -476,7 +476,7 @@
       "extraCharPrice": 20,
       "maxChars": 2,
       "defaultText": "30",
-      "image": "/public/assets/pl-stack-30.jpg",
+      "image": "public/assets/pl-stack-30.jpg",
       "inStock": true
     },
     {
@@ -488,7 +488,7 @@
       "perLetter": true,
       "maxChars": 8,
       "defaultText": "BABY",
-      "image": "/public/assets/inspire-baby.jpg",
+      "image": "public/assets/examples/letter-balloons.jpg",
       "inStock": true
     }
   ],
@@ -499,7 +499,7 @@
       "title": "The 21st Gold Shimmer & Sage Edit",
       "description": "Gold Sequin Shimmer Wall dressed with a 7ft Organic Sage, Pearl & Chrome Gold garland, warm LED \"Happy Birthday\" neon sign, and double-digit \"21\" foil numbers.",
       "guidePrice": 237,
-      "image": "/public/assets/inspire-birthday.jpg",
+      "image": "public/assets/inspire-birthday.jpg",
       "isExampleWatermark": true,
       "cornerBanner": {
         "enabled": true,
@@ -527,7 +527,7 @@
       "title": "Botanical Oak Arch & BABY Block Package",
       "description": "Bespoke arched wooden backdrop board with Teddy & Sage organic garland, pampas floral accents, and our 4 white \"BABY\" hire blocks.",
       "guidePrice": 231,
-      "image": "/public/assets/inspire-baby.jpg",
+      "image": "public/assets/inspire-baby.jpg",
       "isExampleWatermark": true,
       "cornerBanner": {
         "enabled": false,
@@ -556,7 +556,7 @@
       "title": "Blush & Champagne Circular Hoop Statement",
       "description": "Gold circular statement hoop dressed in Soft Blush, Pearl Ivory & Champagne Gold balloons with cascading white florals.",
       "guidePrice": 176,
-      "image": "/public/assets/inspire-anniversary.jpg",
+      "image": "public/assets/inspire-anniversary.jpg",
       "isExampleWatermark": true,
       "cornerBanner": {
         "enabled": false,
@@ -584,7 +584,7 @@
       "title": "Lilac & Gold Butterfly Shimmer Wall",
       "description": "Large Shimmer Wall dressed with Lilac, Plum, Pearl & Chrome Gold balloons and delicate butterfly accents.",
       "guidePrice": 180,
-      "image": "/public/assets/pl-shimmer-lilac.jpg",
+      "image": "public/assets/pl-shimmer-lilac.jpg",
       "isExampleWatermark": true,
       "cornerBanner": {
         "enabled": false,
@@ -616,7 +616,7 @@
       "basePrice": 35,
       "hireOnly": false,
       "inStock": true,
-      "image": "/public/assets/pl-stack-30.jpg",
+      "image": "public/assets/pl-stack-30.jpg",
       "builderLink": {
         "type": "digit",
         "id": "stack-basic"
@@ -636,7 +636,7 @@
       "basePrice": 60,
       "hireOnly": false,
       "inStock": true,
-      "image": "/public/assets/pl-stack-30.jpg",
+      "image": "public/assets/pl-stack-30.jpg",
       "builderLink": {
         "type": "digit",
         "id": "stack-themed"
@@ -656,7 +656,7 @@
       "basePrice": 70,
       "hireOnly": false,
       "inStock": true,
-      "image": "/public/assets/pl-stack-30.jpg",
+      "image": "public/assets/pl-stack-30.jpg",
       "builderLink": {
         "type": "digit",
         "id": "stack-luxury"
@@ -676,7 +676,7 @@
       "basePrice": 35,
       "hireOnly": false,
       "inStock": true,
-      "image": "/public/assets/pl-bubble-helium.jpg",
+      "image": "public/assets/pl-bubble-helium.jpg",
       "builderLink": {
         "type": "step",
         "stepId": "extras",
@@ -698,7 +698,7 @@
       "basePrice": 36,
       "hireOnly": false,
       "inStock": true,
-      "image": "/public/assets/pl-bubble-helium.jpg",
+      "image": "public/assets/pl-bubble-helium.jpg",
       "builderLink": {
         "type": "digit",
         "id": "helium-foil-numbers"
@@ -706,7 +706,8 @@
       "builderPreset": {
         "digitOptionId": "helium-foil-numbers",
         "digitText": "21"
-      }
+      },
+      "secondPrice": 52
     },
     {
       "id": "csv-18",
@@ -718,7 +719,7 @@
       "basePrice": 70,
       "hireOnly": false,
       "inStock": true,
-      "image": "/public/assets/pl-bubble-helium.jpg",
+      "image": "public/assets/pl-bubble-helium.jpg",
       "builderPreset": {
         "balloonId": "clusters-top-bottom"
       }
@@ -733,7 +734,7 @@
       "basePrice": 35,
       "hireOnly": false,
       "inStock": true,
-      "image": "/public/assets/pl-stack-30.jpg",
+      "image": "public/assets/examples/table-centrepiece.jpg",
       "builderLink": {
         "type": "step",
         "stepId": "extras",
@@ -755,7 +756,7 @@
       "basePrice": 105,
       "hireOnly": false,
       "inStock": true,
-      "image": "/public/assets/hero-arch.jpg",
+      "image": "public/assets/hero-arch.jpg",
       "builderLink": {
         "type": "step",
         "stepId": "balloons",
@@ -776,7 +777,7 @@
       "basePrice": 155,
       "hireOnly": true,
       "inStock": true,
-      "image": "/public/assets/pl-board-sixty.jpg",
+      "image": "public/assets/pl-board-sixty.jpg",
       "builderLink": {
         "type": "step",
         "stepId": "backdrop",
@@ -798,7 +799,7 @@
       "basePrice": 85,
       "hireOnly": true,
       "inStock": true,
-      "image": "/public/assets/pl-board-sixty.jpg",
+      "image": "public/assets/examples/easel-welcome-sign.jpg",
       "builderLink": {
         "type": "step",
         "stepId": "backdrop",
@@ -819,7 +820,7 @@
       "basePrice": 150,
       "hireOnly": true,
       "inStock": true,
-      "image": "/public/assets/pl-shimmer-lilac.jpg",
+      "image": "public/assets/pl-shimmer-lilac.jpg",
       "builderLink": {
         "type": "step",
         "stepId": "backdrop",
@@ -842,7 +843,7 @@
       "basePrice": 145,
       "hireOnly": false,
       "inStock": true,
-      "image": "/public/assets/hero-arch.jpg",
+      "image": "public/assets/hero-arch.jpg",
       "builderLink": {
         "type": "step",
         "stepId": "balloons",
@@ -863,7 +864,7 @@
       "basePrice": 140,
       "hireOnly": true,
       "inStock": true,
-      "image": "/public/assets/inspire-anniversary.jpg",
+      "image": "public/assets/hero-arch.jpg",
       "builderLink": {
         "type": "step",
         "stepId": "backdrop",
@@ -885,7 +886,7 @@
       "basePrice": 185,
       "hireOnly": true,
       "inStock": true,
-      "image": "/public/assets/inspire-birthday.jpg",
+      "image": "public/assets/inspire-birthday.jpg",
       "builderPreset": {
         "backdropId": "gold-shimmer",
         "shimmerSize": "small",
@@ -905,7 +906,7 @@
       "basePrice": 40,
       "hireOnly": true,
       "inStock": true,
-      "image": "/public/assets/inspire-baby.jpg",
+      "image": "public/assets/inspire-baby.jpg",
       "builderLink": {
         "type": "step",
         "stepId": "extras",
@@ -927,7 +928,7 @@
       "basePrice": 60,
       "hireOnly": true,
       "inStock": false,
-      "image": "/public/assets/inspire-anniversary.jpg",
+      "image": "public/assets/inspire-anniversary.jpg",
       "builderLink": {
         "type": "step",
         "stepId": "extras",
@@ -949,7 +950,7 @@
       "basePrice": 36,
       "hireOnly": true,
       "inStock": true,
-      "image": "/public/assets/pl-board-sixty.jpg",
+      "image": "public/assets/examples/character-cut-outs.jpg",
       "builderLink": {
         "type": "step",
         "stepId": "extras",
@@ -971,7 +972,7 @@
       "basePrice": 60,
       "hireOnly": true,
       "inStock": false,
-      "image": "/public/assets/inspire-anniversary.jpg",
+      "image": "public/assets/examples/cake-plinth.jpg",
       "builderLink": {
         "type": "step",
         "stepId": "extras",
@@ -993,7 +994,7 @@
       "basePrice": 35,
       "hireOnly": true,
       "inStock": true,
-      "image": "/public/assets/inspire-birthday.jpg",
+      "image": "public/assets/inspire-birthday.jpg",
       "builderLink": {
         "type": "step",
         "stepId": "extras",
@@ -1015,7 +1016,7 @@
       "basePrice": 36,
       "hireOnly": true,
       "inStock": true,
-      "image": "/public/assets/inspire-baby.jpg",
+      "image": "public/assets/inspire-baby.jpg",
       "builderLink": {
         "type": "step",
         "stepId": "extras",

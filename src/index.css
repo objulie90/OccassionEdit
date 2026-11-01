@@ -4339,6 +4339,7 @@ input:focus-visible,
     margin: 0 auto !important;
     font-family: 'Cormorant Garamond', Georgia, serif !important;
   }
+}
 
 /* ---------------------------------------------------------------------------
  * LUXURY DELIVERY RATES & LEAFLET MAP SECTION OVERHAUL
@@ -4385,6 +4386,7 @@ input:focus-visible,
 
 .oe-postcode-input {
   flex: 1;
+  min-width: 0;
   padding: 0.65rem 0.85rem;
   border-radius: 8px;
   border: 1.5px solid #D6D3D1;
@@ -4636,3 +4638,89 @@ input:focus-visible,
   border-color: #1C1E1B;
 }
 
+
+.oe-quote-submit-error {
+  margin: 0 0 0.75rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 10px;
+  background: #FBEAE8;
+  color: #8A2E25;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.oe-dossier-empty-note {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #5C5852;
+}
+
+.oe-dossier-no-snapshot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  height: 100%;
+  min-height: 180px;
+  padding: 1rem;
+  text-align: center;
+  font-size: 0.8rem;
+  color: #FAF6F0;
+}
+
+.oe-preview-banner {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  padding: 0.45rem 1rem;
+  background: #1E211C;
+  color: #F2DF74;
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+/* Phone widths: grid and flex children may shrink below their content,
+   so long builder content wraps instead of widening the whole page */
+.oe-builder-two-panel > *,
+.oe-delivery-dual-grid > * {
+  min-width: 0;
+}
+
+.oe-footer-links {
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.oe-step-action-bar {
+  flex-wrap: wrap;
+}
+
+/* Highlights a multi-buy saving, e.g. two helium numbers */
+.oe-saving-chip {
+  display: inline-block;
+  margin-top: 0.35rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: #E0EFE2;
+  color: #2D6A3E !important;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* Marks stand-in pictures until Laura's own photos replace them */
+.oe-example-photo-tag {
+  position: absolute;
+  left: 0.5rem;
+  bottom: 0.5rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(30, 33, 28, 0.72);
+  color: #FAF6F0;
+  font-size: 0.7rem;
+  font-weight: 600;
+}

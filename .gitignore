@@ -8,3 +8,5 @@ node_modules/
 # Local Session Secret
 .encryption_key
 data/.encryption_key
+dist/
+dist-preview/
